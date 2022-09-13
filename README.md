@@ -6,6 +6,4 @@
   * `PyNEP`: https://github.com/bigd4/PyNEP
   * `calorine`: https://gitlab.com/materials-modeling/calorine
   
-* `NEP_CPU` is not designed for large-scale atomistic simulations. For this purpose, `GPUMD` is the better choice.
-
-* Particularly, the per-atom virial as produced by `NEP_CPU` is **NOT suitable for computing the per-atom heat current**.
+* `NEP_CPU` is not designed for large-scale atomistic simulations. Particularly, the per-atom virial as produced by `NEP_CPU` is **NOT suitable for computing the per-atom heat current**. For large-scale simulations and heat current calculations, `GPUMD` is the better choice.
