@@ -1,8 +1,8 @@
 # NEP_CPU
 
-* This is a serial CPU version (a standalone C++ class) of the NEP machine-learned potential as introduced in the GPUMD package (https://github.com/brucefan1983/GPUMD)
+* This is a serial CPU implementation (a standalone C++ class) of the NEP machine-learned potential as introduced in the GPUMD package (https://github.com/brucefan1983/GPUMD)
 
-* `NEP_CPU is mainly used as the engine powering the following two Python packages:
+* `NEP_CPU` is mainly used as an engine powering the following two Python packages:
   * `PyNEP`: https://github.com/bigd4/PyNEP
   * `calorine`: https://gitlab.com/materials-modeling/calorine
   
