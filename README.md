@@ -6,4 +6,4 @@
   * `PyNEP`: https://github.com/bigd4/PyNEP
   * `calorine`: https://gitlab.com/materials-modeling/calorine
   
-* `NEP_CPU` is not designed for large-scale atomistic simulations. For this purpose, please `GPUMD` is the better choice.
+* `NEP_CPU` is not designed for large-scale atomistic simulations. For this purpose, `GPUMD` is the better choice.
