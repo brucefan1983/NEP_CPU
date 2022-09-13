@@ -7,3 +7,5 @@
   * `calorine`: https://gitlab.com/materials-modeling/calorine
   
 * `NEP_CPU` is not designed for large-scale atomistic simulations. For this purpose, `GPUMD` is the better choice.
+
+* Particularly, the per-atom virial as produced by `NEP_CPU` is ''NOT suitable for computing the per-atom heat current''.
