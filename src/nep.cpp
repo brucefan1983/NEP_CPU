@@ -1154,10 +1154,13 @@ void find_descriptor_for_lammps(
       int n2 = g_NL[n1][i1];
       double r12[3] = {
         g_pos[n2][0] - g_pos[n1][0], g_pos[n2][1] - g_pos[n1][1], g_pos[n2][2] - g_pos[n1][2]};
-      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
-      if (d12 >= paramb.rc_radial) {
+
+      double d12sq = r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2];
+      if (d12sq >= paramb.rc_radial * paramb.rc_radial) {
         continue;
       }
+      double d12 = sqrt(d12sq);
+
       double fc12;
       find_fc(paramb.rc_radial, paramb.rcinv_radial, d12, fc12);
       int t2 = g_type[n2] - 1; // from LAMMPS to NEP convention
@@ -1190,10 +1193,13 @@ void find_descriptor_for_lammps(
         int n2 = g_NL[n1][i1];
         double r12[3] = {
           g_pos[n2][0] - g_pos[n1][0], g_pos[n2][1] - g_pos[n1][1], g_pos[n2][2] - g_pos[n1][2]};
-        double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
-        if (d12 >= paramb.rc_angular) {
+
+        double d12sq = r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2];
+        if (d12sq >= paramb.rc_angular * paramb.rc_angular) {
           continue;
         }
+        double d12 = sqrt(d12sq);
+
         double fc12;
         find_fc(paramb.rc_angular, paramb.rcinv_angular, d12, fc12);
         int t2 = g_type[n2] - 1; // from LAMMPS to NEP convention
@@ -1268,10 +1274,13 @@ void find_force_radial_for_lammps(
       int t2 = g_type[n2] - 1; // from LAMMPS to NEP convention
       double r12[3] = {
         g_pos[n2][0] - g_pos[n1][0], g_pos[n2][1] - g_pos[n1][1], g_pos[n2][2] - g_pos[n1][2]};
-      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
-      if (d12 >= paramb.rc_radial) {
+
+      double d12sq = r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2];
+      if (d12sq >= paramb.rc_radial * paramb.rc_radial) {
         continue;
       }
+      double d12 = sqrt(d12sq);
+
       double d12inv = 1.0 / d12;
       double fc12, fcp12;
       find_fc_and_fcp(paramb.rc_radial, paramb.rcinv_radial, d12, fc12, fcp12);
@@ -1358,10 +1367,13 @@ void find_force_angular_for_lammps(
       int n2 = g_NL[n1][i1];
       double r12[3] = {
         g_pos[n2][0] - g_pos[n1][0], g_pos[n2][1] - g_pos[n1][1], g_pos[n2][2] - g_pos[n1][2]};
-      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
-      if (d12 >= paramb.rc_angular) {
+
+      double d12sq = r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2];
+      if (d12sq >= paramb.rc_angular * paramb.rc_angular) {
         continue;
       }
+      double d12 = sqrt(d12sq);
+
       double fc12, fcp12;
       find_fc_and_fcp(paramb.rc_angular, paramb.rcinv_angular, d12, fc12, fcp12);
       int t2 = g_type[n2] - 1; // from LAMMPS to NEP convention
@@ -1447,10 +1459,13 @@ void find_force_ZBL_for_lammps(
       int n2 = g_NL[n1][i1];
       double r12[3] = {
         g_pos[n2][0] - g_pos[n1][0], g_pos[n2][1] - g_pos[n1][1], g_pos[n2][2] - g_pos[n1][2]};
-      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
-      if (d12 >= zbl.rc_outer) {
+
+      double d12sq = r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2];
+      if (d12sq >= zbl.rc_outer * zbl.rc_outer) {
         continue;
       }
+      double d12 = sqrt(d12sq);
+
       double d12inv = 1.0 / d12;
       double f, fp;
       double zj = zbl.atomic_numbers[g_type[n2] - 1]; // from LAMMPS to NEP convention
