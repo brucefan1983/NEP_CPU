@@ -1553,14 +1553,22 @@ void get_expanded_box(const double rc, const double* box, int* num_cells, double
   get_inverse(ebox);
 }
 
+void applyMicOne(double& x12)
+{
+  if (x12 < -0.5)
+    x12 += 1.0;
+  else if (x12 > +0.5)
+    x12 -= 1.0;
+}
+
 void apply_mic_small_box(const double* ebox, double& x12, double& y12, double& z12)
 {
   double sx12 = ebox[9] * x12 + ebox[10] * y12 + ebox[11] * z12;
   double sy12 = ebox[12] * x12 + ebox[13] * y12 + ebox[14] * z12;
   double sz12 = ebox[15] * x12 + ebox[16] * y12 + ebox[17] * z12;
-  sx12 -= nearbyint(sx12);
-  sy12 -= nearbyint(sy12);
-  sz12 -= nearbyint(sz12);
+  applyMicOne(sx12);
+  applyMicOne(sy12);
+  applyMicOne(sz12);
   x12 = ebox[0] * sx12 + ebox[1] * sy12 + ebox[2] * sz12;
   y12 = ebox[3] * sx12 + ebox[4] * sy12 + ebox[5] * sz12;
   z12 = ebox[6] * sx12 + ebox[7] * sy12 + ebox[8] * sz12;
