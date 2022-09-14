@@ -33,9 +33,10 @@ heat transport, Phys. Rev. B. 104, 104309 (2021).
 
 namespace
 {
-const int MN = 1000;       // maximum number of neighbors for one atom
-const int NUM_OF_ABC = 24; // 3 + 5 + 7 + 9 for L_max = 4
-const int MAX_NUM_N = 20;  // n_max+1 = 19+1
+const int MAX_NEURON = 200; // maximum number of neurons in the hidden layer
+const int MN = 1000;        // maximum number of neighbors for one atom
+const int NUM_OF_ABC = 24;  // 3 + 5 + 7 + 9 for L_max = 4
+const int MAX_NUM_N = 20;   // n_max+1 = 19+1
 const int MAX_DIM = MAX_NUM_N * 7;
 const int MAX_DIM_ANGULAR = MAX_NUM_N * 6;
 const double C3B[NUM_OF_ABC] = {
@@ -882,7 +883,7 @@ void find_descriptor_small_box(
         q[d] = q[d] * paramb.q_scaler[d];
       }
 
-      double F = 0.0, Fp[MAX_DIM] = {0.0}, latent_space[100] = {0.0};
+      double F = 0.0, Fp[MAX_DIM] = {0.0}, latent_space[MAX_NEURON] = {0.0};
       apply_ann_one_layer(
         annmb.dim, annmb.num_neurons1, annmb.w0, annmb.b0, annmb.w1, annmb.b1, q, F, Fp,
         latent_space);
@@ -1233,7 +1234,7 @@ void find_descriptor_for_lammps(
       q[d] = q[d] * paramb.q_scaler[d];
     }
 
-    double F = 0.0, Fp[MAX_DIM] = {0.0}, latent_space[100] = {0.0};
+    double F = 0.0, Fp[MAX_DIM] = {0.0}, latent_space[MAX_NEURON] = {0.0};
     apply_ann_one_layer(
       annmb.dim, annmb.num_neurons1, annmb.w0, annmb.b0, annmb.w1, annmb.b1, q, F, Fp,
       latent_space);
