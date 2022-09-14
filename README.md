@@ -1,2 +1,9 @@
 # NEP_CPU
-Serial CPU version of NEP
+
+* This is a serial CPU implementation (a standalone C++ class) of the NEP machine-learned potential as introduced in the GPUMD package (https://github.com/brucefan1983/GPUMD)
+
+* `NEP_CPU` is mainly used as an engine powering the following two Python packages:
+  * `PyNEP`: https://github.com/bigd4/PyNEP
+  * `calorine`: https://gitlab.com/materials-modeling/calorine
+  
+* `NEP_CPU` is not designed for large-scale atomistic simulations. Particularly, the per-atom virial as produced by `NEP_CPU` is **NOT suitable for computing the per-atom heat current**. For large-scale simulations and heat current calculations, `GPUMD` is the better choice.
