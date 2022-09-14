@@ -13,21 +13,21 @@ figure;
 subplot(2,3,1)
 plot(descriptor-descriptor_ref,'o-');hold on;
 xlabel('components');
-ylabel('descriptor - descriptor_ref');
+ylabel('diff-descriptor');
 set(gca,'fontsize',15);
 
 % should be about 1e-14 or zero
 subplot(2,3,2)
 plot(force_analytical-force_analytical_ref,'o-');hold on;
 xlabel('components');
-ylabel('force_analytical - force_analytical_ref');
+ylabel('diff-analytical');
 set(gca,'fontsize',15);
 
 % should be about 1e-8 or zero
 subplot(2,3,3)
 plot(force_finite_difference-force_finite_difference_ref,'o-');hold on;
 xlabel('components');
-ylabel('force_finite_difference - force_finite_difference_ref');
+ylabel('diff-FD');
 set(gca,'fontsize',15);
 
 % should be of the order of 1e-6 (used float32 in GPU)
@@ -41,5 +41,5 @@ set(gca,'fontsize',15);
 subplot(2,3,5)
 plot((force_finite_difference-force_analytical)/max_force);
 xlabel('force components');
-ylabel('finite-difference - analytical (eV/A)');
+ylabel('FD - analytical (eV/A)');
 set(gca,'fontsize',15);
