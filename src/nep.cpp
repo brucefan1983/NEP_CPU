@@ -1307,22 +1307,22 @@ void find_force_radial_for_lammps(
         }
       }
 
-      g_force[n1][0] = f12[0]; // no accumulation here
-      g_force[n1][1] = f12[1];
-      g_force[n1][2] = f12[2];
-      g_force[n2][0] = -f12[0];
-      g_force[n2][1] = -f12[1];
-      g_force[n2][2] = -f12[2];
+      g_force[n1][0] += f12[0];
+      g_force[n1][1] += f12[1];
+      g_force[n1][2] += f12[2];
+      g_force[n2][0] -= f12[0];
+      g_force[n2][1] -= f12[1];
+      g_force[n2][2] -= f12[2];
       // see equation (24) of the GPUMD-JCP paper
-      g_virial[n2][0] = -r12[0] * f12[0];
-      g_virial[n2][1] = -r12[0] * f12[1];
-      g_virial[n2][2] = -r12[0] * f12[2];
-      g_virial[n2][3] = -r12[1] * f12[0];
-      g_virial[n2][4] = -r12[1] * f12[1];
-      g_virial[n2][5] = -r12[1] * f12[2];
-      g_virial[n2][6] = -r12[2] * f12[0];
-      g_virial[n2][7] = -r12[2] * f12[1];
-      g_virial[n2][8] = -r12[2] * f12[2];
+      g_virial[n2][0] -= r12[0] * f12[0];
+      g_virial[n2][1] -= r12[0] * f12[1];
+      g_virial[n2][2] -= r12[0] * f12[2];
+      g_virial[n2][3] -= r12[1] * f12[0];
+      g_virial[n2][4] -= r12[1] * f12[1];
+      g_virial[n2][5] -= r12[1] * f12[2];
+      g_virial[n2][6] -= r12[2] * f12[0];
+      g_virial[n2][7] -= r12[2] * f12[1];
+      g_virial[n2][8] -= r12[2] * f12[2];
     }
   }
 }
@@ -1407,7 +1407,7 @@ void find_force_angular_for_lammps(
         }
       }
 
-      g_force[n1][0] += f12[0]; // accumulation here
+      g_force[n1][0] += f12[0];
       g_force[n1][1] += f12[1];
       g_force[n1][2] += f12[2];
       g_force[n2][0] -= f12[0];
