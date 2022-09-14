@@ -90,15 +90,15 @@ public:
     std::vector<double>& latent_space);
 
   void compute_for_lammps(
-    const int N,        // number of atoms in the current processor
-    const int* ilist,   // ilist[ii] = i is the ii-th atom in the current processor
-    const int* NN,      // NN[i] is the number of neighbors of atom i
-    const int** NL,     // NL[i][jj] = j is the jj-th neighbor of atom i
-    const int* type,    // type[i] - 1 will be the type of atom i used by NEP
-    const double** pos, // pos[i][0-2] = x, y, and z of atom i
-    double* potential,  // potential[i] = potential energy of atom i
-    double** force,     // force[i][0-2] = fx, fy, and fz of atom i
-    double** virial     // virial[i][0-8] = vxx, vxy, vxz, vyx, vyy, vyz, vzx, vzy, vzz of atom i
+    int N,             // number of atoms in the current processor
+    int* ilist,        // ilist[ii] = i is the ii-th atom in the current processor
+    int* NN,           // NN[i] is the number of neighbors of atom i
+    int** NL,          // NL[i][jj] = j is the jj-th neighbor of atom i
+    int* type,         // type[i] - 1 will be the type of atom i used by NEP
+    double** pos,      // pos[i][0-2] = x, y, and z of atom i
+    double* potential, // potential[i] = potential energy of atom i
+    double** force,    // force[i][0-2] = fx, fy, and fz of atom i
+    double** virial    // virial[i][0-8] = vxx, vxy, vxz, vyx, vyy, vyz, vzx, vzy, vzz of atom i
   );
 
   int num_atoms = 0;
