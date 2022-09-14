@@ -6,36 +6,40 @@ load descriptor.out;
 load force_analytical_ref.out;
 load force_finite_difference_ref.out;
 load descriptor_ref.out;
+max_force=max(max(abs(force_gpu)));
 
+% should be about 1e-14 or zero
 figure;
+subplot(2,3,1)
 plot(descriptor-descriptor_ref,'o-');hold on;
 xlabel('components');
 ylabel('descriptor - descriptor_ref');
 set(gca,'fontsize',15);
 
-figure;
+% should be about 1e-14 or zero
+subplot(2,3,2)
 plot(force_analytical-force_analytical_ref,'o-');hold on;
 xlabel('components');
 ylabel('force_analytical - force_analytical_ref');
 set(gca,'fontsize',15);
 
-figure;
+% should be about 1e-8 or zero
+subplot(2,3,3)
 plot(force_finite_difference-force_finite_difference_ref,'o-');hold on;
 xlabel('components');
 ylabel('force_finite_difference - force_finite_difference_ref');
 set(gca,'fontsize',15);
 
-% The difference should be of the order of 1.0e-5 (used float32 in GPU)
-figure;
-plot(force_gpu-force_analytical);
+% should be of the order of 1e-6 (used float32 in GPU)
+subplot(2,3,4)
+plot((force_gpu-force_analytical)/max_force);
 xlabel('force components');
 ylabel('GPU (float) - CPU (double) (eV/A)');
 set(gca,'fontsize',15);
 
-figure;
-plot(force_finite_difference-force_analytical);
+% should be of the order of 1e-8
+subplot(2,3,5)
+plot((force_finite_difference-force_analytical)/max_force);
 xlabel('force components');
 ylabel('finite-difference - analytical (eV/A)');
 set(gca,'fontsize',15);
-
-
