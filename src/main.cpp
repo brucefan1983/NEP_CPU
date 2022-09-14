@@ -224,6 +224,23 @@ void compare_analytical_and_finite_difference(Atom& atom, NEP3& nep3)
   }
   output_finite_difference.close();
   std::cout << "    finite-difference forces are written into force_finite_difference.out.\n";
+
+  std::ofstream output_file_virial("virial.out");
+
+  if (!output_file_virial.is_open()) {
+    std::cout << "Cannot open virial.out\n";
+    exit(1);
+  }
+  output_file_virial << std::setprecision(15);
+  for (int n = 0; n < atom.N; ++n) {
+    output_file_virial << atom.virial[n + atom.N * 0] << " " << atom.virial[n + atom.N * 1] << " "
+                       << atom.virial[n + atom.N * 2] << " " << atom.virial[n + atom.N * 3] << " "
+                       << atom.virial[n + atom.N * 4] << " " << atom.virial[n + atom.N * 5] << " "
+                       << atom.virial[n + atom.N * 6] << " " << atom.virial[n + atom.N * 7] << " "
+                       << atom.virial[n + atom.N * 8] << "\n";
+  }
+  output_file_virial.close();
+  std::cout << "    virials are written into virial.out.\n";
 }
 
 void get_descriptor(Atom& atom, NEP3& nep3)
