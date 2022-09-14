@@ -970,15 +970,15 @@ void find_force_radial_small_box(
       g_fx[n2] -= f12[0];
       g_fy[n2] -= f12[1];
       g_fz[n2] -= f12[2];
-      g_virial[n1 + 0 * N] -= r12[0] * f12[0];
-      g_virial[n1 + 1 * N] -= r12[0] * f12[1];
-      g_virial[n1 + 2 * N] -= r12[0] * f12[2];
-      g_virial[n1 + 3 * N] -= r12[1] * f12[0];
-      g_virial[n1 + 4 * N] -= r12[1] * f12[1];
-      g_virial[n1 + 5 * N] -= r12[1] * f12[2];
-      g_virial[n1 + 6 * N] -= r12[2] * f12[0];
-      g_virial[n1 + 7 * N] -= r12[2] * f12[1];
-      g_virial[n1 + 8 * N] -= r12[2] * f12[2];
+      g_virial[n2 + 0 * N] -= r12[0] * f12[0];
+      g_virial[n2 + 1 * N] -= r12[0] * f12[1];
+      g_virial[n2 + 2 * N] -= r12[0] * f12[2];
+      g_virial[n2 + 3 * N] -= r12[1] * f12[0];
+      g_virial[n2 + 4 * N] -= r12[1] * f12[1];
+      g_virial[n2 + 5 * N] -= r12[1] * f12[2];
+      g_virial[n2 + 6 * N] -= r12[2] * f12[0];
+      g_virial[n2 + 7 * N] -= r12[2] * f12[1];
+      g_virial[n2 + 8 * N] -= r12[2] * f12[2];
     }
   }
 }
@@ -1068,15 +1068,15 @@ void find_force_angular_small_box(
       g_fx[n2] -= f12[0];
       g_fy[n2] -= f12[1];
       g_fz[n2] -= f12[2];
-      g_virial[n1 + 0 * N] -= r12[0] * f12[0];
-      g_virial[n1 + 1 * N] -= r12[0] * f12[1];
-      g_virial[n1 + 2 * N] -= r12[0] * f12[2];
-      g_virial[n1 + 3 * N] -= r12[1] * f12[0];
-      g_virial[n1 + 4 * N] -= r12[1] * f12[1];
-      g_virial[n1 + 5 * N] -= r12[1] * f12[2];
-      g_virial[n1 + 6 * N] -= r12[2] * f12[0];
-      g_virial[n1 + 7 * N] -= r12[2] * f12[1];
-      g_virial[n1 + 8 * N] -= r12[2] * f12[2];
+      g_virial[n2 + 0 * N] -= r12[0] * f12[0];
+      g_virial[n2 + 1 * N] -= r12[0] * f12[1];
+      g_virial[n2 + 2 * N] -= r12[0] * f12[2];
+      g_virial[n2 + 3 * N] -= r12[1] * f12[0];
+      g_virial[n2 + 4 * N] -= r12[1] * f12[1];
+      g_virial[n2 + 5 * N] -= r12[1] * f12[2];
+      g_virial[n2 + 6 * N] -= r12[2] * f12[0];
+      g_virial[n2 + 7 * N] -= r12[2] * f12[1];
+      g_virial[n2 + 8 * N] -= r12[2] * f12[2];
     }
   }
 }
@@ -1118,15 +1118,15 @@ void find_force_ZBL_small_box(
       g_fx[n2] -= f12[0];
       g_fy[n2] -= f12[1];
       g_fz[n2] -= f12[2];
-      g_virial[n1 + 0 * N] -= r12[0] * f12[0];
-      g_virial[n1 + 1 * N] -= r12[0] * f12[1];
-      g_virial[n1 + 2 * N] -= r12[0] * f12[2];
-      g_virial[n1 + 3 * N] -= r12[1] * f12[0];
-      g_virial[n1 + 4 * N] -= r12[1] * f12[1];
-      g_virial[n1 + 5 * N] -= r12[1] * f12[2];
-      g_virial[n1 + 6 * N] -= r12[2] * f12[0];
-      g_virial[n1 + 7 * N] -= r12[2] * f12[1];
-      g_virial[n1 + 8 * N] -= r12[2] * f12[2];
+      g_virial[n2 + 0 * N] -= r12[0] * f12[0];
+      g_virial[n2 + 1 * N] -= r12[0] * f12[1];
+      g_virial[n2 + 2 * N] -= r12[0] * f12[2];
+      g_virial[n2 + 3 * N] -= r12[1] * f12[0];
+      g_virial[n2 + 4 * N] -= r12[1] * f12[1];
+      g_virial[n2 + 5 * N] -= r12[1] * f12[2];
+      g_virial[n2 + 6 * N] -= r12[2] * f12[0];
+      g_virial[n2 + 7 * N] -= r12[2] * f12[1];
+      g_virial[n2 + 8 * N] -= r12[2] * f12[2];
       g_pe[n1] += f * 0.5;
     }
   }

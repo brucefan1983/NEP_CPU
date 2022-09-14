@@ -3,11 +3,11 @@ load force_gpu.out; % GPU (GPUMD) analytical
 load force_analytical.out; % CPU analytical
 load force_finite_difference.out; % CPU finite difference
 load descriptor.out;
-load virial.out;
+load virial.out; % new: correct for heat current
 load force_analytical_ref.out;
 load force_finite_difference_ref.out;
 load descriptor_ref.out;
-load virial_ref.out;
+load virial_ref.out; % old: wrong for heat current
 max_force=max(max(abs(force_gpu)));
 
 % should be about 1e-14 or zero
@@ -32,8 +32,9 @@ xlabel('components');
 ylabel('diff-FD');
 set(gca,'fontsize',15);
 
+% should be about 1e-14
 subplot(2,3,4)
-plot(virial-virial_ref,'o-');hold on;
+plot(mean(virial)-mean(virial_ref),'o-');hold on;
 xlabel('components');
 ylabel('diff-virial');
 set(gca,'fontsize',15);
