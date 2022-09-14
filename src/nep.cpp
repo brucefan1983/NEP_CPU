@@ -1131,6 +1131,354 @@ void find_force_ZBL_small_box(
   }
 }
 
+void find_descriptor_for_lammps(
+  NEP3::ParaMB paramb,
+  NEP3::ANN annmb,
+  const int N,
+  const int* g_ilist,
+  const int* g_NN,
+  const int** g_NL,
+  const int* g_type,
+  const double** g_pos,
+  double* g_Fp,
+  double* g_sum_fxyz,
+  double* g_potential)
+{
+  for (int ii = 0; ii < N; ++ii) {
+    int n1 = g_ilist[ii];
+    int t1 = g_type[n1] - 1; // from LAMMPS to NEP convention
+    double q[MAX_DIM] = {0.0};
+
+    for (int i1 = 0; i1 < g_NN[n1]; ++i1) {
+      int n2 = g_NL[n1][i1];
+      double r12[3] = {
+        g_pos[n2][0] - g_pos[n1][0], g_pos[n2][1] - g_pos[n1][1], g_pos[n2][2] - g_pos[n1][2]};
+      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
+      if (d12 >= paramb.rc_radial) {
+        continue;
+      }
+      double fc12;
+      find_fc(paramb.rc_radial, paramb.rcinv_radial, d12, fc12);
+      int t2 = g_type[n2] - 1; // from LAMMPS to NEP convention
+      double fn12[MAX_NUM_N];
+      if (paramb.version == 2) {
+        find_fn(paramb.n_max_radial, paramb.rcinv_radial, d12, fc12, fn12);
+        for (int n = 0; n <= paramb.n_max_radial; ++n) {
+          double c = (paramb.num_types == 1)
+                       ? 1.0
+                       : annmb.c[(n * paramb.num_types + t1) * paramb.num_types + t2];
+          q[n] += fn12[n] * c;
+        }
+      } else {
+        find_fn(paramb.basis_size_radial, paramb.rcinv_radial, d12, fc12, fn12);
+        for (int n = 0; n <= paramb.n_max_radial; ++n) {
+          double gn12 = 0.0;
+          for (int k = 0; k <= paramb.basis_size_radial; ++k) {
+            int c_index = (n * (paramb.basis_size_radial + 1) + k) * paramb.num_types_sq;
+            c_index += t1 * paramb.num_types + t2;
+            gn12 += fn12[k] * annmb.c[c_index];
+          }
+          q[n] += gn12;
+        }
+      }
+    }
+
+    for (int n = 0; n <= paramb.n_max_angular; ++n) {
+      double s[NUM_OF_ABC] = {0.0};
+      for (int i1 = 0; i1 < g_NN[n1]; ++i1) {
+        int n2 = g_NL[n1][i1];
+        double r12[3] = {
+          g_pos[n2][0] - g_pos[n1][0], g_pos[n2][1] - g_pos[n1][1], g_pos[n2][2] - g_pos[n1][2]};
+        double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
+        if (d12 >= paramb.rc_angular) {
+          continue;
+        }
+        double fc12;
+        find_fc(paramb.rc_angular, paramb.rcinv_angular, d12, fc12);
+        int t2 = g_type[n2] - 1; // from LAMMPS to NEP convention
+        if (paramb.version == 2) {
+          double fn;
+          find_fn(n, paramb.rcinv_angular, d12, fc12, fn);
+          fn *=
+            (paramb.num_types == 1)
+              ? 1.0
+              : annmb.c
+                  [((paramb.n_max_radial + 1 + n) * paramb.num_types + t1) * paramb.num_types + t2];
+          accumulate_s(d12, r12[0], r12[1], r12[2], fn, s);
+        } else {
+          double fn12[MAX_NUM_N];
+          find_fn(paramb.basis_size_angular, paramb.rcinv_angular, d12, fc12, fn12);
+          double gn12 = 0.0;
+          for (int k = 0; k <= paramb.basis_size_angular; ++k) {
+            int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
+            c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
+            gn12 += fn12[k] * annmb.c[c_index];
+          }
+          accumulate_s(d12, r12[0], r12[1], r12[2], gn12, s);
+        }
+      }
+      if (paramb.num_L == paramb.L_max) {
+        find_q(paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
+      } else if (paramb.num_L == paramb.L_max + 1) {
+        find_q_with_4body(paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
+      } else {
+        find_q_with_5body(paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
+      }
+      for (int abc = 0; abc < NUM_OF_ABC; ++abc) {
+        g_sum_fxyz[(n * NUM_OF_ABC + abc) * N + n1] = s[abc];
+      }
+    }
+
+    for (int d = 0; d < annmb.dim; ++d) {
+      q[d] = q[d] * paramb.q_scaler[d];
+    }
+
+    double F = 0.0, Fp[MAX_DIM] = {0.0}, latent_space[100] = {0.0};
+    apply_ann_one_layer(
+      annmb.dim, annmb.num_neurons1, annmb.w0, annmb.b0, annmb.w1, annmb.b1, q, F, Fp,
+      latent_space);
+
+    g_potential[n1] = F; // no accumulation here
+
+    for (int d = 0; d < annmb.dim; ++d) {
+      g_Fp[d * N + n1] = Fp[d] * paramb.q_scaler[d];
+    }
+  }
+}
+
+void find_force_radial_for_lammps(
+  NEP3::ParaMB paramb,
+  NEP3::ANN annmb,
+  const int N,
+  const int* g_ilist,
+  const int* g_NN,
+  const int** g_NL,
+  const int* g_type,
+  const double** g_pos,
+  const double* g_Fp,
+  double** g_force,
+  double** g_virial)
+{
+  for (int ii = 0; ii < N; ++ii) {
+    int n1 = g_ilist[ii];
+    int t1 = g_type[n1] - 1; // from LAMMPS to NEP convention
+    for (int i1 = 0; i1 < g_NN[n1]; ++i1) {
+      int n2 = g_NL[n1][i1];
+      int t2 = g_type[n2] - 1; // from LAMMPS to NEP convention
+      double r12[3] = {
+        g_pos[n2][0] - g_pos[n1][0], g_pos[n2][1] - g_pos[n1][1], g_pos[n2][2] - g_pos[n1][2]};
+      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
+      if (d12 >= paramb.rc_radial) {
+        continue;
+      }
+      double d12inv = 1.0 / d12;
+      double fc12, fcp12;
+      find_fc_and_fcp(paramb.rc_radial, paramb.rcinv_radial, d12, fc12, fcp12);
+      double fn12[MAX_NUM_N];
+      double fnp12[MAX_NUM_N];
+
+      double f12[3] = {0.0};
+      if (paramb.version == 2) {
+        find_fn_and_fnp(paramb.n_max_radial, paramb.rcinv_radial, d12, fc12, fcp12, fn12, fnp12);
+        for (int n = 0; n <= paramb.n_max_radial; ++n) {
+          double tmp12 = g_Fp[n1 + n * N] * fnp12[n] * d12inv;
+          tmp12 *= (paramb.num_types == 1)
+                     ? 1.0
+                     : annmb.c[(n * paramb.num_types + t1) * paramb.num_types + t2];
+          for (int d = 0; d < 3; ++d) {
+            f12[d] += tmp12 * r12[d];
+          }
+        }
+      } else {
+        find_fn_and_fnp(
+          paramb.basis_size_radial, paramb.rcinv_radial, d12, fc12, fcp12, fn12, fnp12);
+        for (int n = 0; n <= paramb.n_max_radial; ++n) {
+          double gnp12 = 0.0;
+          for (int k = 0; k <= paramb.basis_size_radial; ++k) {
+            int c_index = (n * (paramb.basis_size_radial + 1) + k) * paramb.num_types_sq;
+            c_index += t1 * paramb.num_types + t2;
+            gnp12 += fnp12[k] * annmb.c[c_index];
+          }
+          double tmp12 = g_Fp[n1 + n * N] * gnp12 * d12inv;
+          for (int d = 0; d < 3; ++d) {
+            f12[d] += tmp12 * r12[d];
+          }
+        }
+      }
+
+      g_force[n1][0] = f12[0]; // no accumulation here
+      g_force[n1][1] = f12[1];
+      g_force[n1][2] = f12[2];
+      g_force[n2][0] = -f12[0];
+      g_force[n2][1] = -f12[1];
+      g_force[n2][2] = -f12[2];
+      // see equation (24) of the GPUMD-JCP paper
+      g_virial[n2][0] = -r12[0] * f12[0];
+      g_virial[n2][1] = -r12[0] * f12[1];
+      g_virial[n2][2] = -r12[0] * f12[2];
+      g_virial[n2][3] = -r12[1] * f12[0];
+      g_virial[n2][4] = -r12[1] * f12[1];
+      g_virial[n2][5] = -r12[1] * f12[2];
+      g_virial[n2][6] = -r12[2] * f12[0];
+      g_virial[n2][7] = -r12[2] * f12[1];
+      g_virial[n2][8] = -r12[2] * f12[2];
+    }
+  }
+}
+
+void find_force_angular_for_lammps(
+  NEP3::ParaMB paramb,
+  NEP3::ANN annmb,
+  const int N,
+  const int* g_ilist,
+  const int* g_NN,
+  const int** g_NL,
+  const int* g_type,
+  const double** g_pos,
+  double* g_Fp,
+  double* g_sum_fxyz,
+  double** g_force,
+  double** g_virial)
+{
+  for (int ii = 0; ii < N; ++ii) {
+    int n1 = g_ilist[ii];
+    double Fp[MAX_DIM_ANGULAR] = {0.0};
+    double sum_fxyz[NUM_OF_ABC * MAX_NUM_N];
+    for (int d = 0; d < paramb.dim_angular; ++d) {
+      Fp[d] = g_Fp[(paramb.n_max_radial + 1 + d) * N + n1];
+    }
+    for (int d = 0; d < (paramb.n_max_angular + 1) * NUM_OF_ABC; ++d) {
+      sum_fxyz[d] = g_sum_fxyz[d * N + n1];
+    }
+
+    int t1 = g_type[n1] - 1; // from LAMMPS to NEP convention
+
+    for (int i1 = 0; i1 < g_NN[n1]; ++i1) {
+      int n2 = g_NL[n1][i1];
+      double r12[3] = {
+        g_pos[n2][0] - g_pos[n1][0], g_pos[n2][1] - g_pos[n1][1], g_pos[n2][2] - g_pos[n1][2]};
+      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
+      if (d12 >= paramb.rc_angular) {
+        continue;
+      }
+      double fc12, fcp12;
+      find_fc_and_fcp(paramb.rc_angular, paramb.rcinv_angular, d12, fc12, fcp12);
+      int t2 = g_type[n2] - 1; // from LAMMPS to NEP convention
+      double f12[3] = {0.0};
+
+      if (paramb.version == 2) {
+        for (int n = 0; n <= paramb.n_max_angular; ++n) {
+          double fn;
+          double fnp;
+          find_fn_and_fnp(n, paramb.rcinv_angular, d12, fc12, fcp12, fn, fnp);
+          const double c =
+            (paramb.num_types == 1)
+              ? 1.0
+              : annmb.c
+                  [((paramb.n_max_radial + 1 + n) * paramb.num_types + t1) * paramb.num_types + t2];
+          fn *= c;
+          fnp *= c;
+          accumulate_f12(n, paramb.n_max_angular + 1, d12, r12, fn, fnp, Fp, sum_fxyz, f12);
+        }
+      } else {
+        double fn12[MAX_NUM_N];
+        double fnp12[MAX_NUM_N];
+        find_fn_and_fnp(
+          paramb.basis_size_angular, paramb.rcinv_angular, d12, fc12, fcp12, fn12, fnp12);
+        for (int n = 0; n <= paramb.n_max_angular; ++n) {
+          double gn12 = 0.0;
+          double gnp12 = 0.0;
+          for (int k = 0; k <= paramb.basis_size_angular; ++k) {
+            int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
+            c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
+            gn12 += fn12[k] * annmb.c[c_index];
+            gnp12 += fnp12[k] * annmb.c[c_index];
+          }
+          if (paramb.num_L == paramb.L_max) {
+            accumulate_f12(n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
+          } else if (paramb.num_L == paramb.L_max + 1) {
+            accumulate_f12_with_4body(
+              n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
+          } else {
+            accumulate_f12_with_5body(
+              n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
+          }
+        }
+      }
+
+      g_force[n1][0] += f12[0]; // accumulation here
+      g_force[n1][1] += f12[1];
+      g_force[n1][2] += f12[2];
+      g_force[n2][0] -= f12[0];
+      g_force[n2][1] -= f12[1];
+      g_force[n2][2] -= f12[2];
+      // see equation (24) of the GPUMD-JCP paper
+      g_virial[n2][0] -= r12[0] * f12[0];
+      g_virial[n2][1] -= r12[0] * f12[1];
+      g_virial[n2][2] -= r12[0] * f12[2];
+      g_virial[n2][3] -= r12[1] * f12[0];
+      g_virial[n2][4] -= r12[1] * f12[1];
+      g_virial[n2][5] -= r12[1] * f12[2];
+      g_virial[n2][6] -= r12[2] * f12[0];
+      g_virial[n2][7] -= r12[2] * f12[1];
+      g_virial[n2][8] -= r12[2] * f12[2];
+    }
+  }
+}
+
+void find_force_ZBL_for_lammps(
+  const NEP3::ZBL zbl,
+  const int N,
+  const int* g_ilist,
+  const int* g_NN,
+  const int** g_NL,
+  const int* g_type,
+  const double** g_pos,
+  double** g_force,
+  double** g_virial,
+  double* g_potential)
+{
+  for (int ii = 0; ii < N; ++ii) {
+    int n1 = g_ilist[ii];
+    double zi = zbl.atomic_numbers[g_type[n1] - 1]; // from LAMMPS to NEP convention
+    double pow_zi = pow(zi, 0.23);
+    for (int i1 = 0; i1 < g_NN[n1]; ++i1) {
+      int n2 = g_NL[n1][i1];
+      double r12[3] = {
+        g_pos[n2][0] - g_pos[n1][0], g_pos[n2][1] - g_pos[n1][1], g_pos[n2][2] - g_pos[n1][2]};
+      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
+      if (d12 >= zbl.rc_outer) {
+        continue;
+      }
+      double d12inv = 1.0 / d12;
+      double f, fp;
+      double zj = zbl.atomic_numbers[g_type[n2] - 1]; // from LAMMPS to NEP convention
+      double a_inv = (pow_zi + pow(zj, 0.23)) * 2.134563;
+      double zizj = K_C_SP * zi * zj;
+      find_f_and_fp_zbl(zizj, a_inv, zbl.rc_inner, zbl.rc_outer, d12, d12inv, f, fp);
+      double f2 = fp * d12inv * 0.5;
+      double f12[3] = {r12[0] * f2, r12[1] * f2, r12[2] * f2};
+      g_force[n1][0] += f12[0]; // accumulation here
+      g_force[n1][1] += f12[1];
+      g_force[n1][2] += f12[2];
+      g_force[n2][0] -= f12[0];
+      g_force[n2][1] -= f12[1];
+      g_force[n2][2] -= f12[2];
+      // see equation (24) of the GPUMD-JCP paper
+      g_virial[n2][0] -= r12[0] * f12[0];
+      g_virial[n2][1] -= r12[0] * f12[1];
+      g_virial[n2][2] -= r12[0] * f12[2];
+      g_virial[n2][3] -= r12[1] * f12[0];
+      g_virial[n2][4] -= r12[1] * f12[1];
+      g_virial[n2][5] -= r12[1] * f12[2];
+      g_virial[n2][6] -= r12[2] * f12[0];
+      g_virial[n2][7] -= r12[2] * f12[1];
+      g_virial[n2][8] -= r12[2] * f12[2];
+      g_potential[n1] += f * 0.5;
+    }
+  }
+}
+
 double get_area_one_direction(const double* a, const double* b)
 {
   double s1 = a[1] * b[2] - a[2] * b[1];
@@ -1677,4 +2025,31 @@ void NEP3::find_latent_space(
     NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12, r12.data() + size_x12 * 2,
     r12.data() + size_x12 * 3, r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, Fp.data(),
     sum_fxyz.data(), nullptr, nullptr, latent_space.data());
+}
+
+void NEP3::compute_for_lammps(
+  const int N,
+  const int* ilist,
+  const int* NN,
+  const int** NL,
+  const int* type,
+  const double** pos,
+  double* potential,
+  double** force,
+  double** virial)
+{
+  if (num_atoms < N) {
+    Fp.resize(N * annmb.dim);
+    sum_fxyz.resize(N * (paramb.n_max_angular + 1) * NUM_OF_ABC);
+    num_atoms = N;
+  }
+  find_descriptor_for_lammps(
+    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(), sum_fxyz.data(), potential);
+  find_force_radial_for_lammps(
+    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(), force, virial);
+  find_force_angular_for_lammps(
+    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(), sum_fxyz.data(), force, virial);
+  if (zbl.enabled) {
+    find_force_ZBL_for_lammps(zbl, N, ilist, NN, NL, type, pos, force, virial, potential);
+  }
 }
