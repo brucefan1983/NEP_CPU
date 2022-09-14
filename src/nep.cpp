@@ -2043,6 +2043,7 @@ void NEP3::compute_for_lammps(
   int** NL,
   int* type,
   double** pos,
+  double& total_potential,
   double* potential,
   double** force,
   double** virial)
@@ -2060,5 +2061,11 @@ void NEP3::compute_for_lammps(
     paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(), sum_fxyz.data(), force, virial);
   if (zbl.enabled) {
     find_force_ZBL_for_lammps(zbl, N, ilist, NN, NL, type, pos, force, virial, potential);
+  }
+
+  total_potential = 0.0;
+  for (int ii = 0; ii < N; ++ii) {
+    int n1 = ilist[ii];
+    total_potential += potential[n1];
   }
 }
