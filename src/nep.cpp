@@ -1744,15 +1744,15 @@ NEP3::NEP3(const std::string& potential_filename)
 
   if (paramb.version == 2) {
     if (paramb.num_types == 1) {
-      printf("Use the NEP2 potential with %d atom type.\n", paramb.num_types);
+      std::cout << "Use the NEP2 potential with " << paramb.num_types << " atom type.\n";
     } else {
-      printf("Use the NEP2 potential with %d atom types.\n", paramb.num_types);
+      std::cout << "Use the NEP2 potential with " << paramb.num_types << " atom types.\n";
     }
   } else {
     if (paramb.num_types == 1) {
-      printf("Use the NEP3 potential with %d atom type.\n", paramb.num_types);
+      std::cout << "Use the NEP3 potential with " << paramb.num_types << " atom type.\n";
     } else {
-      printf("Use the NEP3 potential with %d atom types.\n", paramb.num_types);
+      std::cout << "Use the NEP3 potential with " << paramb.num_types << " atom types.\n";
     }
   }
 
@@ -1765,7 +1765,8 @@ NEP3::NEP3(const std::string& potential_filename)
       }
     }
     zbl.atomic_numbers[n] = atomic_number;
-    printf("    type %d (%s with Z = %g).\n", n, tokens[2 + n].c_str(), zbl.atomic_numbers[n]);
+    std::cout << "    type " << n << " (" << tokens[2 + n].c_str()
+              << " with Z = " << zbl.atomic_numbers[n] << ").\n";
   }
 
   // zbl 0.7 1.4
@@ -1777,8 +1778,8 @@ NEP3::NEP3(const std::string& potential_filename)
     }
     zbl.rc_inner = get_double_from_token(tokens[1], __FILE__, __LINE__);
     zbl.rc_outer = get_double_from_token(tokens[2], __FILE__, __LINE__);
-    printf(
-      "    has ZBL with inner cutoff %g A and outer cutoff %g A.\n", zbl.rc_inner, zbl.rc_outer);
+    std::cout << "    has ZBL with inner cutoff " << zbl.rc_inner << " A and outer cutoff "
+              << zbl.rc_outer << " A.\n";
   }
 
   // cutoff 4.2 3.7 80 47
@@ -1789,8 +1790,8 @@ NEP3::NEP3(const std::string& potential_filename)
   }
   paramb.rc_radial = get_double_from_token(tokens[1], __FILE__, __LINE__);
   paramb.rc_angular = get_double_from_token(tokens[2], __FILE__, __LINE__);
-  printf("    radial cutoff = %g A.\n", paramb.rc_radial);
-  printf("    angular cutoff = %g A.\n", paramb.rc_angular);
+  std::cout << "    radial cutoff = " << paramb.rc_radial << " A.\n";
+  std::cout << "    angular cutoff = " << paramb.rc_angular << " A.\n";
 
   // n_max 10 8
   tokens = get_tokens(input);
@@ -1800,8 +1801,8 @@ NEP3::NEP3(const std::string& potential_filename)
   }
   paramb.n_max_radial = get_int_from_token(tokens[1], __FILE__, __LINE__);
   paramb.n_max_angular = get_int_from_token(tokens[2], __FILE__, __LINE__);
-  printf("    n_max_radial = %d.\n", paramb.n_max_radial);
-  printf("    n_max_angular = %d.\n", paramb.n_max_angular);
+  std::cout << "    n_max_radial = " << paramb.n_max_radial << ".\n";
+  std::cout << "    n_max_angular = " << paramb.n_max_angular << ".\n";
 
   // basis_size 10 8
   if (paramb.version == 3) {
@@ -1813,8 +1814,8 @@ NEP3::NEP3(const std::string& potential_filename)
     }
     paramb.basis_size_radial = get_int_from_token(tokens[1], __FILE__, __LINE__);
     paramb.basis_size_angular = get_int_from_token(tokens[2], __FILE__, __LINE__);
-    printf("    basis_size_radial = %d.\n", paramb.basis_size_radial);
-    printf("    basis_size_angular = %d.\n", paramb.basis_size_angular);
+    std::cout << "    basis_size_radial = " << paramb.basis_size_radial << ".\n";
+    std::cout << "    basis_size_angular = " << paramb.basis_size_angular << ".\n";
   }
 
   // l_max
@@ -1832,14 +1833,14 @@ NEP3::NEP3(const std::string& potential_filename)
   }
 
   paramb.L_max = get_int_from_token(tokens[1], __FILE__, __LINE__);
-  printf("    l_max_3body = %d.\n", paramb.L_max);
+  std::cout << "    l_max_3body = " << paramb.L_max << ".\n";
   paramb.num_L = paramb.L_max;
 
   if (paramb.version == 3) {
     int L_max_4body = get_int_from_token(tokens[2], __FILE__, __LINE__);
     int L_max_5body = get_int_from_token(tokens[3], __FILE__, __LINE__);
-    printf("    l_max_4body = %d.\n", L_max_4body);
-    printf("    l_max_5body = %d.\n", L_max_5body);
+    std::cout << "    l_max_4body = " << L_max_4body << ".\n";
+    std::cout << "    l_max_5body = " << L_max_5body << ".\n";
     if (L_max_4body == 2) {
       paramb.num_L += 1;
     }
@@ -1858,7 +1859,7 @@ NEP3::NEP3(const std::string& potential_filename)
   }
   annmb.num_neurons1 = get_int_from_token(tokens[1], __FILE__, __LINE__);
   annmb.dim = (paramb.n_max_radial + 1) + paramb.dim_angular;
-  printf("    ANN = %d-%d-1.\n", annmb.dim, annmb.num_neurons1);
+  std::cout << "    ANN = " << annmb.dim << "-" << annmb.num_neurons1 << "-1.\n";
 
   // calculated parameters:
   paramb.rcinv_radial = 1.0f / paramb.rc_radial;
@@ -1866,7 +1867,7 @@ NEP3::NEP3(const std::string& potential_filename)
   paramb.num_types_sq = paramb.num_types * paramb.num_types;
 
   annmb.num_para = (annmb.dim + 2) * annmb.num_neurons1 + 1;
-  printf("    number of neural network parameters = %d.\n", annmb.num_para);
+  std::cout << "    number of neural network parameters = " << annmb.num_para << ".\n";
   int num_para_descriptor =
     paramb.num_types_sq * ((paramb.n_max_radial + 1) * (paramb.basis_size_radial + 1) +
                            (paramb.n_max_angular + 1) * (paramb.basis_size_angular + 1));
@@ -1876,9 +1877,9 @@ NEP3::NEP3(const std::string& potential_filename)
         ? 0
         : paramb.num_types_sq * (paramb.n_max_radial + paramb.n_max_angular + 2);
   }
-  printf("    number of descriptor parameters = %d.\n", num_para_descriptor);
+  std::cout << "    number of descriptor parameters = " << num_para_descriptor << ".\n";
   annmb.num_para += num_para_descriptor;
-  printf("    total number of parameters = %d\n", annmb.num_para);
+  std::cout << "    total number of parameters = " << annmb.num_para << ".\n";
 
   paramb.num_c_radial =
     paramb.num_types_sq * (paramb.n_max_radial + 1) * (paramb.basis_size_radial + 1);
