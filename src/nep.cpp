@@ -1744,15 +1744,15 @@ NEP3::NEP3(const std::string& potential_filename)
 
   if (paramb.version == 2) {
     if (paramb.num_types == 1) {
-      std::cout << "Use the NEP2 potential with" << paramb.num_types << "atom type.\n";
+      std::cout << "Use the NEP2 potential with " << paramb.num_types << " atom type.\n";
     } else {
-      std::cout << "Use the NEP2 potential with" << paramb.num_types << "atom types.\n";
+      std::cout << "Use the NEP2 potential with " << paramb.num_types << " atom types.\n";
     }
   } else {
     if (paramb.num_types == 1) {
-      std::cout << "Use the NEP3 potential with" << paramb.num_types << "atom type.\n";
+      std::cout << "Use the NEP3 potential with " << paramb.num_types << " atom type.\n";
     } else {
-      std::cout << "Use the NEP3 potential with" << paramb.num_types << "atom types.\n";
+      std::cout << "Use the NEP3 potential with " << paramb.num_types << " atom types.\n";
     }
   }
 
