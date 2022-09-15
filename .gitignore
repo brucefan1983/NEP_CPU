@@ -1,3 +1,13 @@
+interface/lammps/USER-NEP/nep.*
+**/lmp_serial
+*.swp
+
+# vscode
+.vscode
+.vs
+.history
+.VSCodeCounter
+
 # Prerequisites
 *.d
 

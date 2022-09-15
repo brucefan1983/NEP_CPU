@@ -1,0 +1,27 @@
+log lammps.log
+units           metal
+boundary        p p p 
+atom_style      atomic
+
+neighbor        2.0 bin 
+neigh_modify    every 10 delay 0 check no
+
+read_data   C.data
+mass        1 12.01
+
+pair_style  nep nep.txt
+pair_coeff * * 
+
+compute    1 all pe/atom
+# compute    pe all reduce sum c_1
+dump 1 all custom 1 out.dump id type x y z fx fy fz
+run 1
+# velocity        all create 300 23456789
+# fix             1 all npt temp 300 300 0.1 iso 0 0 1
+# fix             2 all momentum 1 linear 1 1 1 
+# timestep        0.001
+# thermo_style    custom step pe ke etotal temp press vol pxx pyy pzz pxy pxz pyz
+# thermo          10
+# dump 20 all custom 1 out.dump id type x y z fx fy fz
+# run             100
+# 

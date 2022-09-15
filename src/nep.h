@@ -57,7 +57,10 @@ public:
     double atomic_numbers[10];
   };
 
+  NEP3();
   NEP3(const std::string& potential_filename);
+
+  void init_from_file(const std::string& potential_filename);
 
   // type[num_atoms] should be integers 0, 1, ..., mapping to the atom types in nep.txt in order
   // box[9] is ordered as ax, bx, cx, ay, by, cy, az, bz, cz
