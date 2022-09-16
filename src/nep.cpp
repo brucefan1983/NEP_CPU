@@ -1,16 +1,16 @@
 /*
-    Copyright 2017 Zheyong Fan, Ville Vierimaa, Mikko Ervasti, and Ari Harju
-    This file is part of GPUMD.
-    GPUMD is free software: you can redistribute it and/or modify
+    Copyright 2022 Zheyong Fan, Junjie Wang, Eric Lindgren
+    This file is part of NEP_CPU.
+    NEP_CPU is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
-    GPUMD is distributed in the hope that it will be useful,
+    NEP_CPU is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
     You should have received a copy of the GNU General Public License
-    along with GPUMD.  If not, see <http://www.gnu.org/licenses/>.
+    along with NEP_CPU.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /*----------------------------------------------------------------------------80
@@ -1244,7 +1244,7 @@ void find_descriptor_for_lammps(
     apply_ann_one_layer(
       annmb.dim, annmb.num_neurons1, annmb.w0, annmb.b0, annmb.w1, annmb.b1, q, F, Fp,
       latent_space);
-    if (g_potential){
+    if (g_potential) {
       g_potential[n1] = F; // no accumulation here
     }
 
@@ -1324,7 +1324,7 @@ void find_force_radial_for_lammps(
       g_force[n2][1] -= f12[1];
       g_force[n2][2] -= f12[2];
       // follow LAMMPS order
-      if (g_virial){
+      if (g_virial) {
         g_virial[n2][0] -= r12[0] * f12[0]; // xx
         g_virial[n2][1] -= r12[1] * f12[1]; // yy
         g_virial[n2][2] -= r12[2] * f12[2]; // zz
@@ -1429,7 +1429,7 @@ void find_force_angular_for_lammps(
       g_force[n2][1] -= f12[1];
       g_force[n2][2] -= f12[2];
       // follow LAMMPS order
-      if (g_virial){
+      if (g_virial) {
         g_virial[n2][0] -= r12[0] * f12[0]; // xx
         g_virial[n2][1] -= r12[1] * f12[1]; // yy
         g_virial[n2][2] -= r12[2] * f12[2]; // zz
@@ -1486,7 +1486,7 @@ void find_force_ZBL_for_lammps(
       g_force[n2][1] -= f12[1];
       g_force[n2][2] -= f12[2];
       // follow LAMMPS order
-      if (g_virial){
+      if (g_virial) {
         g_virial[n2][0] -= r12[0] * f12[0]; // xx
         g_virial[n2][1] -= r12[1] * f12[1]; // yy
         g_virial[n2][2] -= r12[2] * f12[2]; // zz
@@ -1497,7 +1497,7 @@ void find_force_ZBL_for_lammps(
         g_virial[n2][7] -= r12[2] * f12[0]; // zx
         g_virial[n2][8] -= r12[2] * f12[1]; // zy
       }
-      if (g_potential){
+      if (g_potential) {
         g_potential[n1] += f * 0.5;
       }
     }
@@ -1716,14 +1716,9 @@ double get_double_from_token(const std::string& token, const char* filename, con
 
 } // namespace
 
-NEP3::NEP3()
-{
-}
+NEP3::NEP3() {}
 
-NEP3::NEP3(const std::string& potential_filename)
-{
-  init_from_file(potential_filename);
-}
+NEP3::NEP3(const std::string& potential_filename) { init_from_file(potential_filename); }
 
 void NEP3::init_from_file(const std::string& potential_filename)
 {
@@ -2096,7 +2091,7 @@ void NEP3::compute_for_lammps(
     find_force_ZBL_for_lammps(zbl, N, ilist, NN, NL, type, pos, force, virial, potential);
   }
   total_potential = 0.0;
-  if (potential){
+  if (potential) {
     for (int ii = 0; ii < N; ++ii) {
       int n1 = ilist[ii];
       total_potential += potential[n1];
