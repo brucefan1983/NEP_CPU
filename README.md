@@ -22,3 +22,5 @@
   * `pair_NEP.h`
   * `pair_NEP.cpp`
   * `install.sh`
+
+* The computational speed of the NEP in LAMMPS with one CPU thread is about 1/1000 of that of NEP in GPUMD with one A100 GPU.
