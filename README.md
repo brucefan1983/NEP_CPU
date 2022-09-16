@@ -4,7 +4,7 @@
   * A CPU implementation (a standalone C++ class) of the NEP (neuroevolution potential) machine-learned potential as introduced in the GPUMD package (https://github.com/brucefan1983/GPUMD).
   * An interface of NEP to the CPU version LAMMPS (https://github.com/lammps/lammps). Can run with MPI.
 
-* The standardalone C++ class is defined in the following two files:
+* The standalone C++ class is defined in the following two files:
   * `src/nep.h`
   * `src/nep.cpp`
   
@@ -14,11 +14,11 @@
 * The following folder contains some testing results:
   * `test/`
   
-* The standardalone C++ class is used as an engine powering the following two Python packages:
+* The standalone C++ class is used as an engine powering the following two Python packages:
   * `PyNEP`: https://github.com/bigd4/PyNEP
   * `calorine`: https://gitlab.com/materials-modeling/calorine
   
-* The standardalone C++ class is also used as an engine powering the interface to LAMMPS. The interface code can be found in the folder `interface/lammps/USER-NEP/`, which contains the following files:
+* The standalone C++ class is also used as an engine powering the interface to LAMMPS. The interface code can be found in the folder `interface/lammps/USER-NEP/`, which contains the following files:
   * `pair_NEP.h`
   * `pair_NEP.cpp`
   * `install.sh`
