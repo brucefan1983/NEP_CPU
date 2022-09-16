@@ -18,7 +18,7 @@
   * `PyNEP`: https://github.com/bigd4/PyNEP
   * `calorine`: https://gitlab.com/materials-modeling/calorine
   
-* The standalone C++ class is also used as an engine powering the interface to LAMMPS. The interface code can be found in the folder `interface/lammps/USER-NEP/`, which contains the following files:
+* The LAMMPS interface code can be found in the folder `interface/lammps/USER-NEP/`, which contains the following files:
   * `pair_NEP.h`
   * `pair_NEP.cpp`
   * `install.sh`
