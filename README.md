@@ -1,10 +1,10 @@
 # NEP_CPU
 
 * This repository contains:
-  * A CPU implementation (a standalone C++ class) of the NEP (neuroevolution potential) machine-learned potential as introduced in the GPUMD package (https://github.com/brucefan1983/GPUMD).
+  * A CPU implementation (a standalone C++ class `NEP3`) of the NEP (neuroevolution potential) machine-learned potential as introduced in the GPUMD package (https://github.com/brucefan1983/GPUMD).
   * An interface of NEP to the CPU version LAMMPS (https://github.com/lammps/lammps). Can run with MPI.
 
-* The standalone C++ class is defined in the following two files:
+* The `NEP3` C++ class is defined in the following two files:
   * `src/nep.h`
   * `src/nep.cpp`
   
@@ -14,7 +14,7 @@
 * The following folder contains some testing results:
   * `test/`
   
-* The standalone C++ class is used as an engine powering the following two Python packages:
+* The `NEP3` C++ class is used as an engine powering the following two Python packages:
   * `PyNEP`: https://github.com/bigd4/PyNEP
   * `calorine`: https://gitlab.com/materials-modeling/calorine
   
