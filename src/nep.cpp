@@ -1244,8 +1244,9 @@ void find_descriptor_for_lammps(
     apply_ann_one_layer(
       annmb.dim, annmb.num_neurons1, annmb.w0, annmb.b0, annmb.w1, annmb.b1, q, F, Fp,
       latent_space);
-
-    g_potential[n1] = F; // no accumulation here
+    if (g_potential){
+      g_potential[n1] = F; // no accumulation here
+    }
 
     for (int d = 0; d < annmb.dim; ++d) {
       g_Fp[d * N + n1] = Fp[d] * paramb.q_scaler[d];
@@ -1323,15 +1324,17 @@ void find_force_radial_for_lammps(
       g_force[n2][1] -= f12[1];
       g_force[n2][2] -= f12[2];
       // follow LAMMPS order
-      g_virial[n2][0] -= r12[0] * f12[0]; // xx
-      g_virial[n2][1] -= r12[1] * f12[1]; // yy
-      g_virial[n2][2] -= r12[2] * f12[2]; // zz
-      g_virial[n2][3] -= r12[0] * f12[1]; // xy
-      g_virial[n2][4] -= r12[0] * f12[2]; // xz
-      g_virial[n2][5] -= r12[1] * f12[2]; // yz
-      g_virial[n2][6] -= r12[1] * f12[0]; // yx
-      g_virial[n2][7] -= r12[2] * f12[0]; // zx
-      g_virial[n2][8] -= r12[2] * f12[1]; // zy
+      if (g_virial){
+        g_virial[n2][0] -= r12[0] * f12[0]; // xx
+        g_virial[n2][1] -= r12[1] * f12[1]; // yy
+        g_virial[n2][2] -= r12[2] * f12[2]; // zz
+        g_virial[n2][3] -= r12[0] * f12[1]; // xy
+        g_virial[n2][4] -= r12[0] * f12[2]; // xz
+        g_virial[n2][5] -= r12[1] * f12[2]; // yz
+        g_virial[n2][6] -= r12[1] * f12[0]; // yx
+        g_virial[n2][7] -= r12[2] * f12[0]; // zx
+        g_virial[n2][8] -= r12[2] * f12[1]; // zy
+      }
     }
   }
 }
@@ -1426,15 +1429,17 @@ void find_force_angular_for_lammps(
       g_force[n2][1] -= f12[1];
       g_force[n2][2] -= f12[2];
       // follow LAMMPS order
-      g_virial[n2][0] -= r12[0] * f12[0]; // xx
-      g_virial[n2][1] -= r12[1] * f12[1]; // yy
-      g_virial[n2][2] -= r12[2] * f12[2]; // zz
-      g_virial[n2][3] -= r12[0] * f12[1]; // xy
-      g_virial[n2][4] -= r12[0] * f12[2]; // xz
-      g_virial[n2][5] -= r12[1] * f12[2]; // yz
-      g_virial[n2][6] -= r12[1] * f12[0]; // yx
-      g_virial[n2][7] -= r12[2] * f12[0]; // zx
-      g_virial[n2][8] -= r12[2] * f12[1]; // zy
+      if (g_virial){
+        g_virial[n2][0] -= r12[0] * f12[0]; // xx
+        g_virial[n2][1] -= r12[1] * f12[1]; // yy
+        g_virial[n2][2] -= r12[2] * f12[2]; // zz
+        g_virial[n2][3] -= r12[0] * f12[1]; // xy
+        g_virial[n2][4] -= r12[0] * f12[2]; // xz
+        g_virial[n2][5] -= r12[1] * f12[2]; // yz
+        g_virial[n2][6] -= r12[1] * f12[0]; // yx
+        g_virial[n2][7] -= r12[2] * f12[0]; // zx
+        g_virial[n2][8] -= r12[2] * f12[1]; // zy
+      }
     }
   }
 }
@@ -1481,16 +1486,20 @@ void find_force_ZBL_for_lammps(
       g_force[n2][1] -= f12[1];
       g_force[n2][2] -= f12[2];
       // follow LAMMPS order
-      g_virial[n2][0] -= r12[0] * f12[0]; // xx
-      g_virial[n2][1] -= r12[1] * f12[1]; // yy
-      g_virial[n2][2] -= r12[2] * f12[2]; // zz
-      g_virial[n2][3] -= r12[0] * f12[1]; // xy
-      g_virial[n2][4] -= r12[0] * f12[2]; // xz
-      g_virial[n2][5] -= r12[1] * f12[2]; // yz
-      g_virial[n2][6] -= r12[1] * f12[0]; // yx
-      g_virial[n2][7] -= r12[2] * f12[0]; // zx
-      g_virial[n2][8] -= r12[2] * f12[1]; // zy
-      g_potential[n1] += f * 0.5;
+      if (g_virial){
+        g_virial[n2][0] -= r12[0] * f12[0]; // xx
+        g_virial[n2][1] -= r12[1] * f12[1]; // yy
+        g_virial[n2][2] -= r12[2] * f12[2]; // zz
+        g_virial[n2][3] -= r12[0] * f12[1]; // xy
+        g_virial[n2][4] -= r12[0] * f12[2]; // xz
+        g_virial[n2][5] -= r12[1] * f12[2]; // yz
+        g_virial[n2][6] -= r12[1] * f12[0]; // yx
+        g_virial[n2][7] -= r12[2] * f12[0]; // zx
+        g_virial[n2][8] -= r12[2] * f12[1]; // zy
+      }
+      if (g_potential){
+        g_potential[n1] += f * 0.5;
+      }
     }
   }
 }
@@ -1707,9 +1716,17 @@ double get_double_from_token(const std::string& token, const char* filename, con
 
 } // namespace
 
+NEP3::NEP3()
+{
+}
+
 NEP3::NEP3(const std::string& potential_filename)
 {
+  init_from_file(potential_filename);
+}
 
+void NEP3::init_from_file(const std::string& potential_filename)
+{
   std::ifstream input(potential_filename);
   if (!input.is_open()) {
     std::cout << "Failed to open " << potential_filename << std::endl;
@@ -2078,10 +2095,11 @@ void NEP3::compute_for_lammps(
   if (zbl.enabled) {
     find_force_ZBL_for_lammps(zbl, N, ilist, NN, NL, type, pos, force, virial, potential);
   }
-
   total_potential = 0.0;
-  for (int ii = 0; ii < N; ++ii) {
-    int n1 = ilist[ii];
-    total_potential += potential[n1];
+  if (potential){
+    for (int ii = 0; ii < N; ++ii) {
+      int n1 = ilist[ii];
+      total_potential += potential[n1];
+    }
   }
 }
