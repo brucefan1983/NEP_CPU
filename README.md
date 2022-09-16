@@ -1,8 +1,8 @@
 # NEP_CPU
 
 * This repository contains:
-  * A C++ implementation (a class called `NEP3`) of the neuroevolution potential (NEP) as introduced in the GPUMD package (https://github.com/brucefan1983/GPUMD).
-  * An interface of the `NEP3` class to the CPU version of LAMMPS (https://github.com/lammps/lammps). It can be run with MPI.
+  * A **standalone** C++ implementation (a class called `NEP3`) of the neuroevolution potential (NEP) as introduced in the GPUMD package (https://github.com/brucefan1983/GPUMD). We stress that **there is no externel dependence**.
+  * An interface of the `NEP3` class to the CPU version of LAMMPS (https://github.com/lammps/lammps). **It can be run with MPI**.
 
 * The `NEP3` C++ class is defined in the following two files:
   * `src/nep.h`
