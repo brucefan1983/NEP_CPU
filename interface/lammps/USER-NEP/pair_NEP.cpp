@@ -108,24 +108,30 @@ double PairNEP::init_one(int i, int j) { return cutoff; }
 
 void PairNEP::compute(int eflag, int vflag)
 {
-  if (eflag || vflag)
+  if (eflag || vflag) {
     ev_setup(eflag, vflag);
-  else
-    evflag = vflag_fdotr = eflag_global = eflag_atom = 0;
-  double energy = 0;
-  double* p_site_en = NULL;
-  double** p_site_virial = NULL;
-  if (eflag_atom)
-    p_site_en = eatom;
-  if (vflag_atom)
-    p_site_virial = cvatom;
-  nep_model.compute_for_lammps(
-    list->inum, list->ilist, list->numneigh, list->firstneigh, atom->type, atom->x, energy,
-    p_site_en, atom->f, p_site_virial);
-  if (eflag_global) {
-    eng_vdwl = energy;
   }
-  if (vflag_fdotr) {
-    virial_fdotr_compute();
+  double total_potential = 0.0;
+  double total_virial[6] = {0.0};
+  double* per_atom_potential = nullptr;
+  double** per_atom_virial = nullptr;
+  if (eflag_atom) {
+    per_atom_potential = eatom;
+  }
+  if (cvflag_atom) {
+    per_atom_virial = cvatom;
+  }
+
+  nep_model.compute_for_lammps(
+    list->inum, list->ilist, list->numneigh, list->firstneigh, atom->type, atom->x, total_potential,
+    total_virial, per_atom_potential, atom->f, per_atom_virial);
+
+  if (eflag) {
+    eng_vdwl += total_potential;
+  }
+  if (vflag) {
+    for (int component = 0; component < 6; ++component) {
+      virial[component] += total_virial[component];
+    }
   }
 }

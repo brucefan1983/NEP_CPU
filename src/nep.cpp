@@ -1143,6 +1143,7 @@ void find_descriptor_for_lammps(
   double** g_pos,
   double* g_Fp,
   double* g_sum_fxyz,
+  double& g_total_potential,
   double* g_potential)
 {
   for (int ii = 0; ii < N; ++ii) {
@@ -1244,8 +1245,10 @@ void find_descriptor_for_lammps(
     apply_ann_one_layer(
       annmb.dim, annmb.num_neurons1, annmb.w0, annmb.b0, annmb.w1, annmb.b1, q, F, Fp,
       latent_space);
-    if (g_potential) {
-      g_potential[n1] = F; // no accumulation here
+
+    g_total_potential += F; // always calculate this
+    if (g_potential) {      // only calculate when required
+      g_potential[n1] += F;
     }
 
     for (int d = 0; d < annmb.dim; ++d) {
@@ -1265,6 +1268,7 @@ void find_force_radial_for_lammps(
   double** g_pos,
   double* g_Fp,
   double** g_force,
+  double g_total_virial[6],
   double** g_virial)
 {
   for (int ii = 0; ii < N; ++ii) {
@@ -1323,8 +1327,15 @@ void find_force_radial_for_lammps(
       g_force[n2][0] -= f12[0];
       g_force[n2][1] -= f12[1];
       g_force[n2][2] -= f12[2];
-      // follow LAMMPS order
-      if (g_virial) {
+
+      // always calculate the total virial:
+      g_total_virial[0] -= r12[0] * f12[0]; // xx
+      g_total_virial[1] -= r12[1] * f12[1]; // yy
+      g_total_virial[2] -= r12[2] * f12[2]; // zz
+      g_total_virial[3] -= r12[0] * f12[1]; // xy
+      g_total_virial[4] -= r12[0] * f12[2]; // xz
+      g_total_virial[5] -= r12[1] * f12[2]; // yz
+      if (g_virial) {                       // only calculate the per-atom virial when required
         g_virial[n2][0] -= r12[0] * f12[0]; // xx
         g_virial[n2][1] -= r12[1] * f12[1]; // yy
         g_virial[n2][2] -= r12[2] * f12[2]; // zz
@@ -1351,6 +1362,7 @@ void find_force_angular_for_lammps(
   double* g_Fp,
   double* g_sum_fxyz,
   double** g_force,
+  double g_total_virial[6],
   double** g_virial)
 {
   for (int ii = 0; ii < N; ++ii) {
@@ -1428,8 +1440,14 @@ void find_force_angular_for_lammps(
       g_force[n2][0] -= f12[0];
       g_force[n2][1] -= f12[1];
       g_force[n2][2] -= f12[2];
-      // follow LAMMPS order
-      if (g_virial) {
+      // always calculate the total virial:
+      g_total_virial[0] -= r12[0] * f12[0]; // xx
+      g_total_virial[1] -= r12[1] * f12[1]; // yy
+      g_total_virial[2] -= r12[2] * f12[2]; // zz
+      g_total_virial[3] -= r12[0] * f12[1]; // xy
+      g_total_virial[4] -= r12[0] * f12[2]; // xz
+      g_total_virial[5] -= r12[1] * f12[2]; // yz
+      if (g_virial) {                       // only calculate the per-atom virial when required
         g_virial[n2][0] -= r12[0] * f12[0]; // xx
         g_virial[n2][1] -= r12[1] * f12[1]; // yy
         g_virial[n2][2] -= r12[2] * f12[2]; // zz
@@ -1453,7 +1471,9 @@ void find_force_ZBL_for_lammps(
   int* g_type,
   double** g_pos,
   double** g_force,
+  double g_total_virial[6],
   double** g_virial,
+  double& g_total_potential,
   double* g_potential)
 {
   for (int ii = 0; ii < N; ++ii) {
@@ -1485,8 +1505,14 @@ void find_force_ZBL_for_lammps(
       g_force[n2][0] -= f12[0];
       g_force[n2][1] -= f12[1];
       g_force[n2][2] -= f12[2];
-      // follow LAMMPS order
-      if (g_virial) {
+      // always calculate the total virial:
+      g_total_virial[0] -= r12[0] * f12[0]; // xx
+      g_total_virial[1] -= r12[1] * f12[1]; // yy
+      g_total_virial[2] -= r12[2] * f12[2]; // zz
+      g_total_virial[3] -= r12[0] * f12[1]; // xy
+      g_total_virial[4] -= r12[0] * f12[2]; // xz
+      g_total_virial[5] -= r12[1] * f12[2]; // yz
+      if (g_virial) {                       // only calculate the per-atom virial when required
         g_virial[n2][0] -= r12[0] * f12[0]; // xx
         g_virial[n2][1] -= r12[1] * f12[1]; // yy
         g_virial[n2][2] -= r12[2] * f12[2]; // zz
@@ -1497,7 +1523,8 @@ void find_force_ZBL_for_lammps(
         g_virial[n2][7] -= r12[2] * f12[0]; // zx
         g_virial[n2][8] -= r12[2] * f12[1]; // zy
       }
-      if (g_potential) {
+      g_total_potential += f * 0.5; // always calculate this
+      if (g_potential) {            // only calculate when required
         g_potential[n1] += f * 0.5;
       }
     }
@@ -2072,6 +2099,7 @@ void NEP3::compute_for_lammps(
   int* type,
   double** pos,
   double& total_potential,
+  double total_virial[6],
   double* potential,
   double** force,
   double** virial)
@@ -2082,19 +2110,15 @@ void NEP3::compute_for_lammps(
     num_atoms = N;
   }
   find_descriptor_for_lammps(
-    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(), sum_fxyz.data(), potential);
+    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(), sum_fxyz.data(), total_potential,
+    potential);
   find_force_radial_for_lammps(
-    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(), force, virial);
+    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(), force, total_virial, virial);
   find_force_angular_for_lammps(
-    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(), sum_fxyz.data(), force, virial);
+    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(), sum_fxyz.data(), force, total_virial,
+    virial);
   if (zbl.enabled) {
-    find_force_ZBL_for_lammps(zbl, N, ilist, NN, NL, type, pos, force, virial, potential);
-  }
-  total_potential = 0.0;
-  if (potential) {
-    for (int ii = 0; ii < N; ++ii) {
-      int n1 = ilist[ii];
-      total_potential += potential[n1];
-    }
+    find_force_ZBL_for_lammps(
+      zbl, N, ilist, NN, NL, type, pos, force, total_virial, virial, total_potential, potential);
   }
 }

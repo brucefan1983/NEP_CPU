@@ -99,8 +99,9 @@ public:
     int** firstneigh,        // list->firstneigh
     int* type,               // atom->type
     double** x,              // atom->x
-    double& total_potential, // eng_vdwl
-    double* potential,       // &eatom[0] or nullptr
+    double& total_potential, // total potential energy for the current processor
+    double total_virial[6],  // total virial for the current processor
+    double* potential,       // eatom or nullptr
     double** f,              // atom->f
     double** virial          // cvatom or nullptr
   );
