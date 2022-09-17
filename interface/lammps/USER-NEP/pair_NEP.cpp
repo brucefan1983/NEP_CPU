@@ -31,6 +31,8 @@
 #include <string.h>
 #include <vector>
 
+#define LAMMPS_VERSION_NUMBER 20220324 // use the new neighbor list starting from this version
+
 using namespace LAMMPS_NS;
 
 PairNEP::PairNEP(LAMMPS* lmp) : Pair(lmp)
@@ -84,11 +86,14 @@ void PairNEP::settings(int narg, char** arg)
 
 void PairNEP::init_style()
 {
+#if LAMMPS_VERSION_NUMBER >= 20220324
+  neighbor->add_request(this, NeighConst::REQ_FULL);
+#else
   int irequest = neighbor->request(this, instance_me);
   neighbor->requests[irequest]->half = 0;
   neighbor->requests[irequest]->full = 1;
+#endif
 
-  // if (inited) ~nep_model();
   nep_model.init_from_file(model_filename);
   inited = true;
   cutoff = nep_model.paramb.rc_radial;
@@ -97,8 +102,6 @@ void PairNEP::init_style()
   for (int i = 1; i <= n; i++)
     for (int j = 1; j <= n; j++)
       cutsq[i][j] = cutoffsq;
-
-  // if (comm->nprocs != 1) error->all(FLERR, "no parallel plz");
 }
 
 double PairNEP::init_one(int i, int j) { return cutoff; }
@@ -120,7 +123,6 @@ void PairNEP::compute(int eflag, int vflag)
     list->inum, list->ilist, list->numneigh, list->firstneigh, atom->type, atom->x, energy,
     p_site_en, atom->f, p_site_virial);
   if (eflag_global) {
-    // eng_vdwl += energy;    mix with other potential
     eng_vdwl = energy;
   }
   if (vflag_fdotr) {
