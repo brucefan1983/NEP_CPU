@@ -33,7 +33,7 @@
 * How to install?
   * Modify `interface/lammps/install.sh`:
     * Change `$1` to the path of your LAMMPS package.
-    * Change `serial` to `mpi`, `lmp_serial` to `lmp_mpi`, and `clean-serial` to `clean-mpi`.
+    * Change `serial` to `mpi`, `lmp_serial` to `lmp_mpi`, and `clean-serial` to `clean-mpi` if you want to build an MPI version.
   * Run the `interface/lammps/install.sh` file to install.
   
 * Tips for using NEP in LAMMPS:
