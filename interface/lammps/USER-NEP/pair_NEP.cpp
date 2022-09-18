@@ -37,6 +37,12 @@ using namespace LAMMPS_NS;
 
 PairNEP::PairNEP(LAMMPS* lmp) : Pair(lmp)
 {
+#if LAMMPS_VERSION_NUMBER >= 20201130
+  centroidstressflag = CENTROID_AVAIL;
+#else
+  centroidstressflag = 2;
+#endif
+
   restartinfo = 0;
   manybody_flag = 1;
 
