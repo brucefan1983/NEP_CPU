@@ -24,8 +24,7 @@
   
 # The NEP-LAMMPS interface
 
-* Which versions of LAMMPS are supported?
-  No older than the 20220324 version: https://github.com/lammps/lammps/releases/tag/patch_24Mar2022
+* Applies to LAMMPS that is no older than the [20220324 version](https://github.com/lammps/lammps/releases/tag/patch_24Mar2022).
 
 * The NEP-LAMMPS interface consists of the following files:
   * `interface/lammps/install.sh`
@@ -47,8 +46,7 @@
   pair_coeff * *
   ```
 
-* Speed information
-  * The computational speed of NEP in LAMMPS with one CPU thread is about 1/1000 of that of NEP in GPUMD with one A100 GPU.
+* Speed information: NEP-LAMMPS with 1 CPU can achieve about 1/1000 of the speed of NEP-GPUMD with one A100 GPU.
 
 # Citation
 
