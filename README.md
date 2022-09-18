@@ -24,6 +24,9 @@
   
 # The NEP-LAMMPS interface
 
+* Which versions of LAMMPS are supported?
+  No older than the 20220324 version: https://github.com/lammps/lammps/releases/tag/patch_24Mar2022
+
 * The NEP-LAMMPS interface consists of the following files:
   * `interface/lammps/install.sh`
   * `interface/lammps/USER-NEP/pair_NEP.h`
