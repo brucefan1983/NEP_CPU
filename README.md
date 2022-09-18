@@ -6,7 +6,7 @@
 
 * An interface of the `NEP3` class to the CPU version of LAMMPS (https://github.com/lammps/lammps). **It can be run with MPI**.
 
-# File organization
+# The standalone C++ implementation of NEP
 
 * The `NEP3` C++ class is defined in the following two files:
   * `src/nep.h`
@@ -22,14 +22,30 @@
   * `PyNEP`: https://github.com/bigd4/PyNEP
   * `calorine`: https://gitlab.com/materials-modeling/calorine
   
-* The LAMMPS interface code can be found in the folder `interface/lammps/USER-NEP/`, which contains the following files:
-  * `pair_NEP.h`
-  * `pair_NEP.cpp`
-  * `install.sh`
+# The NEP-LAMMPS interface
 
-# Speed information
+* The NEP-LAMMPS interface consists of the following files:
+  * `interface/lammps/install.sh`
+  * `interface/lammps/USER-NEP/pair_NEP.h`
+  * `interface/lammps/USER-NEP/pair_NEP.cpp`
+  * `interface/lammps/USER-NEP/install.sh`
+  
+* How to install?
+  * Modify `interface/lammps/install.sh`:
+    * Change `$1` to the path of your LAMMPS package.
+    * Change `serial` to `mpi`, `lmp_serial` to `lmp_mpi`, and `clean-serial` to `clean-mpi`.
+  * Run the `interface/lammps/install.sh` file to install.
+  
+* Tips for using NEP in LAMMPS:
+  ```
+  atom_style atomic
+  units metal
+  pair_style nep YOUR_NEP_MODEL_FILE.txt
+  pair_coeff * *
+  ```
 
-* The computational speed of NEP in LAMMPS with one CPU thread is about 1/1000 of that of NEP in GPUMD with one A100 GPU.
+* Speed information
+  * The computational speed of NEP in LAMMPS with one CPU thread is about 1/1000 of that of NEP in GPUMD with one A100 GPU.
 
 # Citation
 
