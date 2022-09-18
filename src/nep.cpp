@@ -1143,6 +1143,7 @@ void find_descriptor_for_lammps(
   double** g_pos,
   double* g_Fp,
   double* g_sum_fxyz,
+  double& g_total_potential,
   double* g_potential)
 {
   for (int ii = 0; ii < N; ++ii) {
@@ -1244,8 +1245,10 @@ void find_descriptor_for_lammps(
     apply_ann_one_layer(
       annmb.dim, annmb.num_neurons1, annmb.w0, annmb.b0, annmb.w1, annmb.b1, q, F, Fp,
       latent_space);
-    if (g_potential) {
-      g_potential[n1] = F; // no accumulation here
+
+    g_total_potential += F; // always calculate this
+    if (g_potential) {      // only calculate when required
+      g_potential[n1] += F;
     }
 
     for (int d = 0; d < annmb.dim; ++d) {
@@ -1265,6 +1268,7 @@ void find_force_radial_for_lammps(
   double** g_pos,
   double* g_Fp,
   double** g_force,
+  double g_total_virial[6],
   double** g_virial)
 {
   for (int ii = 0; ii < N; ++ii) {
@@ -1323,8 +1327,15 @@ void find_force_radial_for_lammps(
       g_force[n2][0] -= f12[0];
       g_force[n2][1] -= f12[1];
       g_force[n2][2] -= f12[2];
-      // follow LAMMPS order
-      if (g_virial) {
+
+      // always calculate the total virial:
+      g_total_virial[0] -= r12[0] * f12[0]; // xx
+      g_total_virial[1] -= r12[1] * f12[1]; // yy
+      g_total_virial[2] -= r12[2] * f12[2]; // zz
+      g_total_virial[3] -= r12[0] * f12[1]; // xy
+      g_total_virial[4] -= r12[0] * f12[2]; // xz
+      g_total_virial[5] -= r12[1] * f12[2]; // yz
+      if (g_virial) {                       // only calculate the per-atom virial when required
         g_virial[n2][0] -= r12[0] * f12[0]; // xx
         g_virial[n2][1] -= r12[1] * f12[1]; // yy
         g_virial[n2][2] -= r12[2] * f12[2]; // zz
@@ -1351,6 +1362,7 @@ void find_force_angular_for_lammps(
   double* g_Fp,
   double* g_sum_fxyz,
   double** g_force,
+  double g_total_virial[6],
   double** g_virial)
 {
   for (int ii = 0; ii < N; ++ii) {
@@ -1428,8 +1440,14 @@ void find_force_angular_for_lammps(
       g_force[n2][0] -= f12[0];
       g_force[n2][1] -= f12[1];
       g_force[n2][2] -= f12[2];
-      // follow LAMMPS order
-      if (g_virial) {
+      // always calculate the total virial:
+      g_total_virial[0] -= r12[0] * f12[0]; // xx
+      g_total_virial[1] -= r12[1] * f12[1]; // yy
+      g_total_virial[2] -= r12[2] * f12[2]; // zz
+      g_total_virial[3] -= r12[0] * f12[1]; // xy
+      g_total_virial[4] -= r12[0] * f12[2]; // xz
+      g_total_virial[5] -= r12[1] * f12[2]; // yz
+      if (g_virial) {                       // only calculate the per-atom virial when required
         g_virial[n2][0] -= r12[0] * f12[0]; // xx
         g_virial[n2][1] -= r12[1] * f12[1]; // yy
         g_virial[n2][2] -= r12[2] * f12[2]; // zz
@@ -1453,7 +1471,9 @@ void find_force_ZBL_for_lammps(
   int* g_type,
   double** g_pos,
   double** g_force,
+  double g_total_virial[6],
   double** g_virial,
+  double& g_total_potential,
   double* g_potential)
 {
   for (int ii = 0; ii < N; ++ii) {
@@ -1485,8 +1505,14 @@ void find_force_ZBL_for_lammps(
       g_force[n2][0] -= f12[0];
       g_force[n2][1] -= f12[1];
       g_force[n2][2] -= f12[2];
-      // follow LAMMPS order
-      if (g_virial) {
+      // always calculate the total virial:
+      g_total_virial[0] -= r12[0] * f12[0]; // xx
+      g_total_virial[1] -= r12[1] * f12[1]; // yy
+      g_total_virial[2] -= r12[2] * f12[2]; // zz
+      g_total_virial[3] -= r12[0] * f12[1]; // xy
+      g_total_virial[4] -= r12[0] * f12[2]; // xz
+      g_total_virial[5] -= r12[1] * f12[2]; // yz
+      if (g_virial) {                       // only calculate the per-atom virial when required
         g_virial[n2][0] -= r12[0] * f12[0]; // xx
         g_virial[n2][1] -= r12[1] * f12[1]; // yy
         g_virial[n2][2] -= r12[2] * f12[2]; // zz
@@ -1497,7 +1523,8 @@ void find_force_ZBL_for_lammps(
         g_virial[n2][7] -= r12[2] * f12[0]; // zx
         g_virial[n2][8] -= r12[2] * f12[1]; // zy
       }
-      if (g_potential) {
+      g_total_potential += f * 0.5; // always calculate this
+      if (g_potential) {            // only calculate when required
         g_potential[n1] += f * 0.5;
       }
     }
@@ -1718,9 +1745,9 @@ double get_double_from_token(const std::string& token, const char* filename, con
 
 NEP3::NEP3() {}
 
-NEP3::NEP3(const std::string& potential_filename) { init_from_file(potential_filename); }
+NEP3::NEP3(const std::string& potential_filename) { init_from_file(potential_filename, true); }
 
-void NEP3::init_from_file(const std::string& potential_filename)
+void NEP3::init_from_file(const std::string& potential_filename, const bool is_rank_0)
 {
   std::ifstream input(potential_filename);
   if (!input.is_open()) {
@@ -1754,20 +1781,6 @@ void NEP3::init_from_file(const std::string& potential_filename)
     exit(1);
   }
 
-  if (paramb.version == 2) {
-    if (paramb.num_types == 1) {
-      std::cout << "Use the NEP2 potential with " << paramb.num_types << " atom type.\n";
-    } else {
-      std::cout << "Use the NEP2 potential with " << paramb.num_types << " atom types.\n";
-    }
-  } else {
-    if (paramb.num_types == 1) {
-      std::cout << "Use the NEP3 potential with " << paramb.num_types << " atom type.\n";
-    } else {
-      std::cout << "Use the NEP3 potential with " << paramb.num_types << " atom types.\n";
-    }
-  }
-
   for (int n = 0; n < paramb.num_types; ++n) {
     int atomic_number = 0;
     for (int m = 0; m < NUM_ELEMENTS; ++m) {
@@ -1777,8 +1790,6 @@ void NEP3::init_from_file(const std::string& potential_filename)
       }
     }
     zbl.atomic_numbers[n] = atomic_number;
-    std::cout << "    type " << n << " (" << tokens[2 + n].c_str()
-              << " with Z = " << zbl.atomic_numbers[n] << ").\n";
   }
 
   // zbl 0.7 1.4
@@ -1790,8 +1801,6 @@ void NEP3::init_from_file(const std::string& potential_filename)
     }
     zbl.rc_inner = get_double_from_token(tokens[1], __FILE__, __LINE__);
     zbl.rc_outer = get_double_from_token(tokens[2], __FILE__, __LINE__);
-    std::cout << "    has ZBL with inner cutoff " << zbl.rc_inner << " A and outer cutoff "
-              << zbl.rc_outer << " A.\n";
   }
 
   // cutoff 4.2 3.7 80 47
@@ -1802,8 +1811,6 @@ void NEP3::init_from_file(const std::string& potential_filename)
   }
   paramb.rc_radial = get_double_from_token(tokens[1], __FILE__, __LINE__);
   paramb.rc_angular = get_double_from_token(tokens[2], __FILE__, __LINE__);
-  std::cout << "    radial cutoff = " << paramb.rc_radial << " A.\n";
-  std::cout << "    angular cutoff = " << paramb.rc_angular << " A.\n";
 
   // n_max 10 8
   tokens = get_tokens(input);
@@ -1813,8 +1820,6 @@ void NEP3::init_from_file(const std::string& potential_filename)
   }
   paramb.n_max_radial = get_int_from_token(tokens[1], __FILE__, __LINE__);
   paramb.n_max_angular = get_int_from_token(tokens[2], __FILE__, __LINE__);
-  std::cout << "    n_max_radial = " << paramb.n_max_radial << ".\n";
-  std::cout << "    n_max_angular = " << paramb.n_max_angular << ".\n";
 
   // basis_size 10 8
   if (paramb.version == 3) {
@@ -1826,8 +1831,6 @@ void NEP3::init_from_file(const std::string& potential_filename)
     }
     paramb.basis_size_radial = get_int_from_token(tokens[1], __FILE__, __LINE__);
     paramb.basis_size_angular = get_int_from_token(tokens[2], __FILE__, __LINE__);
-    std::cout << "    basis_size_radial = " << paramb.basis_size_radial << ".\n";
-    std::cout << "    basis_size_angular = " << paramb.basis_size_angular << ".\n";
   }
 
   // l_max
@@ -1845,14 +1848,11 @@ void NEP3::init_from_file(const std::string& potential_filename)
   }
 
   paramb.L_max = get_int_from_token(tokens[1], __FILE__, __LINE__);
-  std::cout << "    l_max_3body = " << paramb.L_max << ".\n";
   paramb.num_L = paramb.L_max;
 
   if (paramb.version == 3) {
     int L_max_4body = get_int_from_token(tokens[2], __FILE__, __LINE__);
     int L_max_5body = get_int_from_token(tokens[3], __FILE__, __LINE__);
-    std::cout << "    l_max_4body = " << L_max_4body << ".\n";
-    std::cout << "    l_max_5body = " << L_max_5body << ".\n";
     if (L_max_4body == 2) {
       paramb.num_L += 1;
     }
@@ -1871,15 +1871,12 @@ void NEP3::init_from_file(const std::string& potential_filename)
   }
   annmb.num_neurons1 = get_int_from_token(tokens[1], __FILE__, __LINE__);
   annmb.dim = (paramb.n_max_radial + 1) + paramb.dim_angular;
-  std::cout << "    ANN = " << annmb.dim << "-" << annmb.num_neurons1 << "-1.\n";
 
   // calculated parameters:
   paramb.rcinv_radial = 1.0f / paramb.rc_radial;
   paramb.rcinv_angular = 1.0f / paramb.rc_angular;
   paramb.num_types_sq = paramb.num_types * paramb.num_types;
-
   annmb.num_para = (annmb.dim + 2) * annmb.num_neurons1 + 1;
-  std::cout << "    number of neural network parameters = " << annmb.num_para << ".\n";
   int num_para_descriptor =
     paramb.num_types_sq * ((paramb.n_max_radial + 1) * (paramb.basis_size_radial + 1) +
                            (paramb.n_max_angular + 1) * (paramb.basis_size_angular + 1));
@@ -1889,9 +1886,7 @@ void NEP3::init_from_file(const std::string& potential_filename)
         ? 0
         : paramb.num_types_sq * (paramb.n_max_radial + paramb.n_max_angular + 2);
   }
-  std::cout << "    number of descriptor parameters = " << num_para_descriptor << ".\n";
   annmb.num_para += num_para_descriptor;
-  std::cout << "    total number of parameters = " << annmb.num_para << ".\n";
 
   paramb.num_c_radial =
     paramb.num_types_sq * (paramb.n_max_radial + 1) * (paramb.basis_size_radial + 1);
@@ -1909,6 +1904,45 @@ void NEP3::init_from_file(const std::string& potential_filename)
   }
 
   input.close();
+
+  // only report for rank_0
+  if (is_rank_0) {
+    if (paramb.version == 2) {
+      if (paramb.num_types == 1) {
+        std::cout << "Use the NEP2 potential with " << paramb.num_types << " atom type.\n";
+      } else {
+        std::cout << "Use the NEP2 potential with " << paramb.num_types << " atom types.\n";
+      }
+    } else {
+      if (paramb.num_types == 1) {
+        std::cout << "Use the NEP3 potential with " << paramb.num_types << " atom type.\n";
+      } else {
+        std::cout << "Use the NEP3 potential with " << paramb.num_types << " atom types.\n";
+      }
+    }
+    for (int n = 0; n < paramb.num_types; ++n) {
+      std::cout << "    type " << n << " (Z = " << zbl.atomic_numbers[n] << ").\n";
+    }
+    if (zbl.enabled) {
+      std::cout << "    has ZBL with inner cutoff " << zbl.rc_inner << " A and outer cutoff "
+                << zbl.rc_outer << " A.\n";
+    }
+    std::cout << "    radial cutoff = " << paramb.rc_radial << " A.\n";
+    std::cout << "    angular cutoff = " << paramb.rc_angular << " A.\n";
+    std::cout << "    n_max_radial = " << paramb.n_max_radial << ".\n";
+    std::cout << "    n_max_angular = " << paramb.n_max_angular << ".\n";
+    if (paramb.version == 3) {
+      std::cout << "    basis_size_radial = " << paramb.basis_size_radial << ".\n";
+      std::cout << "    basis_size_angular = " << paramb.basis_size_angular << ".\n";
+    }
+    std::cout << "    l_max_3body = " << paramb.L_max << ".\n";
+    std::cout << "    l_max_4body = " << (paramb.L_max >= 5 ? 2 : 0) << ".\n";
+    std::cout << "    l_max_5body = " << (paramb.L_max >= 6 ? 1 : 0) << ".\n";
+    std::cout << "    ANN = " << annmb.dim << "-" << annmb.num_neurons1 << "-1.\n";
+    std::cout << "    number of neural network parameters = " << annmb.num_para << ".\n";
+    std::cout << "    number of descriptor parameters = " << num_para_descriptor << ".\n";
+    std::cout << "    total number of parameters = " << annmb.num_para << ".\n";
+  }
 }
 
 void NEP3::update_potential(const double* parameters, ANN& ann)
@@ -2072,6 +2106,7 @@ void NEP3::compute_for_lammps(
   int* type,
   double** pos,
   double& total_potential,
+  double total_virial[6],
   double* potential,
   double** force,
   double** virial)
@@ -2082,19 +2117,15 @@ void NEP3::compute_for_lammps(
     num_atoms = N;
   }
   find_descriptor_for_lammps(
-    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(), sum_fxyz.data(), potential);
+    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(), sum_fxyz.data(), total_potential,
+    potential);
   find_force_radial_for_lammps(
-    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(), force, virial);
+    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(), force, total_virial, virial);
   find_force_angular_for_lammps(
-    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(), sum_fxyz.data(), force, virial);
+    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(), sum_fxyz.data(), force, total_virial,
+    virial);
   if (zbl.enabled) {
-    find_force_ZBL_for_lammps(zbl, N, ilist, NN, NL, type, pos, force, virial, potential);
-  }
-  total_potential = 0.0;
-  if (potential) {
-    for (int ii = 0; ii < N; ++ii) {
-      int n1 = ilist[ii];
-      total_potential += potential[n1];
-    }
+    find_force_ZBL_for_lammps(
+      zbl, N, ilist, NN, NL, type, pos, force, total_virial, virial, total_potential, potential);
   }
 }

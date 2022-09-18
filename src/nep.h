@@ -60,7 +60,7 @@ public:
   NEP3();
   NEP3(const std::string& potential_filename);
 
-  void init_from_file(const std::string& potential_filename);
+  void init_from_file(const std::string& potential_filename, const bool is_rank_0);
 
   // type[num_atoms] should be integers 0, 1, ..., mapping to the atom types in nep.txt in order
   // box[9] is ordered as ax, bx, cx, ay, by, cy, az, bz, cz
@@ -99,8 +99,9 @@ public:
     int** firstneigh,        // list->firstneigh
     int* type,               // atom->type
     double** x,              // atom->x
-    double& total_potential, // eng_vdwl
-    double* potential,       // &eatom[0] or nullptr
+    double& total_potential, // total potential energy for the current processor
+    double total_virial[6],  // total virial for the current processor
+    double* potential,       // eatom or nullptr
     double** f,              // atom->f
     double** virial          // cvatom or nullptr
   );
