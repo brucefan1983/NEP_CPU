@@ -94,7 +94,8 @@ void PairNEP::init_style()
   neighbor->requests[irequest]->full = 1;
 #endif
 
-  nep_model.init_from_file(model_filename);
+  bool is_rank_0 = (comm->me == 0);
+  nep_model.init_from_file(model_filename, is_rank_0);
   inited = true;
   cutoff = nep_model.paramb.rc_radial;
   cutoffsq = cutoff * cutoff;
