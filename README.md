@@ -24,7 +24,7 @@
   
 # Build the NEP-LAMMPS interface
 
-* step 1: copy `src/nep.h` and `src/nep.cpp` into `interface/lammps/USER-NEP/` such that you have the following files in `interface/lammps/USER-NEP/`:
+* step 1: Copy `src/nep.h` and `src/nep.cpp` into `interface/lammps/USER-NEP/` such that you have the following files in `interface/lammps/USER-NEP/`:
   * `nep.h`
   * `nep.cpp`
   * `pair_NEP.h`
@@ -44,10 +44,10 @@ If your LAMMPS version is not the one written here, change it to your version nu
   units metal                             # Can only be metal
   pair_style nep YOUR_NEP_MODEL_FILE.txt  # Put your NEP potential file in the current working directory
   pair_coeff * *                          # This format is fixed
+  
+  compute 1 all centroid/stress/atom NULL # Use the centroid version to get the correct heat current
   ```
-
-* Speed information: NEP-LAMMPS with 1 CPU can achieve about 1/1000 of the speed of NEP-GPUMD with one A100 GPU.
-
+  
 # Citation
 
 * If you directly or indirectly use the `NEP3` class here, you are suggested to cite the following paper:
