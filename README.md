@@ -36,7 +36,7 @@
 ```
 If your LAMMPS version is not the one written here, change it to your version number.
 
-* Step 3: Now you can copy the `USER-NEP/` folder into your LAMMPS package and start compiling LAMMPS in your favoriate way. Good luck!
+* Step 3: Now you can copy the `USER-NEP/` folder into your LAMMPS package and start compiling LAMMPS in your favorite way. Good luck!
   
 * Step 4: Start to use NEP in LAMMPS:
   ```
