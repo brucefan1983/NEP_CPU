@@ -1936,10 +1936,11 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
       std::cout << "    basis_size_angular = " << paramb.basis_size_angular << ".\n";
     }
     std::cout << "    l_max_3body = " << paramb.L_max << ".\n";
-    std::cout << "    l_max_4body = " << (paramb.L_max >= 5 ? 2 : 0) << ".\n";
-    std::cout << "    l_max_5body = " << (paramb.L_max >= 6 ? 1 : 0) << ".\n";
+    std::cout << "    l_max_4body = " << (paramb.num_L >= 5 ? 2 : 0) << ".\n";
+    std::cout << "    l_max_5body = " << (paramb.num_L >= 6 ? 1 : 0) << ".\n";
     std::cout << "    ANN = " << annmb.dim << "-" << annmb.num_neurons1 << "-1.\n";
-    std::cout << "    number of neural network parameters = " << annmb.num_para << ".\n";
+    std::cout << "    number of neural network parameters = "
+              << annmb.num_para - num_para_descriptor << ".\n";
     std::cout << "    number of descriptor parameters = " << num_para_descriptor << ".\n";
     std::cout << "    total number of parameters = " << annmb.num_para << ".\n";
   }
