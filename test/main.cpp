@@ -16,12 +16,12 @@
 /*----------------------------------------------------------------------------80
 Usage:
     Compile:
-        g++ -O3 main.cpp nep.cpp
+		g++ -O3 main.cpp ../src/nep.cpp # linux
     run:
-        ./a.out
+		./a.out  # linux
 ------------------------------------------------------------------------------*/
 
-#include "nep.h"
+#include "../src/nep.h"
 #include <cmath>
 #include <fstream>
 #include <iomanip>
