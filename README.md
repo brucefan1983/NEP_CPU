@@ -23,19 +23,14 @@
 
 ## Build the NEP-LAMMPS interface
 
-* step 1: Copy `src/nep.h` and `src/nep.cpp` into `interface/lammps/USER-NEP/` such that you have the following files in `interface/lammps/USER-NEP/`:
+* step 1: Copy `src/nep.h` and `src/nep.cpp` into `interface/lammps/USER-NEP/` such that you have the following 5 files in `interface/lammps/USER-NEP/`:
   * `nep.h`
   * `nep.cpp`
   * `pair_NEP.h`
   * `pair_NEP.cpp`
+  * `install.sh`
 
-* Step 2: Check the version of your LAMMPS to be installed. Translate it into a number such as 20220324 (year, month, day). Then check the beginning of `pair_NEP.cpp`, where you can find the following line
-```
-#define LAMMPS_VERSION_NUMBER 20220324 // use the new neighbor list starting from this version
-```
-If your LAMMPS version is not the one written here, change this line to use your version number.
-
-* Step 3: Now you can copy the `USER-NEP/` folder into `YOUR_LAMMPS_PATH/src/` and start to compile LAMMPS in your favorite way. Good luck!
+* Step 2: Now you can copy the `USER-NEP/` folder into `YOUR_LAMMPS_PATH/src/` and start to compile LAMMPS in your favorite way. Good luck!
   
 ## Use the NEP-LAMMPS interface
 
