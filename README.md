@@ -47,7 +47,8 @@
   * Cu atoms to type 2
   * Ni atoms to type 3
   * P atoms to type 4
-Some atom types can be missing in the simulated system. For example you can use the above NEP model to simulate a CuNi binary alloy. It is important to make sure to still set Cu atoms to type 2 and Ni atoms to type 3. In this case, atom types 1 and 4 are missing.
+  
+* Some atom types can be missing in the simulated system. For example you can use the above NEP model to simulate a CuNi binary alloy. It is important to make sure to still set Cu atoms to type 2 and Ni atoms to type 3. In this case, atom types 1 and 4 are missing.
 
 * Currently NEP cannot be hybridized with other potentials in LAMMPS.
   
