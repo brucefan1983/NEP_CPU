@@ -22,7 +22,10 @@
   * `PyNEP`: https://github.com/bigd4/PyNEP
   * `calorine`: https://gitlab.com/materials-modeling/calorine
   
-# Build the NEP-LAMMPS interface
+  
+# The NEP-LAMMPS interface
+
+## Build the NEP-LAMMPS interface
 
 * step 1: Copy `src/nep.h` and `src/nep.cpp` into `interface/lammps/USER-NEP/` such that you have the following files in `interface/lammps/USER-NEP/`:
   * `nep.h`
@@ -38,14 +41,18 @@ If your LAMMPS version is not the one written here, change this line to use your
 
 * Step 3: Now you can copy the `USER-NEP/` folder into `YOUR_LAMMPS_PATH/src/` and start to compile LAMMPS in your favorite way. Good luck!
   
-* Step 4: Start to use NEP in LAMMPS:
+## Use the NEP-LAMMPS interface
+
+* `atom_style` can only be `atomic`
+* `units` must be `metal`
+* Specify the `pair_style` in the following way:
   ```shell
-  atom_style atomic                       # Can only be atomic
-  units metal                             # Can only be metal
-  pair_style nep YOUR_NEP_MODEL_FILE.txt  # Put your NEP potential file in the current working directory
+  pair_style nep YOUR_NEP_MODEL_FILE.txt  # YOUR_NEP_MODEL_FILE.txt is your NEP model file (with path)
   pair_coeff * *                          # This format is fixed
-  
-  compute 1 all centroid/stress/atom NULL # Use the centroid version to get the correct heat current
+  ```
+* If you want to calculate the heat current correctly, use the following command to get the 9-component per-atom virial:
+  ```shell
+  compute 1 all centroid/stress/atom NULL
   ```
   
 # Citation
