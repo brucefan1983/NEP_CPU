@@ -29,7 +29,7 @@
   * `pair_NEP.h`
   * `pair_NEP.cpp`
   * `install.sh`
-
+  
 * Step 2: Now you can copy the `USER-NEP/` folder into `YOUR_LAMMPS_PATH/src/` and start to compile LAMMPS in your favorite way. Good luck!
   
 ## Use the NEP-LAMMPS interface
@@ -47,6 +47,9 @@
   * Cu atoms to type 2
   * Ni atoms to type 3
   * P atoms to type 4
+Some atom types can be missing in the simulated system. For example you can use the above NEP model to simulate a CuNi binary alloy. It is important to make sure to still set Cu atoms to type 2 and Ni atoms to type 3. In this case, atom types 1 and 4 are missing.
+
+* Currently NEP cannot be hybridized with other potentials in LAMMPS.
   
 * If you want to calculate the heat current correctly, use the following command to get the 9-component per-atom virial:
   ```shell
