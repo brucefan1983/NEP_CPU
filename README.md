@@ -22,7 +22,9 @@
   * `PyNEP`: https://github.com/bigd4/PyNEP
   * `calorine`: https://gitlab.com/materials-modeling/calorine
   
-# Build the NEP-LAMMPS interface
+# The NEP-LAMMPS interface
+
+## Build the NEP-LAMMPS interface
 
 * step 1: Copy `src/nep.h` and `src/nep.cpp` into `interface/lammps/USER-NEP/` such that you have the following files in `interface/lammps/USER-NEP/`:
   * `nep.h`
@@ -38,14 +40,25 @@ If your LAMMPS version is not the one written here, change this line to use your
 
 * Step 3: Now you can copy the `USER-NEP/` folder into `YOUR_LAMMPS_PATH/src/` and start to compile LAMMPS in your favorite way. Good luck!
   
-* Step 4: Start to use NEP in LAMMPS:
-  ```
-  atom_style atomic                       # Can only be atomic
-  units metal                             # Can only be metal
-  pair_style nep YOUR_NEP_MODEL_FILE.txt  # Put your NEP potential file in the current working directory
+## Use the NEP-LAMMPS interface
+
+* `atom_style` can only be `atomic`
+* `units` must be `metal`
+* Specify the `pair_style` in the following way:
+  ```shell
+  pair_style nep YOUR_NEP_MODEL_FILE.txt  # YOUR_NEP_MODEL_FILE.txt is your NEP model file (with path)
   pair_coeff * *                          # This format is fixed
+  ```
   
-  compute 1 all centroid/stress/atom NULL # Use the centroid version to get the correct heat current
+* For multi-element system, the atom types must be carefully set. Take a NEP model `NEP_PdCuNiP.txt` as an example. In this NEP model file, the first line is `nep3 4 Pd Cu Ni P`. Then in your LAMMPS input file, you must set 
+  * Pb atoms to type 1
+  * Cu atoms to type 2
+  * Ni atoms to type 3
+  * P atoms to type 4
+  
+* If you want to calculate the heat current correctly, use the following command to get the 9-component per-atom virial:
+  ```shell
+  compute 1 all centroid/stress/atom NULL
   ```
   
 # Citation
