@@ -774,8 +774,8 @@ void find_descriptor_small_box(
   const bool calculating_potential,
   const bool calculating_descriptor,
   const bool calculating_latent_space,
-  NEP3::ParaMB paramb,
-  NEP3::ANN annmb,
+  NEP3::ParaMB& paramb,
+  NEP3::ANN& annmb,
   const int N,
   const int* g_NN_radial,
   const int* g_NL_radial,
@@ -885,7 +885,7 @@ void find_descriptor_small_box(
 
       double F = 0.0, Fp[MAX_DIM] = {0.0}, latent_space[MAX_NEURON] = {0.0};
       apply_ann_one_layer(
-        annmb.dim, annmb.num_neurons1, annmb.w0, annmb.b0, annmb.w1, annmb.b1, q, F, Fp,
+        annmb.dim, annmb.num_neurons1, annmb.w0[t1], annmb.b0[t1], annmb.w1[t1], annmb.b1, q, F, Fp,
         latent_space);
 
       if (calculating_latent_space) {
@@ -906,8 +906,8 @@ void find_descriptor_small_box(
 }
 
 void find_force_radial_small_box(
-  NEP3::ParaMB paramb,
-  NEP3::ANN annmb,
+  NEP3::ParaMB& paramb,
+  NEP3::ANN& annmb,
   const int N,
   const int* g_NN,
   const int* g_NL,
@@ -984,8 +984,8 @@ void find_force_radial_small_box(
 }
 
 void find_force_angular_small_box(
-  NEP3::ParaMB paramb,
-  NEP3::ANN annmb,
+  NEP3::ParaMB& paramb,
+  NEP3::ANN& annmb,
   const int N,
   const int* g_NN_angular,
   const int* g_NL_angular,
@@ -1083,7 +1083,7 @@ void find_force_angular_small_box(
 
 void find_force_ZBL_small_box(
   const int N,
-  const NEP3::ZBL zbl,
+  const NEP3::ZBL& zbl,
   const int* g_NN,
   const int* g_NL,
   const int* g_type,
@@ -1133,8 +1133,8 @@ void find_force_ZBL_small_box(
 }
 
 void find_descriptor_for_lammps(
-  NEP3::ParaMB paramb,
-  NEP3::ANN annmb,
+  NEP3::ParaMB& paramb,
+  NEP3::ANN& annmb,
   int N,
   int* g_ilist,
   int* g_NN,
@@ -1243,7 +1243,7 @@ void find_descriptor_for_lammps(
 
     double F = 0.0, Fp[MAX_DIM] = {0.0}, latent_space[MAX_NEURON] = {0.0};
     apply_ann_one_layer(
-      annmb.dim, annmb.num_neurons1, annmb.w0, annmb.b0, annmb.w1, annmb.b1, q, F, Fp,
+      annmb.dim, annmb.num_neurons1, annmb.w0[t1], annmb.b0[t1], annmb.w1[t1], annmb.b1, q, F, Fp,
       latent_space);
 
     g_total_potential += F; // always calculate this
@@ -1258,8 +1258,8 @@ void find_descriptor_for_lammps(
 }
 
 void find_force_radial_for_lammps(
-  NEP3::ParaMB paramb,
-  NEP3::ANN annmb,
+  NEP3::ParaMB& paramb,
+  NEP3::ANN& annmb,
   int N,
   int* g_ilist,
   int* g_NN,
@@ -1351,8 +1351,8 @@ void find_force_radial_for_lammps(
 }
 
 void find_force_angular_for_lammps(
-  NEP3::ParaMB paramb,
-  NEP3::ANN annmb,
+  NEP3::ParaMB& paramb,
+  NEP3::ANN& annmb,
   int N,
   int* g_ilist,
   int* g_NN,
@@ -1463,7 +1463,7 @@ void find_force_angular_for_lammps(
 }
 
 void find_force_ZBL_for_lammps(
-  const NEP3::ZBL zbl,
+  const NEP3::ZBL& zbl,
   int N,
   int* g_ilist,
   int* g_NN,
@@ -1773,6 +1773,12 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   } else if (tokens[0] == "nep3_zbl") {
     paramb.version = 3;
     zbl.enabled = true;
+  } else if (tokens[0] == "nep4") {
+    paramb.version = 4;
+    zbl.enabled = false;
+  } else if (tokens[0] == "nep4_zbl") {
+    paramb.version = 4;
+    zbl.enabled = true;
   }
   paramb.num_types = get_int_from_token(tokens[1], __FILE__, __LINE__);
   if (tokens.size() != 2 + paramb.num_types) {
@@ -1822,7 +1828,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   paramb.n_max_angular = get_int_from_token(tokens[2], __FILE__, __LINE__);
 
   // basis_size 10 8
-  if (paramb.version == 3) {
+  if (paramb.version >= 3) {
     tokens = get_tokens(input);
     if (tokens.size() != 3) {
       std::cout << "This line should be basis_size basis_size_radial basis_size_angular."
@@ -1840,7 +1846,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
       std::cout << "This line should be l_max l_max_3body." << std::endl;
       exit(1);
     }
-  } else if (paramb.version == 3) {
+  } else {
     if (tokens.size() != 4) {
       std::cout << "This line should be l_max l_max_3body l_max_4body l_max_5body." << std::endl;
       exit(1);
@@ -1850,7 +1856,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   paramb.L_max = get_int_from_token(tokens[1], __FILE__, __LINE__);
   paramb.num_L = paramb.L_max;
 
-  if (paramb.version == 3) {
+  if (paramb.version >= 3) {
     int L_max_4body = get_int_from_token(tokens[2], __FILE__, __LINE__);
     int L_max_5body = get_int_from_token(tokens[3], __FILE__, __LINE__);
     if (L_max_4body == 2) {
@@ -1876,7 +1882,8 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   paramb.rcinv_radial = 1.0f / paramb.rc_radial;
   paramb.rcinv_angular = 1.0f / paramb.rc_angular;
   paramb.num_types_sq = paramb.num_types * paramb.num_types;
-  annmb.num_para = (annmb.dim + 2) * annmb.num_neurons1 + 1;
+  annmb.num_para =
+    (annmb.dim + 2) * annmb.num_neurons1 * (paramb.version == 4 ? paramb.num_types : 1) + 1;
   int num_para_descriptor =
     paramb.num_types_sq * ((paramb.n_max_radial + 1) * (paramb.basis_size_radial + 1) +
                            (paramb.n_max_angular + 1) * (paramb.basis_size_angular + 1));
@@ -1907,19 +1914,15 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
 
   // only report for rank_0
   if (is_rank_0) {
-    if (paramb.version == 2) {
-      if (paramb.num_types == 1) {
-        std::cout << "Use the NEP2 potential with " << paramb.num_types << " atom type.\n";
-      } else {
-        std::cout << "Use the NEP2 potential with " << paramb.num_types << " atom types.\n";
-      }
+
+    if (paramb.num_types == 1) {
+      std::cout << "Use the NEP" << paramb.version << " potential with " << paramb.num_types
+                << " atom type.\n";
     } else {
-      if (paramb.num_types == 1) {
-        std::cout << "Use the NEP3 potential with " << paramb.num_types << " atom type.\n";
-      } else {
-        std::cout << "Use the NEP3 potential with " << paramb.num_types << " atom types.\n";
-      }
+      std::cout << "Use the NEP" << paramb.version << " potential with " << paramb.num_types
+                << " atom types.\n";
     }
+
     for (int n = 0; n < paramb.num_types; ++n) {
       std::cout << "    type " << n << " (Z = " << zbl.atomic_numbers[n] << ").\n";
     }
@@ -1931,7 +1934,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
     std::cout << "    angular cutoff = " << paramb.rc_angular << " A.\n";
     std::cout << "    n_max_radial = " << paramb.n_max_radial << ".\n";
     std::cout << "    n_max_angular = " << paramb.n_max_angular << ".\n";
-    if (paramb.version == 3) {
+    if (paramb.version >= 3) {
       std::cout << "    basis_size_radial = " << paramb.basis_size_radial << ".\n";
       std::cout << "    basis_size_angular = " << paramb.basis_size_angular << ".\n";
     }
@@ -1946,12 +1949,21 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   }
 }
 
-void NEP3::update_potential(const double* parameters, ANN& ann)
+void NEP3::update_potential(double* parameters, ANN& ann)
 {
-  ann.w0 = parameters;
-  ann.b0 = ann.w0 + ann.num_neurons1 * ann.dim;
-  ann.w1 = ann.b0 + ann.num_neurons1;
-  ann.b1 = ann.w1 + ann.num_neurons1;
+  double* pointer = parameters;
+  for (int t = 0; t < paramb.num_types; ++t) {
+    if (t > 0 && paramb.version != 4) { // Use the same set of NN parameters for NEP2 and NEP3
+      pointer -= (ann.dim + 2) * ann.num_neurons1;
+    }
+    ann.w0[t] = pointer;
+    pointer += ann.num_neurons1 * ann.dim;
+    ann.b0[t] = pointer;
+    pointer += ann.num_neurons1;
+    ann.w1[t] = pointer;
+    pointer += ann.num_neurons1;
+  }
+  ann.b1 = pointer;
   ann.c = ann.b1 + 1;
 }
 
