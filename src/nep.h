@@ -43,9 +43,9 @@ public:
     int dim = 0;
     int num_neurons1 = 0;
     int num_para = 0;
-    const double* w0;
-    const double* b0;
-    const double* w1;
+    const double* w0[100];
+    const double* b0[100];
+    const double* w1[100];
     const double* b1;
     const double* c;
   };
@@ -117,6 +117,6 @@ public:
   std::vector<double> Fp;
   std::vector<double> sum_fxyz;
   std::vector<double> parameters;
-  void update_potential(const double* parameters, ANN& ann);
+  void update_potential(double* parameters, ANN& ann);
   void allocate_memory(const int N);
 };
