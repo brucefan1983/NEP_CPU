@@ -117,6 +117,7 @@ public:
   std::vector<double> Fp;
   std::vector<double> sum_fxyz;
   std::vector<double> parameters;
+  std::vector<std::string> element_list;
   void update_potential(double* parameters, ANN& ann);
   void allocate_memory(const int N);
 };

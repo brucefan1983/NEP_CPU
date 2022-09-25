@@ -1786,9 +1786,11 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
               << std::endl;
     exit(1);
   }
-
+  
+  element_list.resize(paramb.num_types);
   for (int n = 0; n < paramb.num_types; ++n) {
     int atomic_number = 0;
+    element_list[n] = tokens[2 + n];
     for (int m = 0; m < NUM_ELEMENTS; ++m) {
       if (tokens[2 + n] == ELEMENTS[m]) {
         atomic_number = m + 1;
@@ -1924,8 +1926,9 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
     }
 
     for (int n = 0; n < paramb.num_types; ++n) {
-      std::cout << "    type " << n << " (Z = " << zbl.atomic_numbers[n] << ").\n";
+      std::cout << "    type " << n << "( " << element_list[n] << " with Z = " << zbl.atomic_numbers[n] << ").\n";
     }
+
     if (zbl.enabled) {
       std::cout << "    has ZBL with inner cutoff " << zbl.rc_inner << " A and outer cutoff "
                 << zbl.rc_outer << " A.\n";
