@@ -1606,9 +1606,9 @@ void get_expanded_box(const double rc, const double* box, int* num_cells, double
 
 void applyMicOne(double& x12)
 {
-  if (x12 < -0.5)
+  while (x12 < -0.5)
     x12 += 1.0;
-  else if (x12 > +0.5)
+  while (x12 > +0.5)
     x12 -= 1.0;
 }
 
