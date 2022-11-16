@@ -1711,6 +1711,15 @@ std::vector<std::string> get_tokens(std::ifstream& input)
   return tokens;
 }
 
+void print_tokens(std::vector<std::string> tokens)
+{
+  std::cout << "Line:";
+  for(std::string token : tokens) {
+    std::cout << " " << token;
+  }
+  std::cout << std::endl;
+}
+
 int get_int_from_token(const std::string& token, const char* filename, const int line)
 {
   int value = 0;
@@ -1758,6 +1767,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   // nep3 1 C
   std::vector<std::string> tokens = get_tokens(input);
   if (tokens.size() < 3) {
+    print_tokens(tokens);
     std::cout << "The first line of nep.txt should have at least 3 items." << std::endl;
     exit(1);
   }
@@ -1782,6 +1792,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   }
   paramb.num_types = get_int_from_token(tokens[1], __FILE__, __LINE__);
   if (tokens.size() != 2 + paramb.num_types) {
+    print_tokens(tokens);
     std::cout << "The first line of nep.txt should have " << paramb.num_types << " atom symbols."
               << std::endl;
     exit(1);
@@ -1804,6 +1815,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   if (zbl.enabled) {
     tokens = get_tokens(input);
     if (tokens.size() != 3) {
+      print_tokens(tokens);
       std::cout << "This line should be zbl rc_inner rc_outer." << std::endl;
       exit(1);
     }
@@ -1814,6 +1826,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   // cutoff 4.2 3.7 80 47
   tokens = get_tokens(input);
   if (tokens.size() != 3 && tokens.size() != 5) {
+    print_tokens(tokens);
     std::cout << "This line should be cutoff rc_radial rc_angular [MN_radial] [MN_angular].\n";
     exit(1);
   }
@@ -1823,6 +1836,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   // n_max 10 8
   tokens = get_tokens(input);
   if (tokens.size() != 3) {
+    print_tokens(tokens);
     std::cout << "This line should be n_max n_max_radial n_max_angular." << std::endl;
     exit(1);
   }
@@ -1833,6 +1847,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   if (paramb.version >= 3) {
     tokens = get_tokens(input);
     if (tokens.size() != 3) {
+      print_tokens(tokens);
       std::cout << "This line should be basis_size basis_size_radial basis_size_angular."
                 << std::endl;
       exit(1);
@@ -1845,11 +1860,13 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   tokens = get_tokens(input);
   if (paramb.version == 2) {
     if (tokens.size() != 2) {
+      print_tokens(tokens);
       std::cout << "This line should be l_max l_max_3body." << std::endl;
       exit(1);
     }
   } else {
-    if (tokens.size() != 4) {
+    if (tokens.size() != 4) { 
+      print_tokens(tokens);
       std::cout << "This line should be l_max l_max_3body l_max_4body l_max_5body." << std::endl;
       exit(1);
     }
@@ -1874,6 +1891,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   // ANN
   tokens = get_tokens(input);
   if (tokens.size() != 3) {
+    print_tokens(tokens);
     std::cout << "This line should be ANN num_neurons 0." << std::endl;
     exit(1);
   }
