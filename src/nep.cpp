@@ -1711,10 +1711,10 @@ std::vector<std::string> get_tokens(std::ifstream& input)
   return tokens;
 }
 
-void print_tokens(std::vector<std::string> tokens)
+void print_tokens(const std::vector<std::string>& tokens)
 {
   std::cout << "Line:";
-  for(std::string token : tokens) {
+  for(const auto& token : tokens) {
     std::cout << " " << token;
   }
   std::cout << std::endl;
