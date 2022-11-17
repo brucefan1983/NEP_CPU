@@ -26,6 +26,8 @@ public:
     double rc_angular = 0.0;
     double rcinv_radial = 0.0;
     double rcinv_angular = 0.0;
+    int mn_radial = 1000;
+    int mn_angular = 1000;
     int n_max_radial = 0;
     int n_max_angular = 0;
     int L_max = 0;

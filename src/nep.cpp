@@ -1629,6 +1629,7 @@ void find_neighbor_list_small_box(
   const double rc_radial,
   const double rc_angular,
   const int N,
+  const int MN,
   const std::vector<double>& box,
   const std::vector<double>& position,
   int* num_cells,
@@ -1665,18 +1666,15 @@ void find_neighbor_list_small_box(
             if (ia == 0 && ib == 0 && ic == 0 && n1 == n2) {
               continue; // exclude self
             }
-
             double delta[3];
             delta[0] = box[0] * ia + box[1] * ib + box[2] * ic;
             delta[1] = box[3] * ia + box[4] * ib + box[5] * ic;
             delta[2] = box[6] * ia + box[7] * ib + box[8] * ic;
-
             double x12 = g_x[n2] + delta[0] - x1;
             double y12 = g_y[n2] + delta[1] - y1;
             double z12 = g_z[n2] + delta[2] - z1;
 
             apply_mic_small_box(ebox, x12, y12, z12);
-
             double distance_square = x12 * x12 + y12 * y12 + z12 * z12;
             if (distance_square < rc_radial * rc_radial) {
               g_NL_radial[count_radial * N + n1] = n2;
@@ -1819,6 +1817,13 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   }
   paramb.rc_radial = get_double_from_token(tokens[1], __FILE__, __LINE__);
   paramb.rc_angular = get_double_from_token(tokens[2], __FILE__, __LINE__);
+  if (tokens.size() == 5) {
+    paramb.mn_radial = get_int_from_token(tokens[3], __FILE__, __LINE__);
+    paramb.mn_angular = get_int_from_token(tokens[4], __FILE__, __LINE__);
+  } else {
+    paramb.mn_radial = MN;
+    paramb.mn_angular = MN;
+  }
 
   // n_max 10 8
   tokens = get_tokens(input);
@@ -1935,6 +1940,8 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
     }
     std::cout << "    radial cutoff = " << paramb.rc_radial << " A.\n";
     std::cout << "    angular cutoff = " << paramb.rc_angular << " A.\n";
+    std::cout << "    max radial number = " << paramb.mn_radial << ".\n";
+    std::cout << "    max angular number= " << paramb.mn_angular << ".\n";
     std::cout << "    n_max_radial = " << paramb.n_max_radial << ".\n";
     std::cout << "    n_max_angular = " << paramb.n_max_angular << ".\n";
     if (paramb.version >= 3) {
@@ -1974,10 +1981,10 @@ void NEP3::allocate_memory(const int N)
 {
   if (num_atoms < N) {
     NN_radial.resize(N);
-    NL_radial.resize(N * MN);
+    NL_radial.resize(N * paramb.mn_radial);
     NN_angular.resize(N);
-    NL_angular.resize(N * MN);
-    r12.resize(N * MN * 6);
+    NL_angular.resize(N * paramb.mn_angular);
+    r12.resize(N * paramb.mn_radial * 6);
     Fp.resize(N * annmb.dim);
     sum_fxyz.resize(N * (paramb.n_max_angular + 1) * NUM_OF_ABC);
     num_atoms = N;
@@ -1993,7 +2000,7 @@ void NEP3::compute(
   std::vector<double>& virial)
 {
   const int N = type.size();
-  const int size_x12 = N * MN;
+  const int size_x12 = N * paramb.mn_radial;
 
   if (N * 3 != position.size()) {
     std::cout << "Type and position sizes are inconsistent.\n";
@@ -2025,7 +2032,7 @@ void NEP3::compute(
   }
 
   find_neighbor_list_small_box(
-    paramb.rc_radial, paramb.rc_angular, N, box, position, num_cells, ebox, NN_radial, NL_radial,
+    paramb.rc_radial, paramb.rc_angular, N, paramb.mn_radial, box, position, num_cells, ebox, NN_radial, NL_radial,
     NN_angular, NL_angular, r12);
 
   find_descriptor_small_box(
@@ -2033,11 +2040,6 @@ void NEP3::compute(
     NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12, r12.data() + size_x12 * 2,
     r12.data() + size_x12 * 3, r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, Fp.data(),
     sum_fxyz.data(), potential.data(), nullptr, nullptr);
-
-  find_force_radial_small_box(
-    paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
-    r12.data() + size_x12, r12.data() + size_x12 * 2, Fp.data(), force.data(), force.data() + N,
-    force.data() + N * 2, virial.data());
 
   find_force_angular_small_box(
     paramb, annmb, N, NN_angular.data(), NL_angular.data(), type.data(), r12.data() + size_x12 * 3,
@@ -2059,7 +2061,7 @@ void NEP3::find_descriptor(
   std::vector<double>& descriptor)
 {
   const int N = type.size();
-  const int size_x12 = N * MN;
+  const int size_x12 = N * paramb.mn_radial;
 
   if (N * 3 != position.size()) {
     std::cout << "Type and position sizes are inconsistent.\n";
@@ -2073,7 +2075,7 @@ void NEP3::find_descriptor(
   allocate_memory(N);
 
   find_neighbor_list_small_box(
-    paramb.rc_radial, paramb.rc_angular, N, box, position, num_cells, ebox, NN_radial, NL_radial,
+    paramb.rc_radial, paramb.rc_angular, N, paramb.mn_radial, box, position, num_cells, ebox, NN_radial, NL_radial,
     NN_angular, NL_angular, r12);
 
   find_descriptor_small_box(
@@ -2090,7 +2092,7 @@ void NEP3::find_latent_space(
   std::vector<double>& latent_space)
 {
   const int N = type.size();
-  const int size_x12 = N * MN;
+  const int size_x12 = N * paramb.mn_radial;
 
   if (N * 3 != position.size()) {
     std::cout << "Type and position sizes are inconsistent.\n";
@@ -2104,7 +2106,7 @@ void NEP3::find_latent_space(
   allocate_memory(N);
 
   find_neighbor_list_small_box(
-    paramb.rc_radial, paramb.rc_angular, N, box, position, num_cells, ebox, NN_radial, NL_radial,
+    paramb.rc_radial, paramb.rc_angular, N, paramb.mn_radial, box, position, num_cells, ebox, NN_radial, NL_radial,
     NN_angular, NL_angular, r12);
 
   find_descriptor_small_box(
