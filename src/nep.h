@@ -43,9 +43,9 @@ public:
     int dim = 0;
     int num_neurons1 = 0;
     int num_para = 0;
-    const double* w0[100];
-    const double* b0[100];
-    const double* w1[100];
+    const double* w0[103];
+    const double* b0[103];
+    const double* w1[103];
     const double* b1;
     const double* c;
   };
@@ -54,7 +54,7 @@ public:
     bool enabled = false;
     double rc_inner = 1.0;
     double rc_outer = 2.0;
-    double atomic_numbers[10];
+    double atomic_numbers[103];
   };
 
   NEP3();
