@@ -1534,7 +1534,8 @@ void find_force_ZBL_for_lammps(
         g_pos[n2][0] - g_pos[n1][0], g_pos[n2][1] - g_pos[n1][1], g_pos[n2][2] - g_pos[n1][2]};
 
       double d12sq = r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2];
-      if (d12sq >= zbl.rc_outer * zbl.rc_outer) {
+      double max_rc_outer = 2.5;
+      if (d12sq >= max_rc_outer * max_rc_outer) {
         continue;
       }
       double d12 = sqrt(d12sq);
