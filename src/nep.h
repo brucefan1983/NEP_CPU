@@ -52,9 +52,14 @@ public:
 
   struct ZBL {
     bool enabled = false;
+    bool flexibled = false;
+    int num_types;
     double rc_inner = 1.0;
     double rc_outer = 2.0;
     double atomic_numbers[103];
+    double rc_flexible_inner[55];
+    double rc_flexible_outer[55];
+    double para[330];
   };
 
   NEP3();

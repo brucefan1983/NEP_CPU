@@ -161,6 +161,32 @@ void find_f_and_fp_zbl(
   f *= fc;
 }
 
+void find_f_and_fp_zbl(
+  double* zbl_para,
+  double zizj,
+  double a_inv,
+  double rc_inner,
+  double rc_outer,
+  double d12,
+  double d12inv,
+  double& f,
+  double& fp)
+{
+  double x = d12 * a_inv;
+  f = fp = 0.0f;
+  find_phi_and_phip_zbl(zbl_para[0], zbl_para[1], x, f, fp);
+  find_phi_and_phip_zbl(zbl_para[2], zbl_para[3], x, f, fp);
+  find_phi_and_phip_zbl(zbl_para[4], zbl_para[5], x, f, fp);
+  f *= zizj;
+  fp *= zizj * a_inv;
+  fp = fp * d12inv - f * d12inv * d12inv;
+  f *= d12inv;
+  double fc, fcp;
+  find_fc_and_fcp_zbl(rc_inner, rc_outer, d12, fc, fcp);
+  fp = fp * fc + f * fcp;
+  f *= fc;
+}
+
 void find_fn(const int n, const double rcinv, const double d12, const double fc12, double& fn)
 {
   if (n == 0) {
@@ -1097,7 +1123,8 @@ void find_force_ZBL_small_box(
   double* g_pe)
 {
   for (int n1 = 0; n1 < N; ++n1) {
-    double zi = zbl.atomic_numbers[g_type[n1]];
+    int type1 = g_type[n1];
+    double zi = zbl.atomic_numbers[type1];
     double pow_zi = pow(zi, 0.23);
     for (int i1 = 0; i1 < g_NN[n1]; ++i1) {
       int index = i1 * N + n1;
@@ -1106,10 +1133,30 @@ void find_force_ZBL_small_box(
       double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
       double d12inv = 1.0 / d12;
       double f, fp;
-      double zj = zbl.atomic_numbers[g_type[n2]];
+      int type2 = g_type[n2];
+      double zj = zbl.atomic_numbers[type2];
       double a_inv = (pow_zi + pow(zj, 0.23)) * 2.134563;
       double zizj = K_C_SP * zi * zj;
-      find_f_and_fp_zbl(zizj, a_inv, zbl.rc_inner, zbl.rc_outer, d12, d12inv, f, fp);
+      if (zbl.flexibled) {
+        int t1, t2;
+        if (type1 < type2) {
+          t1 = type1;
+          t2 = type2;
+        } else {
+          t1 = type2;
+          t2 = type1;
+        }
+        int zbl_index = t1 * zbl.num_types - (t1 * (t1 - 1)) / 2 + (t2 - t1);
+        double rc_inner = zbl.rc_flexible_inner[zbl_index];
+        double rc_outer = zbl.rc_flexible_outer[zbl_index];
+        double ZBL_para[6];
+        for (int i = 0; i < 6; ++i) {
+          ZBL_para[i] = zbl.para[6 * zbl_index + i];
+        }
+        find_f_and_fp_zbl(ZBL_para, zizj, a_inv, rc_inner, rc_outer, d12, d12inv, f, fp);
+      } else {
+        find_f_and_fp_zbl(zizj, a_inv, zbl.rc_inner, zbl.rc_outer, d12, d12inv, f, fp);
+      }
       double f2 = fp * d12inv * 0.5;
       double f12[3] = {r12[0] * f2, r12[1] * f2, r12[2] * f2};
       g_fx[n1] += f12[0];
@@ -1478,7 +1525,8 @@ void find_force_ZBL_for_lammps(
 {
   for (int ii = 0; ii < N; ++ii) {
     int n1 = g_ilist[ii];
-    double zi = zbl.atomic_numbers[g_type[n1] - 1]; // from LAMMPS to NEP convention
+    int type1 = g_type[n1] - 1;
+    double zi = zbl.atomic_numbers[type1]; // from LAMMPS to NEP convention
     double pow_zi = pow(zi, 0.23);
     for (int i1 = 0; i1 < g_NN[n1]; ++i1) {
       int n2 = g_NL[n1][i1];
@@ -1486,17 +1534,38 @@ void find_force_ZBL_for_lammps(
         g_pos[n2][0] - g_pos[n1][0], g_pos[n2][1] - g_pos[n1][1], g_pos[n2][2] - g_pos[n1][2]};
 
       double d12sq = r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2];
-      if (d12sq >= zbl.rc_outer * zbl.rc_outer) {
+      double max_rc_outer = 2.5;
+      if (d12sq >= max_rc_outer * max_rc_outer) {
         continue;
       }
       double d12 = sqrt(d12sq);
 
       double d12inv = 1.0 / d12;
       double f, fp;
-      double zj = zbl.atomic_numbers[g_type[n2] - 1]; // from LAMMPS to NEP convention
+      int type2 = g_type[n2] - 1;
+      double zj = zbl.atomic_numbers[type2]; // from LAMMPS to NEP convention
       double a_inv = (pow_zi + pow(zj, 0.23)) * 2.134563;
       double zizj = K_C_SP * zi * zj;
-      find_f_and_fp_zbl(zizj, a_inv, zbl.rc_inner, zbl.rc_outer, d12, d12inv, f, fp);
+      if (zbl.flexibled) {
+        int t1, t2;
+        if (type1 < type2) {
+          t1 = type1;
+          t2 = type2;
+        } else {
+          t1 = type2;
+          t2 = type1;
+        }
+        int zbl_index = t1 * zbl.num_types - (t1 * (t1 - 1)) / 2 + (t2 - t1);
+        double rc_inner = zbl.rc_flexible_inner[zbl_index];
+        double rc_outer = zbl.rc_flexible_outer[zbl_index];
+        double ZBL_para[6];
+        for (int i = 0; i < 6; ++i) {
+          ZBL_para[i] = zbl.para[6 * zbl_index + i];
+        }
+        find_f_and_fp_zbl(ZBL_para, zizj, a_inv, rc_inner, rc_outer, d12, d12inv, f, fp);
+      } else {
+        find_f_and_fp_zbl(zizj, a_inv, zbl.rc_inner, zbl.rc_outer, d12, d12inv, f, fp);
+      }
       double f2 = fp * d12inv * 0.5;
       double f12[3] = {r12[0] * f2, r12[1] * f2, r12[2] * f2};
       g_force[n1][0] += f12[0]; // accumulation here
@@ -1821,6 +1890,9 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
     }
     zbl.rc_inner = get_double_from_token(tokens[1], __FILE__, __LINE__);
     zbl.rc_outer = get_double_from_token(tokens[2], __FILE__, __LINE__);
+    if (zbl.rc_inner == 0 && zbl.rc_outer == 0) {
+      zbl.flexibled = true;
+    } 
   }
 
   // cutoff 4.2 3.7 80 47
@@ -1930,6 +2002,23 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
     paramb.q_scaler[d] = get_double_from_token(tokens[0], __FILE__, __LINE__);
   }
 
+  // flexible zbl potential parameters if (zbl.flexibled)
+  if (zbl.flexibled) {
+    int num_type_zbl = (paramb.num_types * (paramb.num_types + 1)) / 2;
+    for (int d = 0; d < num_type_zbl; ++d) {
+      tokens = get_tokens(input);
+      zbl.rc_flexible_inner[d] = get_double_from_token(tokens[0], __FILE__, __LINE__);
+    }
+    for (int d = 0; d < num_type_zbl; ++d) {
+      tokens = get_tokens(input);
+      zbl.rc_flexible_outer[d] = get_double_from_token(tokens[0], __FILE__, __LINE__);
+    }
+    for (int d = 0; d < 6 * num_type_zbl; ++d) {
+      tokens = get_tokens(input);
+      zbl.para[d] = get_double_from_token(tokens[0], __FILE__, __LINE__);
+    }
+    zbl.num_types = paramb.num_types;
+  }
   input.close();
 
   // only report for rank_0
@@ -1948,8 +2037,12 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
     }
 
     if (zbl.enabled) {
-      std::cout << "    has ZBL with inner cutoff " << zbl.rc_inner << " A and outer cutoff "
-                << zbl.rc_outer << " A.\n";
+      if (zbl.flexibled) {
+        std::cout << "    has flexible ZBL.\n";
+      } else {
+        std::cout << "    has universal ZBL with inner cutoff " << zbl.rc_inner
+                  << " A and outer cutoff " << zbl.rc_outer << " A.\n";
+      }
     }
     std::cout << "    radial cutoff = " << paramb.rc_radial << " A.\n";
     std::cout << "    angular cutoff = " << paramb.rc_angular << " A.\n";
