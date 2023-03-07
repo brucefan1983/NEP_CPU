@@ -932,6 +932,7 @@ void find_descriptor_small_box(
 }
 
 void find_force_radial_small_box(
+  const bool is_dipole,
   NEP3::ParaMB& paramb,
   NEP3::ANN& annmb,
   const int N,
@@ -990,26 +991,34 @@ void find_force_radial_small_box(
         }
       }
 
-      g_fx[n1] += f12[0];
-      g_fy[n1] += f12[1];
-      g_fz[n1] += f12[2];
-      g_fx[n2] -= f12[0];
-      g_fy[n2] -= f12[1];
-      g_fz[n2] -= f12[2];
-      g_virial[n2 + 0 * N] -= r12[0] * f12[0];
-      g_virial[n2 + 1 * N] -= r12[0] * f12[1];
-      g_virial[n2 + 2 * N] -= r12[0] * f12[2];
-      g_virial[n2 + 3 * N] -= r12[1] * f12[0];
-      g_virial[n2 + 4 * N] -= r12[1] * f12[1];
-      g_virial[n2 + 5 * N] -= r12[1] * f12[2];
-      g_virial[n2 + 6 * N] -= r12[2] * f12[0];
-      g_virial[n2 + 7 * N] -= r12[2] * f12[1];
-      g_virial[n2 + 8 * N] -= r12[2] * f12[2];
+      if (!is_dipole) {
+        g_fx[n1] += f12[0];
+        g_fy[n1] += f12[1];
+        g_fz[n1] += f12[2];
+        g_fx[n2] -= f12[0];
+        g_fy[n2] -= f12[1];
+        g_fz[n2] -= f12[2];
+        g_virial[n2 + 0 * N] -= r12[0] * f12[0];
+        g_virial[n2 + 1 * N] -= r12[0] * f12[1];
+        g_virial[n2 + 2 * N] -= r12[0] * f12[2];
+        g_virial[n2 + 3 * N] -= r12[1] * f12[0];
+        g_virial[n2 + 4 * N] -= r12[1] * f12[1];
+        g_virial[n2 + 5 * N] -= r12[1] * f12[2];
+        g_virial[n2 + 6 * N] -= r12[2] * f12[0];
+        g_virial[n2 + 7 * N] -= r12[2] * f12[1];
+        g_virial[n2 + 8 * N] -= r12[2] * f12[2];
+      } else {
+        double r12_square = r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2];
+        g_virial[n2 + 0 * N] -= r12_square * f12[0];
+        g_virial[n2 + 1 * N] -= r12_square * f12[1];
+        g_virial[n2 + 2 * N] -= r12_square * f12[2];
+      }
     }
   }
 }
 
 void find_force_angular_small_box(
+  const bool is_dipole,
   NEP3::ParaMB& paramb,
   NEP3::ANN& annmb,
   const int N,
@@ -1088,21 +1097,29 @@ void find_force_angular_small_box(
           }
         }
       }
-      g_fx[n1] += f12[0];
-      g_fy[n1] += f12[1];
-      g_fz[n1] += f12[2];
-      g_fx[n2] -= f12[0];
-      g_fy[n2] -= f12[1];
-      g_fz[n2] -= f12[2];
-      g_virial[n2 + 0 * N] -= r12[0] * f12[0];
-      g_virial[n2 + 1 * N] -= r12[0] * f12[1];
-      g_virial[n2 + 2 * N] -= r12[0] * f12[2];
-      g_virial[n2 + 3 * N] -= r12[1] * f12[0];
-      g_virial[n2 + 4 * N] -= r12[1] * f12[1];
-      g_virial[n2 + 5 * N] -= r12[1] * f12[2];
-      g_virial[n2 + 6 * N] -= r12[2] * f12[0];
-      g_virial[n2 + 7 * N] -= r12[2] * f12[1];
-      g_virial[n2 + 8 * N] -= r12[2] * f12[2];
+
+      if (!is_dipole) {
+        g_fx[n1] += f12[0];
+        g_fy[n1] += f12[1];
+        g_fz[n1] += f12[2];
+        g_fx[n2] -= f12[0];
+        g_fy[n2] -= f12[1];
+        g_fz[n2] -= f12[2];
+        g_virial[n2 + 0 * N] -= r12[0] * f12[0];
+        g_virial[n2 + 1 * N] -= r12[0] * f12[1];
+        g_virial[n2 + 2 * N] -= r12[0] * f12[2];
+        g_virial[n2 + 3 * N] -= r12[1] * f12[0];
+        g_virial[n2 + 4 * N] -= r12[1] * f12[1];
+        g_virial[n2 + 5 * N] -= r12[1] * f12[2];
+        g_virial[n2 + 6 * N] -= r12[2] * f12[0];
+        g_virial[n2 + 7 * N] -= r12[2] * f12[1];
+        g_virial[n2 + 8 * N] -= r12[2] * f12[2];
+      } else {
+        double r12_square = r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2];
+        g_virial[n2 + 0 * N] -= r12_square * f12[0];
+        g_virial[n2 + 1 * N] -= r12_square * f12[1];
+        g_virial[n2 + 2 * N] -= r12_square * f12[2];
+      }
     }
   }
 }
@@ -1783,7 +1800,7 @@ std::vector<std::string> get_tokens(std::ifstream& input)
 void print_tokens(const std::vector<std::string>& tokens)
 {
   std::cout << "Line:";
-  for(const auto& token : tokens) {
+  for (const auto& token : tokens) {
     std::cout << " " << token;
   }
   std::cout << std::endl;
@@ -1866,7 +1883,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
               << std::endl;
     exit(1);
   }
-  
+
   element_list.resize(paramb.num_types);
   for (int n = 0; n < paramb.num_types; ++n) {
     int atomic_number = 0;
@@ -1892,7 +1909,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
     zbl.rc_outer = get_double_from_token(tokens[2], __FILE__, __LINE__);
     if (zbl.rc_inner == 0 && zbl.rc_outer == 0) {
       zbl.flexibled = true;
-    } 
+    }
   }
 
   // cutoff 4.2 3.7 80 47
@@ -1937,7 +1954,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
       exit(1);
     }
   } else {
-    if (tokens.size() != 4) { 
+    if (tokens.size() != 4) {
       print_tokens(tokens);
       std::cout << "This line should be l_max l_max_3body l_max_4body l_max_5body." << std::endl;
       exit(1);
@@ -2033,7 +2050,8 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
     }
 
     for (int n = 0; n < paramb.num_types; ++n) {
-      std::cout << "    type " << n << "( " << element_list[n] << " with Z = " << zbl.atomic_numbers[n] << ").\n";
+      std::cout << "    type " << n << "( " << element_list[n]
+                << " with Z = " << zbl.atomic_numbers[n] << ").\n";
     }
 
     if (zbl.enabled) {
@@ -2146,14 +2164,14 @@ void NEP3::compute(
     sum_fxyz.data(), potential.data(), nullptr, nullptr);
 
   find_force_radial_small_box(
-    paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
+    false, paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
     r12.data() + size_x12, r12.data() + size_x12 * 2, Fp.data(), force.data(), force.data() + N,
     force.data() + N * 2, virial.data());
 
   find_force_angular_small_box(
-    paramb, annmb, N, NN_angular.data(), NL_angular.data(), type.data(), r12.data() + size_x12 * 3,
-    r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, Fp.data(), sum_fxyz.data(), force.data(),
-    force.data() + N, force.data() + N * 2, virial.data());
+    false, paramb, annmb, N, NN_angular.data(), NL_angular.data(), type.data(),
+    r12.data() + size_x12 * 3, r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, Fp.data(),
+    sum_fxyz.data(), force.data(), force.data() + N, force.data() + N * 2, virial.data());
 
   if (zbl.enabled) {
     find_force_ZBL_small_box(
@@ -2223,6 +2241,59 @@ void NEP3::find_latent_space(
     NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12, r12.data() + size_x12 * 2,
     r12.data() + size_x12 * 3, r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, Fp.data(),
     sum_fxyz.data(), nullptr, nullptr, latent_space.data());
+}
+
+void NEP3::find_dipole(
+  const std::vector<int>& type,
+  const std::vector<double>& box,
+  const std::vector<double>& position,
+  std::vector<double>& dipole)
+{
+  const int N = type.size();
+  const int size_x12 = N * MN;
+
+  if (N * 3 != position.size()) {
+    std::cout << "Type and position sizes are inconsistent.\n";
+    exit(1);
+  }
+
+  allocate_memory(N);
+  std::vector<double> potential(N);  // not used but needed for find_descriptor_small_box
+  std::vector<double> virial(N * 3); // need the 3 diagonal components only
+
+  for (int n = 0; n < potential.size(); ++n) {
+    potential[n] = 0.0;
+  }
+  for (int n = 0; n < virial.size(); ++n) {
+    virial[n] = 0.0;
+  }
+
+  find_neighbor_list_small_box(
+    paramb.rc_radial, paramb.rc_angular, N, box, position, num_cells, ebox, NN_radial, NL_radial,
+    NN_angular, NL_angular, r12);
+
+  find_descriptor_small_box(
+    true, false, false, paramb, annmb, N, NN_radial.data(), NL_radial.data(), NN_angular.data(),
+    NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12, r12.data() + size_x12 * 2,
+    r12.data() + size_x12 * 3, r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, Fp.data(),
+    sum_fxyz.data(), potential.data(), nullptr, nullptr);
+
+  find_force_radial_small_box(
+    true, paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
+    r12.data() + size_x12, r12.data() + size_x12 * 2, Fp.data(), nullptr, nullptr, nullptr,
+    virial.data());
+
+  find_force_angular_small_box(
+    true, paramb, annmb, N, NN_angular.data(), NL_angular.data(), type.data(),
+    r12.data() + size_x12 * 3, r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, Fp.data(),
+    sum_fxyz.data(), nullptr, nullptr, nullptr, virial.data());
+
+  for (int d = 0; d < 3; ++d) {
+    dipole[d] = 0.0;
+    for (int n = 0; n < N; ++n) {
+      dipole[d] += virial[d * N + n];
+    }
+  }
 }
 
 void NEP3::compute_for_lammps(
