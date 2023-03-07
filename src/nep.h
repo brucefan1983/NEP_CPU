@@ -97,6 +97,13 @@ public:
     const std::vector<double>& position,
     std::vector<double>& latent_space);
 
+  void find_dipole(
+    const std::vector<int>& type,
+    const std::vector<double>& box,
+    const std::vector<double>& position,
+    std::vector<double>& dipole // 3 components, for the whole box
+  );
+
   void compute_for_lammps(
     int inum,                // list->inum
     int* ilist,              // list->ilist
