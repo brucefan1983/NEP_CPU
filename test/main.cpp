@@ -14,7 +14,7 @@
 */
 
 /*----------------------------------------------------------------------------80
-Usage
+Usage:
     Compile:
         g++ -O3 main.cpp ../src/nep.cpp # Without openMP support
         g++ -O3 -fopenmp main.cpp ../src/nep.cpp # With openMP support
