@@ -1361,6 +1361,10 @@ void find_descriptor_for_lammps(
   int** g_NL,
   int* g_type,
   double** g_pos,
+#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
+  const double* g_gn_radial,
+  const double* g_gn_angular,
+#endif
   double* g_Fp,
   double* g_sum_fxyz,
   double& g_total_potential,
@@ -1381,10 +1385,24 @@ void find_descriptor_for_lammps(
         continue;
       }
       double d12 = sqrt(d12sq);
+      int t2 = g_type[n2] - 1; // from LAMMPS to NEP convention
 
+#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
+      int index_left, index_right;
+      double weight_left, weight_right;
+      find_index_and_weight(
+        d12 * paramb.rcinv_radial, index_left, index_right, weight_left, weight_right);
+      int t12 = t1 * paramb.num_types + t2;
+      for (int n = 0; n <= paramb.n_max_radial; ++n) {
+        q[n] +=
+          g_gn_radial[(index_left * paramb.num_types_sq + t12) * (paramb.n_max_radial + 1) + n] *
+            weight_left +
+          g_gn_radial[(index_right * paramb.num_types_sq + t12) * (paramb.n_max_radial + 1) + n] *
+            weight_right;
+      }
+#else
       double fc12;
       find_fc(paramb.rc_radial, paramb.rcinv_radial, d12, fc12);
-      int t2 = g_type[n2] - 1; // from LAMMPS to NEP convention
       double fn12[MAX_NUM_N];
       if (paramb.version == 2) {
         find_fn(paramb.n_max_radial, paramb.rcinv_radial, d12, fc12, fn12);
@@ -1406,6 +1424,7 @@ void find_descriptor_for_lammps(
           q[n] += gn12;
         }
       }
+#endif
     }
 
     for (int n = 0; n <= paramb.n_max_angular; ++n) {
@@ -1420,10 +1439,24 @@ void find_descriptor_for_lammps(
           continue;
         }
         double d12 = sqrt(d12sq);
+        int t2 = g_type[n2] - 1; // from LAMMPS to NEP convention
 
+#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
+        int index_left, index_right;
+        double weight_left, weight_right;
+        find_index_and_weight(
+          d12 * paramb.rcinv_angular, index_left, index_right, weight_left, weight_right);
+        int t12 = t1 * paramb.num_types + t2;
+        double gn12 =
+          g_gn_angular[(index_left * paramb.num_types_sq + t12) * (paramb.n_max_angular + 1) + n] *
+            weight_left +
+          g_gn_angular[(index_right * paramb.num_types_sq + t12) * (paramb.n_max_angular + 1) + n] *
+            weight_right;
+        accumulate_s(d12, r12[0], r12[1], r12[2], gn12, s);
+#else
         double fc12;
         find_fc(paramb.rc_angular, paramb.rcinv_angular, d12, fc12);
-        int t2 = g_type[n2] - 1; // from LAMMPS to NEP convention
+
         if (paramb.version == 2) {
           double fn;
           find_fn(n, paramb.rcinv_angular, d12, fc12, fn);
@@ -1444,6 +1477,7 @@ void find_descriptor_for_lammps(
           }
           accumulate_s(d12, r12[0], r12[1], r12[2], gn12, s);
         }
+#endif
       }
       if (paramb.num_L == paramb.L_max) {
         find_q(paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
@@ -1487,6 +1521,9 @@ void find_force_radial_for_lammps(
   int* g_type,
   double** g_pos,
   double* g_Fp,
+#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
+  const double* g_gnp_radial,
+#endif
   double** g_force,
   double g_total_virial[6],
   double** g_virial)
@@ -1505,14 +1542,30 @@ void find_force_radial_for_lammps(
         continue;
       }
       double d12 = sqrt(d12sq);
-
       double d12inv = 1.0 / d12;
+      double f12[3] = {0.0};
+#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
+      int index_left, index_right;
+      double weight_left, weight_right;
+      find_index_and_weight(
+        d12 * paramb.rcinv_radial, index_left, index_right, weight_left, weight_right);
+      int t12 = t1 * paramb.num_types + t2;
+      for (int n = 0; n <= paramb.n_max_radial; ++n) {
+        double gnp12 =
+          g_gnp_radial[(index_left * paramb.num_types_sq + t12) * (paramb.n_max_radial + 1) + n] *
+            weight_left +
+          g_gnp_radial[(index_right * paramb.num_types_sq + t12) * (paramb.n_max_radial + 1) + n] *
+            weight_right;
+        double tmp12 = g_Fp[n1 + n * N] * gnp12 * d12inv;
+        for (int d = 0; d < 3; ++d) {
+          f12[d] += tmp12 * r12[d];
+        }
+      }
+#else
       double fc12, fcp12;
       find_fc_and_fcp(paramb.rc_radial, paramb.rcinv_radial, d12, fc12, fcp12);
       double fn12[MAX_NUM_N];
       double fnp12[MAX_NUM_N];
-
-      double f12[3] = {0.0};
       if (paramb.version == 2) {
         find_fn_and_fnp(paramb.n_max_radial, paramb.rcinv_radial, d12, fc12, fcp12, fn12, fnp12);
         for (int n = 0; n <= paramb.n_max_radial; ++n) {
@@ -1540,6 +1593,7 @@ void find_force_radial_for_lammps(
           }
         }
       }
+#endif
 
       g_force[n1][0] += f12[0];
       g_force[n1][1] += f12[1];
@@ -1581,6 +1635,10 @@ void find_force_angular_for_lammps(
   double** g_pos,
   double* g_Fp,
   double* g_sum_fxyz,
+#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
+  const double* g_gn_angular,
+  const double* g_gnp_angular,
+#endif
   double** g_force,
   double g_total_virial[6],
   double** g_virial)
@@ -1608,12 +1666,37 @@ void find_force_angular_for_lammps(
         continue;
       }
       double d12 = sqrt(d12sq);
-
-      double fc12, fcp12;
-      find_fc_and_fcp(paramb.rc_angular, paramb.rcinv_angular, d12, fc12, fcp12);
       int t2 = g_type[n2] - 1; // from LAMMPS to NEP convention
       double f12[3] = {0.0};
 
+#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
+      int index_left, index_right;
+      double weight_left, weight_right;
+      find_index_and_weight(
+        d12 * paramb.rcinv_angular, index_left, index_right, weight_left, weight_right);
+      int t12 = t1 * paramb.num_types + t2;
+      for (int n = 0; n <= paramb.n_max_angular; ++n) {
+        int index_left_all =
+          (index_left * paramb.num_types_sq + t12) * (paramb.n_max_angular + 1) + n;
+        int index_right_all =
+          (index_right * paramb.num_types_sq + t12) * (paramb.n_max_angular + 1) + n;
+        double gn12 =
+          g_gn_angular[index_left_all] * weight_left + g_gn_angular[index_right_all] * weight_right;
+        double gnp12 = g_gnp_angular[index_left_all] * weight_left +
+                       g_gnp_angular[index_right_all] * weight_right;
+        if (paramb.num_L == paramb.L_max) {
+          accumulate_f12(n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
+        } else if (paramb.num_L == paramb.L_max + 1) {
+          accumulate_f12_with_4body(
+            n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
+        } else {
+          accumulate_f12_with_5body(
+            n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
+        }
+      }
+#else
+      double fc12, fcp12;
+      find_fc_and_fcp(paramb.rc_angular, paramb.rcinv_angular, d12, fc12, fcp12);
       if (paramb.version == 2) {
         for (int n = 0; n <= paramb.n_max_angular; ++n) {
           double fn;
@@ -1653,6 +1736,7 @@ void find_force_angular_for_lammps(
           }
         }
       }
+#endif
 
       g_force[n1][0] += f12[0];
       g_force[n1][1] += f12[1];
@@ -2527,13 +2611,23 @@ void NEP3::compute_for_lammps(
     num_atoms = N;
   }
   find_descriptor_for_lammps(
-    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(), sum_fxyz.data(), total_potential,
-    potential);
+    paramb, annmb, N, ilist, NN, NL, type, pos,
+#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
+    gn_radial.data(), gn_angular.data(),
+#endif
+    Fp.data(), sum_fxyz.data(), total_potential, potential);
   find_force_radial_for_lammps(
-    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(), force, total_virial, virial);
+    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(),
+#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
+    gnp_radial.data(),
+#endif
+    force, total_virial, virial);
   find_force_angular_for_lammps(
-    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(), sum_fxyz.data(), force, total_virial,
-    virial);
+    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(), sum_fxyz.data(),
+#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
+    gn_angular.data(), gnp_angular.data(),
+#endif
+    force, total_virial, virial);
   if (zbl.enabled) {
     find_force_ZBL_for_lammps(
       zbl, N, ilist, NN, NL, type, pos, force, total_virial, virial, total_potential, potential);
