@@ -31,6 +31,10 @@ heat transport, Phys. Rev. B. 104, 104309 (2021).
 #include <string>
 #include <vector>
 
+#if defined(_OPENMP)
+#include <omp.h>
+#endif
+
 namespace
 {
 const int MAX_NEURON = 200; // maximum number of neurons in the hidden layer
@@ -894,6 +898,9 @@ void find_descriptor_small_box(
   double* g_descriptor,
   double* g_latent_space)
 {
+#if defined(_OPENMP)
+#pragma omp parallel for
+#endif
   for (int n1 = 0; n1 < N; ++n1) {
     int t1 = g_type[n1];
     double q[MAX_DIM] = {0.0};
@@ -1978,6 +1985,9 @@ void find_neighbor_list_small_box(
   double* g_y12_angular = r12.data() + size_x12 * 4;
   double* g_z12_angular = r12.data() + size_x12 * 5;
 
+#if defined(_OPENMP)
+#pragma omp parallel for
+#endif
   for (int n1 = 0; n1 < N; ++n1) {
     double x1 = g_x[n1];
     double y1 = g_y[n1];
