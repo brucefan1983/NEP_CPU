@@ -12,6 +12,12 @@
   * `src/nep.h`
   * `src/nep.cpp`
   
+* There is an option to use tables to speed up the calculations for the radial functions in NEP. To enable it, one can change line 20 of `src/nep.h`:
+
+```
+// #define USE_TABLE_FOR_RADIAL_FUNCTIONS
+```
+  
 * The following folder contains some testing code and results:
   * `test/`
   

@@ -17,6 +17,8 @@
 #include <string>
 #include <vector>
 
+// #define USE_TABLE_FOR_RADIAL_FUNCTIONS
+
 class NEP3
 {
 public:
@@ -132,4 +134,12 @@ public:
   std::vector<std::string> element_list;
   void update_potential(double* parameters, ANN& ann);
   void allocate_memory(const int N);
+
+#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
+  std::vector<double> gn_radial;   // tabulated gn_radial functions
+  std::vector<double> gnp_radial;  // tabulated gnp_radial functions
+  std::vector<double> gn_angular;  // tabulated gn_angular functions
+  std::vector<double> gnp_angular; // tabulated gnp_angular functions
+  void construct_table(double* parameters);
+#endif
 };

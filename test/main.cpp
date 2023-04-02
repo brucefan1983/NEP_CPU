@@ -16,9 +16,11 @@
 /*----------------------------------------------------------------------------80
 Usage:
     Compile:
-		g++ -O3 main.cpp ../src/nep.cpp # linux
+        g++ -O3 main.cpp ../src/nep.cpp # Without openMP support
+        g++ -O3 -fopenmp main.cpp ../src/nep.cpp # With openMP support
     run:
-		./a.out  # linux
+        export OMP_NUM_THREADS=6 # 6 is the number of the threads to be used
+        ./a.out
 ------------------------------------------------------------------------------*/
 
 #include "../src/nep.h"
