@@ -49,7 +49,7 @@
   ```
   
 * For multi-element system, the atom types must be carefully set. Take a NEP model `NEP_PdCuNiP.txt` as an example. In this NEP model file, the first line is `nep3 4 Pd Cu Ni P`. Then in your LAMMPS input file, you must set 
-  * Pb atoms to type 1
+  * Pd atoms to type 1
   * Cu atoms to type 2
   * Ni atoms to type 3
   * P atoms to type 4
