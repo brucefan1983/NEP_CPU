@@ -1029,8 +1029,8 @@ void find_descriptor_small_box(
           annmb.dim, annmb.num_neurons1, annmb.w0_pol[t1], annmb.b0_pol[t1], annmb.w1_pol[t1],
           annmb.b1_pol, q, F, Fp, latent_space);
         g_virial[n1] = F;
-        g_virial[n1 + N] = F;
-        g_virial[n1 + N * 2] = F;
+        g_virial[n1 + N * 4] = F;
+        g_virial[n1 + N * 8] = F;
 
         for (int d = 0; d < annmb.dim; ++d) {
           Fp[d] = 0.0;
