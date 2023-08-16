@@ -1142,13 +1142,22 @@ void find_force_radial_small_box(
       }
 #endif
 
-      if (!is_dipole) {
+      if (g_fx) {
         g_fx[n1] += f12[0];
-        g_fy[n1] += f12[1];
-        g_fz[n1] += f12[2];
         g_fx[n2] -= f12[0];
+      }
+
+      if (g_fy) {
+        g_fy[n1] += f12[1];
         g_fy[n2] -= f12[1];
+      }
+
+      if (g_fz) {
+        g_fz[n1] += f12[2];
         g_fz[n2] -= f12[2];
+      }
+
+      if (!is_dipole) {
         g_virial[n2 + 0 * N] -= r12[0] * f12[0];
         g_virial[n2 + 1 * N] -= r12[0] * f12[1];
         g_virial[n2 + 2 * N] -= r12[0] * f12[2];
@@ -1280,13 +1289,22 @@ void find_force_angular_small_box(
       }
 #endif
 
-      if (!is_dipole) {
+      if (g_fx) {
         g_fx[n1] += f12[0];
-        g_fy[n1] += f12[1];
-        g_fz[n1] += f12[2];
         g_fx[n2] -= f12[0];
+      }
+
+      if (g_fy) {
+        g_fy[n1] += f12[1];
         g_fy[n2] -= f12[1];
+      }
+
+      if (g_fz) {
+        g_fz[n1] += f12[2];
         g_fz[n2] -= f12[2];
+      }
+
+      if (!is_dipole) {
         g_virial[n2 + 0 * N] -= r12[0] * f12[0];
         g_virial[n2 + 1 * N] -= r12[0] * f12[1];
         g_virial[n2 + 2 * N] -= r12[0] * f12[2];
@@ -2293,6 +2311,9 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   paramb.num_types_sq = paramb.num_types * paramb.num_types;
   annmb.num_para =
     (annmb.dim + 2) * annmb.num_neurons1 * (paramb.version == 4 ? paramb.num_types : 1) + 1;
+  if (paramb.model_type == 2) {
+    annmb.num_para *= 2;
+  }
   int num_para_descriptor =
     paramb.num_types_sq * ((paramb.n_max_radial + 1) * (paramb.basis_size_radial + 1) +
                            (paramb.n_max_angular + 1) * (paramb.basis_size_angular + 1));
@@ -2730,7 +2751,7 @@ void NEP3::find_polarizability(
     Fp.data(), sum_fxyz.data(), potential.data(), nullptr, nullptr, virial.data());
 
   find_force_radial_small_box(
-    true, paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
+    false, paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
     r12.data() + size_x12, r12.data() + size_x12 * 2, Fp.data(),
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
     gnp_radial.data(),
@@ -2738,7 +2759,7 @@ void NEP3::find_polarizability(
     nullptr, nullptr, nullptr, virial.data());
 
   find_force_angular_small_box(
-    true, paramb, annmb, N, NN_angular.data(), NL_angular.data(), type.data(),
+    false, paramb, annmb, N, NN_angular.data(), NL_angular.data(), type.data(),
     r12.data() + size_x12 * 3, r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, Fp.data(),
     sum_fxyz.data(),
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
