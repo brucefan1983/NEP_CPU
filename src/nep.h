@@ -23,6 +23,7 @@ class NEP3
 {
 public:
   struct ParaMB {
+    int model_type = 0; // 0=potential, 1=dipole, 2=polarizability
     int version = 2;
     double rc_radial = 0.0;
     double rc_angular = 0.0;
@@ -50,6 +51,11 @@ public:
     const double* w1[103];
     const double* b1;
     const double* c;
+    // for the scalar part of polarizability
+    const double* w0_pol[103];
+    const double* b0_pol[103];
+    const double* w1_pol[103];
+    const double* b1_pol;
   };
 
   struct ZBL {
@@ -104,6 +110,13 @@ public:
     const std::vector<double>& box,
     const std::vector<double>& position,
     std::vector<double>& dipole // 3 components, for the whole box
+  );
+
+  void find_polarizability(
+    const std::vector<int>& type,
+    const std::vector<double>& box,
+    const std::vector<double>& position,
+    std::vector<double>& polarizability // 6 components, for the whole box
   );
 
   void compute_for_lammps(
