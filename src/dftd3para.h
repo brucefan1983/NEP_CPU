@@ -4,7 +4,8 @@ namespace dftd3para
 {
 
 const double Bohr = 0.5291772575069165;
-const double Hartree = 27.211395655517308;
+const double Bohr2 = 0.280028569862541;
+const double HartreeBohr6 = 0.597527426643772;
 const int max_elem = 94;
 const int max_cn = 5;
 const int num_cn[max_elem] = {

@@ -1479,10 +1479,8 @@ void add_dftd3_force(
         }
         c6 /= L_ij_sum;
       }
-      c6 *= dftd3para::Hartree * (dftd3para::Bohr * dftd3para::Bohr * dftd3para::Bohr *
-                                  dftd3para::Bohr * dftd3para::Bohr * dftd3para::Bohr);
-      double c8_over_c6 =
-        3.0 * dftd3para::r2r4[z1] * dftd3para::r2r4[z2] * dftd3para::Bohr * dftd3para::Bohr;
+      c6 *= dftd3para::HartreeBohr6;
+      double c8_over_c6 = 3.0 * dftd3para::r2r4[z1] * dftd3para::r2r4[z2] * dftd3para::Bohr2;
       double c8 = c6 * c8_over_c6;
       double damp = dftd3.a1 * sqrt(c8_over_c6) + dftd3.a2;
       double damp_2 = damp * damp;
