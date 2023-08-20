@@ -1428,7 +1428,7 @@ void find_dftd3_coordination_number(
 }
 
 void add_dftd3_force(
-  NEP3::DFTD3& dftd3,
+  const NEP3::DFTD3& dftd3,
   const int N,
   const int* g_NN_radial,
   const int* g_NL_radial,
