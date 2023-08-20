@@ -1407,6 +1407,9 @@ void find_dftd3_coordination_number(
   const double* g_y12,
   const double* g_z12)
 {
+#if defined(_OPENMP)
+#pragma omp parallel for
+#endif
   for (int n1 = 0; n1 < N; ++n1) {
     int z1 = dftd3.atomic_number[g_type[n1]];
     double R_cov_1 = dftd3para::Bohr * dftd3para::covalent_radius[z1];
