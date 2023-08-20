@@ -1454,9 +1454,7 @@ void add_dftd3_force(
       }
       int z12 = z_small * dftd3para::max_elem - (z_small * (z_small - 1)) / 2 + (z_large - z_small);
       double r12[3] = {g_x12[index], g_y12[index], g_z12[index]};
-      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
-      double d12inv = 1.0 / d12;
-      double d12_2 = d12 * d12;
+      double d12_2 = r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2];
       double d12_4 = d12_2 * d12_2;
       double d12_6 = d12_4 * d12_2;
       double d12_8 = d12_6 * d12_2;
