@@ -8,6 +8,7 @@ const double Bohr2 = 0.280028569862541;
 const double HartreeBohr6 = 0.597527426643772;
 const int max_elem = 94;
 const int max_cn = 5;
+const int max_cn2 = 25;
 const int num_cn[max_elem] = {
   2, 1, 2, 3, 5, 5, 4, 3, 2, 1, 2, 3, 4, 5, 4, 3, 2, 1, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 2, 2, 4, 5,
   4, 3, 2, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 4, 5, 4, 3, 2, 1, 2, 3, 3, 1, 2, 2, 2, 2, 2, 2,

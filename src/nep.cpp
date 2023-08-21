@@ -1461,7 +1461,7 @@ void add_dftd3_force(
       double c6 = 0.0;
       int num_cn_2 = dftd3para::num_cn[z2];
       if (num_cn_1 == 1 && num_cn_2 == 1) {
-        c6 = dftd3para::c6_ref[z12];
+        c6 = dftd3para::c6_ref[z12 * dftd3para::max_cn2];
       } else {
         double L_ij_sum = 0.0;
         for (int i = 0; i < num_cn_1; ++i) {
@@ -1471,9 +1471,9 @@ void add_dftd3_force(
             double L_ij = exp(-4.0 * (diff_i * diff_i + diff_j * diff_j));
             L_ij_sum += L_ij;
             if (z1 < z2) {
-              c6 += dftd3para::c6_ref[z12 + i * dftd3para::max_cn + j] * L_ij;
+              c6 += dftd3para::c6_ref[z12 * dftd3para::max_cn2 + i * dftd3para::max_cn + j] * L_ij;
             } else {
-              c6 += dftd3para::c6_ref[z12 + j * dftd3para::max_cn + i] * L_ij;
+              c6 += dftd3para::c6_ref[z12 * dftd3para::max_cn2 + j * dftd3para::max_cn + i] * L_ij;
             }
           }
         }
@@ -2698,6 +2698,78 @@ void NEP3::compute_with_dftd3(
   compute(type, box, position, potential, force, virial);
   const int N = type.size();
   const int size_x12 = N * MN;
+
+  dftd3.rc_radial = rc_potential;
+  dftd3.rc_angular = rc_coordination_number;
+  if (xc == "pbe") {
+    dftd3.s6 = 1.0;
+    dftd3.s8 = 0.78750;
+    dftd3.a1 = 0.42890;
+    dftd3.a2 = 4.4407 * dftd3para::Bohr;
+  } else {
+    std::cout << "We only support the PBE functional for the time being.\n" << std::endl;
+    exit(1);
+  }
+
+  find_neighbor_list_small_box(
+    dftd3.rc_radial, dftd3.rc_angular, N, box, position, num_cells, ebox, NN_radial, NL_radial,
+    NN_angular, NL_angular, r12);
+  find_dftd3_coordination_number(
+    dftd3, N, NN_angular.data(), NL_angular.data(), type.data(), r12.data() + size_x12 * 3,
+    r12.data() + size_x12 * 4, r12.data() + size_x12 * 5);
+  add_dftd3_force(
+    dftd3, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data() + size_x12 * 0,
+    r12.data() + size_x12 * 1, r12.data() + size_x12 * 2, potential.data(), force.data(),
+    virial.data());
+}
+
+void NEP3::compute_dftd3(
+  const std::string& xc,
+  const double rc_potential,
+  const double rc_coordination_number,
+  const std::vector<int>& type,
+  const std::vector<double>& box,
+  const std::vector<double>& position,
+  std::vector<double>& potential,
+  std::vector<double>& force,
+  std::vector<double>& virial)
+{
+  if (paramb.model_type != 0) {
+    std::cout << "Cannot compute potential using a non-potential NEP model.\n";
+    exit(1);
+  }
+
+  const int N = type.size();
+  const int size_x12 = N * MN;
+
+  if (N * 3 != position.size()) {
+    std::cout << "Type and position sizes are inconsistent.\n";
+    exit(1);
+  }
+  if (N != potential.size()) {
+    std::cout << "Type and potential sizes are inconsistent.\n";
+    exit(1);
+  }
+  if (N * 3 != force.size()) {
+    std::cout << "Type and force sizes are inconsistent.\n";
+    exit(1);
+  }
+  if (N * 9 != virial.size()) {
+    std::cout << "Type and virial sizes are inconsistent.\n";
+    exit(1);
+  }
+
+  allocate_memory(N);
+
+  for (int n = 0; n < potential.size(); ++n) {
+    potential[n] = 0.0;
+  }
+  for (int n = 0; n < force.size(); ++n) {
+    force[n] = 0.0;
+  }
+  for (int n = 0; n < virial.size(); ++n) {
+    virial[n] = 0.0;
+  }
 
   dftd3.rc_radial = rc_potential;
   dftd3.rc_angular = rc_coordination_number;

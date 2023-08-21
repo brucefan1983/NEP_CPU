@@ -115,6 +115,17 @@ public:
     std::vector<double>& force,
     std::vector<double>& virial);
 
+  void compute_dftd3(
+    const std::string& xc,
+    const double rc_potential,
+    const double rc_coordination_number,
+    const std::vector<int>& type,
+    const std::vector<double>& box,
+    const std::vector<double>& position,
+    std::vector<double>& potential,
+    std::vector<double>& force,
+    std::vector<double>& virial);
+
   void find_descriptor(
     const std::vector<int>& type,
     const std::vector<double>& box,
