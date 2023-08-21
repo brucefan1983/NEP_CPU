@@ -19,6 +19,7 @@ Usage:
 #include <iterator>
 #include <sstream>
 #include <string>
+#include <time.h>
 #include <vector>
 
 static std::string remove_spaces_step1(const std::string& line)
@@ -411,11 +412,11 @@ static void write(const std::string& outputfile, const std::vector<Structure>& s
   output.close();
 }
 
-static std::vector<std::string> get_atom_symbols()
+static std::vector<std::string> get_atom_symbols(std::string& nep_file)
 {
-  std::ifstream input_potential("nep.txt");
+  std::ifstream input_potential(nep_file);
   if (!input_potential.is_open()) {
-    std::cout << "Error: cannot open nep.txt.\n";
+    std::cout << "Failed to open " << nep_file << std::endl;
     exit(1);
   }
 
@@ -504,7 +505,7 @@ static void calculate(
   double D3_cutoff_cn)
 {
   NEP3 nep3(nep_file);
-  std::vector<std::string> atom_symbols = get_atom_symbols();
+  std::vector<std::string> atom_symbols = get_atom_symbols(nep_file);
   for (int nc = 0; nc < structures.size(); ++nc) {
     calculate_one_structure(nep3, atom_symbols, structures[nc], mode, D3_cutoff, D3_cutoff_cn);
   }
@@ -541,7 +542,13 @@ int main(int argc, char* argv[])
     std::vector<Structure> structures;
     read(input_file, structures);
     std::cout << "Read " << structures.size() << " structures from " << input_file << std::endl;
+
+    clock_t time_begin = clock();
     calculate(nep_file, structures, mode, D3_cutoff, D3_cutoff_cn);
+    clock_t time_finish = clock();
+    double time_used = (time_finish - time_begin) / double(CLOCKS_PER_SEC);
+    std::cout << "    Time used = " << time_used << " s.\n";
+
     write(output_file, structures);
   }
 
