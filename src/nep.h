@@ -79,6 +79,8 @@ public:
     double rc_angular = 10.0;
     int atomic_number[94]; // H to Pu
     std::vector<double> cn;
+    std::vector<double> dc6_sum;
+    std::vector<double> dc8_sum;
   };
 
   NEP3();

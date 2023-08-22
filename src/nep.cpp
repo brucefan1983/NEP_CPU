@@ -1428,7 +1428,7 @@ void find_dftd3_coordination_number(
 }
 
 void add_dftd3_force(
-  const NEP3::DFTD3& dftd3,
+  NEP3::DFTD3& dftd3,
   const int N,
   const int* g_NN_radial,
   const int* g_NL_radial,
@@ -1443,6 +1443,8 @@ void add_dftd3_force(
   for (int n1 = 0; n1 < N; ++n1) {
     int z1 = dftd3.atomic_number[g_type[n1]];
     int num_cn_1 = dftd3para::num_cn[z1];
+    double dc6_sum = 0.0;
+    double dc8_sum = 0.0;
     for (int i1 = 0; i1 < g_NN_radial[n1]; ++i1) {
       int index = i1 * N + n1;
       int n2 = g_NL_radial[index];
@@ -1459,27 +1461,34 @@ void add_dftd3_force(
       double d12_6 = d12_4 * d12_2;
       double d12_8 = d12_6 * d12_2;
       double c6 = 0.0;
+      double dc6 = 0.0;
       int num_cn_2 = dftd3para::num_cn[z2];
       if (num_cn_1 == 1 && num_cn_2 == 1) {
         c6 = dftd3para::c6_ref[z12 * dftd3para::max_cn2];
       } else {
-        double L_ij_sum = 0.0;
+        double W = 0.0;
+        double dW = 0.0;
+        double Z = 0.0;
+        double dZ = 0.0;
         for (int i = 0; i < num_cn_1; ++i) {
           for (int j = 0; j < num_cn_2; ++j) {
             double diff_i = dftd3.cn[n1] - dftd3para::cn_ref[z1 * dftd3para::max_cn + i];
             double diff_j = dftd3.cn[n2] - dftd3para::cn_ref[z2 * dftd3para::max_cn + j];
             double L_ij = exp(-4.0 * (diff_i * diff_i + diff_j * diff_j));
-            L_ij_sum += L_ij;
-            if (z1 < z2) {
-              c6 += dftd3para::c6_ref[z12 * dftd3para::max_cn2 + i * dftd3para::max_cn + j] * L_ij;
-            } else {
-              c6 += dftd3para::c6_ref[z12 * dftd3para::max_cn2 + j * dftd3para::max_cn + i] * L_ij;
-            }
+            W += L_ij;
+            dW += L_ij * (-8.0 * diff_i);
+            double c6_ref_ij =
+              (z1 < z2) ? dftd3para::c6_ref[z12 * dftd3para::max_cn2 + i * dftd3para::max_cn + j]
+                        : dftd3para::c6_ref[z12 * dftd3para::max_cn2 + j * dftd3para::max_cn + i];
+            Z += c6_ref_ij * L_ij;
+            dZ += c6_ref_ij * L_ij * (-8.0 * diff_i);
           }
         }
-        c6 /= L_ij_sum;
+        c6 = Z / W;
+        dc6 = (dZ * W - Z * dW) / (W * W);
       }
       c6 *= dftd3para::HartreeBohr6;
+      dc6 *= dftd3para::HartreeBohr6;
       double c8_over_c6 = 3.0 * dftd3para::r2r4[z1] * dftd3para::r2r4[z2] * dftd3para::Bohr2;
       double c8 = c6 * c8_over_c6;
       double damp = dftd3.a1 * sqrt(c8_over_c6) + dftd3.a2;
@@ -1488,9 +1497,103 @@ void add_dftd3_force(
       double damp_6 = 1.0 / (d12_6 + damp_4 * damp_2);
       double damp_8 = 1.0 / (d12_8 + damp_4 * damp_4);
       g_potential[n1] -= (dftd3.s6 * c6 * damp_6 + dftd3.s8 * c8 * damp_8) * 0.5;
-      // neglect derivative of the coordination number
       double f2 = dftd3.s6 * c6 * 3.0 * d12_4 * (damp_6 * damp_6) +
                   dftd3.s8 * c8 * 4.0 * d12_6 * (damp_8 * damp_8);
+      double f12[3] = {r12[0] * f2, r12[1] * f2, r12[2] * f2};
+      g_force[n1 + 0 * N] += f12[0];
+      g_force[n1 + 1 * N] += f12[1];
+      g_force[n1 + 2 * N] += f12[2];
+      g_force[n2 + 0 * N] -= f12[0];
+      g_force[n2 + 1 * N] -= f12[1];
+      g_force[n2 + 2 * N] -= f12[2];
+      g_virial[n2 + 0 * N] -= r12[0] * f12[0];
+      g_virial[n2 + 1 * N] -= r12[0] * f12[1];
+      g_virial[n2 + 2 * N] -= r12[0] * f12[2];
+      g_virial[n2 + 3 * N] -= r12[1] * f12[0];
+      g_virial[n2 + 4 * N] -= r12[1] * f12[1];
+      g_virial[n2 + 5 * N] -= r12[1] * f12[2];
+      g_virial[n2 + 6 * N] -= r12[2] * f12[0];
+      g_virial[n2 + 7 * N] -= r12[2] * f12[1];
+      g_virial[n2 + 8 * N] -= r12[2] * f12[2];
+      dc6_sum += dc6 * dftd3.s6 * damp_6;
+      dc8_sum += dc6 * c8_over_c6 * dftd3.s8 * damp_8;
+    }
+    dftd3.dc6_sum[n1] = dc6_sum;
+    dftd3.dc8_sum[n1] = dc8_sum;
+  }
+}
+
+void add_dftd3_force_extra(
+  const NEP3::DFTD3& dftd3,
+  const int N,
+  const int* g_NN_angular,
+  const int* g_NL_angular,
+  const int* g_type,
+  const double* g_x12,
+  const double* g_y12,
+  const double* g_z12,
+  double* g_force,
+  double* g_virial)
+{
+  for (int n1 = 0; n1 < N; ++n1) {
+    int z1 = dftd3.atomic_number[g_type[n1]];
+    int num_cn_1 = dftd3para::num_cn[z1];
+    double R_cov_1 = dftd3para::Bohr * dftd3para::covalent_radius[z1];
+    double dc6_sum = dftd3.dc6_sum[n1];
+    double dc8_sum = dftd3.dc8_sum[n1];
+    for (int i1 = 0; i1 < g_NN_angular[n1]; ++i1) {
+      int index = i1 * N + n1;
+      int n2 = g_NL_angular[index];
+      int z2 = dftd3.atomic_number[g_type[n2]];
+      double R_cov_2 = dftd3para::Bohr * dftd3para::covalent_radius[z2];
+      int z_small = z1, z_large = z2;
+      if (z1 > z2) {
+        z_small = z2;
+        z_large = z1;
+      }
+      int z12 = z_small * dftd3para::max_elem - (z_small * (z_small - 1)) / 2 + (z_large - z_small);
+      double r12[3] = {g_x12[index], g_y12[index], g_z12[index]};
+      double d12_2 = r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2];
+      double d12 = sqrt(d12_2);
+      double d12_4 = d12_2 * d12_2;
+      double d12_6 = d12_4 * d12_2;
+      double d12_8 = d12_6 * d12_2;
+      double dc6 = 0.0;
+      int num_cn_2 = dftd3para::num_cn[z2];
+      if (num_cn_1 == 1 && num_cn_2 == 1) {
+        dc6 = 0.0;
+      } else {
+        double W = 0.0;
+        double dW = 0.0;
+        double Z = 0.0;
+        double dZ = 0.0;
+        for (int i = 0; i < num_cn_1; ++i) {
+          for (int j = 0; j < num_cn_2; ++j) {
+            double diff_i = dftd3.cn[n1] - dftd3para::cn_ref[z1 * dftd3para::max_cn + i];
+            double diff_j = dftd3.cn[n2] - dftd3para::cn_ref[z2 * dftd3para::max_cn + j];
+            double L_ij = exp(-4.0 * (diff_i * diff_i + diff_j * diff_j));
+            W += L_ij;
+            dW += L_ij * (-8.0 * diff_j);
+            double c6_ref_ij =
+              (z1 < z2) ? dftd3para::c6_ref[z12 * dftd3para::max_cn2 + i * dftd3para::max_cn + j]
+                        : dftd3para::c6_ref[z12 * dftd3para::max_cn2 + j * dftd3para::max_cn + i];
+            Z += c6_ref_ij * L_ij;
+            dZ += c6_ref_ij * L_ij * (-8.0 * diff_j);
+          }
+        }
+        dc6 = (dZ * W - Z * dW) / (W * W);
+      }
+      dc6 *= dftd3para::HartreeBohr6;
+      double c8_over_c6 = 3.0 * dftd3para::r2r4[z1] * dftd3para::r2r4[z2] * dftd3para::Bohr2;
+      double damp = dftd3.a1 * sqrt(c8_over_c6) + dftd3.a2;
+      double damp_2 = damp * damp;
+      double damp_4 = damp_2 * damp_2;
+      double damp_6 = 1.0 / (d12_6 + damp_4 * damp_2);
+      double damp_8 = 1.0 / (d12_8 + damp_4 * damp_4);
+      double cn_exp_factor = exp(-16.0 * ((R_cov_1 + R_cov_2) / d12 - 1.0));
+      double f2 = cn_exp_factor * 16.0 * (R_cov_1 + R_cov_2); // why not 8.0?
+      f2 /= (cn_exp_factor + 1.0) * (cn_exp_factor + 1.0) * d12 * d12_2;
+      f2 *= (dc6_sum + dftd3.s6 * damp_6 * dc6 + dc8_sum + dftd3.s8 * damp_8 * dc6 * c8_over_c6);
       double f12[3] = {r12[0] * f2, r12[1] * f2, r12[2] * f2};
       g_force[n1 + 0 * N] += f12[0];
       g_force[n1 + 1 * N] += f12[1];
@@ -2596,6 +2699,8 @@ void NEP3::allocate_memory(const int N)
     Fp.resize(N * annmb.dim);
     sum_fxyz.resize(N * (paramb.n_max_angular + 1) * NUM_OF_ABC);
     dftd3.cn.resize(N);
+    dftd3.dc6_sum.resize(N);
+    dftd3.dc8_sum.resize(N);
     num_atoms = N;
   }
 }
@@ -2721,6 +2826,9 @@ void NEP3::compute_with_dftd3(
     dftd3, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data() + size_x12 * 0,
     r12.data() + size_x12 * 1, r12.data() + size_x12 * 2, potential.data(), force.data(),
     virial.data());
+  add_dftd3_force_extra(
+    dftd3, N, NN_angular.data(), NL_angular.data(), type.data(), r12.data() + size_x12 * 3,
+    r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, force.data(), virial.data());
 }
 
 void NEP3::compute_dftd3(
@@ -2793,6 +2901,9 @@ void NEP3::compute_dftd3(
     dftd3, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data() + size_x12 * 0,
     r12.data() + size_x12 * 1, r12.data() + size_x12 * 2, potential.data(), force.data(),
     virial.data());
+  add_dftd3_force_extra(
+    dftd3, N, NN_angular.data(), NL_angular.data(), type.data(), r12.data() + size_x12 * 3,
+    r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, force.data(), virial.data());
 }
 
 void NEP3::find_descriptor(
