@@ -1555,45 +1555,9 @@ void add_dftd3_force_extra(
       double r12[3] = {g_x12[index], g_y12[index], g_z12[index]};
       double d12_2 = r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2];
       double d12 = sqrt(d12_2);
-      double d12_4 = d12_2 * d12_2;
-      double d12_6 = d12_4 * d12_2;
-      double d12_8 = d12_6 * d12_2;
-      double dc6 = 0.0;
-      int num_cn_2 = dftd3para::num_cn[z2];
-      if (num_cn_1 == 1 && num_cn_2 == 1) {
-        dc6 = 0.0;
-      } else {
-        double W = 0.0;
-        double dW = 0.0;
-        double Z = 0.0;
-        double dZ = 0.0;
-        for (int i = 0; i < num_cn_1; ++i) {
-          for (int j = 0; j < num_cn_2; ++j) {
-            double diff_i = dftd3.cn[n1] - dftd3para::cn_ref[z1 * dftd3para::max_cn + i];
-            double diff_j = dftd3.cn[n2] - dftd3para::cn_ref[z2 * dftd3para::max_cn + j];
-            double L_ij = exp(-4.0 * (diff_i * diff_i + diff_j * diff_j));
-            W += L_ij;
-            dW += L_ij * (-8.0 * diff_j);
-            double c6_ref_ij =
-              (z1 < z2) ? dftd3para::c6_ref[z12 * dftd3para::max_cn2 + i * dftd3para::max_cn + j]
-                        : dftd3para::c6_ref[z12 * dftd3para::max_cn2 + j * dftd3para::max_cn + i];
-            Z += c6_ref_ij * L_ij;
-            dZ += c6_ref_ij * L_ij * (-8.0 * diff_j);
-          }
-        }
-        dc6 = (dZ * W - Z * dW) / (W * W);
-      }
-      dc6 *= dftd3para::HartreeBohr6;
-      double c8_over_c6 = 3.0 * dftd3para::r2r4[z1] * dftd3para::r2r4[z2] * dftd3para::Bohr2;
-      double damp = dftd3.a1 * sqrt(c8_over_c6) + dftd3.a2;
-      double damp_2 = damp * damp;
-      double damp_4 = damp_2 * damp_2;
-      double damp_6 = 1.0 / (d12_6 + damp_4 * damp_2);
-      double damp_8 = 1.0 / (d12_8 + damp_4 * damp_4);
       double cn_exp_factor = exp(-16.0 * ((R_cov_1 + R_cov_2) / d12 - 1.0));
-      double f2 = cn_exp_factor * 16.0 * (R_cov_1 + R_cov_2); // why not 8.0?
+      double f2 = cn_exp_factor * 16.0 * (R_cov_1 + R_cov_2) * (dc6_sum + dc8_sum); // not 8.0
       f2 /= (cn_exp_factor + 1.0) * (cn_exp_factor + 1.0) * d12 * d12_2;
-      f2 *= (dc6_sum + dftd3.s6 * damp_6 * dc6 + dc8_sum + dftd3.s8 * damp_8 * dc6 * c8_over_c6);
       double f12[3] = {r12[0] * f2, r12[1] * f2, r12[2] * f2};
       g_force[n1 + 0 * N] += f12[0];
       g_force[n1 + 1 * N] += f12[1];
