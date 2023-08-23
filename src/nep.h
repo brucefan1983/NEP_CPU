@@ -70,6 +70,19 @@ public:
     double para[330];
   };
 
+  struct DFTD3 {
+    double s6 = 0.0;
+    double s8 = 0.0;
+    double a1 = 0.0;
+    double a2 = 0.0;
+    double rc_radial = 20.0;
+    double rc_angular = 10.0;
+    int atomic_number[94]; // H to Pu
+    std::vector<double> cn;
+    std::vector<double> dc6_sum;
+    std::vector<double> dc8_sum;
+  };
+
   NEP3();
   NEP3(const std::string& potential_filename);
 
@@ -86,6 +99,28 @@ public:
   // descriptor[num_atoms * dim] is ordered as d0[num_atoms], d1[num_atoms], ...
 
   void compute(
+    const std::vector<int>& type,
+    const std::vector<double>& box,
+    const std::vector<double>& position,
+    std::vector<double>& potential,
+    std::vector<double>& force,
+    std::vector<double>& virial);
+
+  void compute_with_dftd3(
+    const std::string& xc,
+    const double rc_potential,
+    const double rc_coordination_number,
+    const std::vector<int>& type,
+    const std::vector<double>& box,
+    const std::vector<double>& position,
+    std::vector<double>& potential,
+    std::vector<double>& force,
+    std::vector<double>& virial);
+
+  void compute_dftd3(
+    const std::string& xc,
+    const double rc_potential,
+    const double rc_coordination_number,
     const std::vector<int>& type,
     const std::vector<double>& box,
     const std::vector<double>& position,
@@ -139,6 +174,7 @@ public:
   ParaMB paramb;
   ANN annmb;
   ZBL zbl;
+  DFTD3 dftd3;
   std::vector<int> NN_radial, NL_radial, NN_angular, NL_angular;
   std::vector<double> r12;
   std::vector<double> Fp;
