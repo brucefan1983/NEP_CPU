@@ -71,6 +71,7 @@ public:
   };
 
   struct DFTD3 {
+    bool enabled = false;
     double s6 = 0.0;
     double s8 = 0.0;
     double a1 = 0.0;
@@ -87,6 +88,7 @@ public:
   NEP3(const std::string& potential_filename);
 
   void init_from_file(const std::string& potential_filename, const bool is_rank_0);
+  void init_d3(std::string& xc_functional, double rc_d3, double rc_d3_cn, const bool is_rank_0);
 
   // type[num_atoms] should be integers 0, 1, ..., mapping to the atom types in nep.txt in order
   // box[9] is ordered as ax, bx, cx, ay, by, cy, az, bz, cz
