@@ -8,9 +8,10 @@
 
 # The standalone C++ implementation of NEP
 
-* The `NEP3` C++ class is defined in the following two files:
+* The `NEP3` C++ class is defined in the following three files:
   * `src/nep.h`
   * `src/nep.cpp`
+  * `src/dftd3para.h`
   
 * There is an option to use tables to speed up the calculations for the radial functions in NEP. To enable it, one can change line 20 of `src/nep.h`:
 
@@ -18,20 +19,23 @@
 // #define USE_TABLE_FOR_RADIAL_FUNCTIONS
 ```
   
-* The following folder contains some testing code and results:
+* The following folders contains some testing code and results:
   * `test/`
+  * `test_dftd3/`
   
-* The `NEP3` C++ class is used as an engine powering the following two Python packages:
-  * `PyNEP`: https://github.com/bigd4/PyNEP
+* The `NEP3` C++ class is used as an engine powering the following Python packages:
   * `calorine`: https://gitlab.com/materials-modeling/calorine
+  * `PyNEP`: https://github.com/bigd4/PyNEP
+  * `somd`: https://github.com/initqp/somd
   
 # The NEP-LAMMPS interface
 
 ## Build the NEP-LAMMPS interface
 
-* step 1: Copy `src/nep.h` and `src/nep.cpp` into `interface/lammps/USER-NEP/` such that you have the following 5 files in `interface/lammps/USER-NEP/`:
+* step 1: Copy the files in `src/` into `interface/lammps/USER-NEP/` such that you have the following files in `interface/lammps/USER-NEP/`:
   * `nep.h`
   * `nep.cpp`
+  * `dftd3para.h`
   * `pair_NEP.h`
   * `pair_NEP.cpp`
   * `install.sh`
