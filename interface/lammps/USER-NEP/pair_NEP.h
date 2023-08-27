@@ -44,10 +44,6 @@ public:
 protected:
   bool inited;
   std::string model_filename;
-  bool has_d3 = false;
-  std::string xc_functional;
-  double rc_d3;
-  double rc_d3_cn;
   double cutoffsq;
   void allocate();
 };
