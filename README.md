@@ -19,7 +19,7 @@
 // #define USE_TABLE_FOR_RADIAL_FUNCTIONS
 ```
   
-* The following folders contains some testing code and results:
+* The following folders contain some testing code and results:
   * `test/`
   * `test_dftd3/`
   
