@@ -85,18 +85,10 @@ void PairNEP::coeff(int narg, char** arg)
 
 void PairNEP::settings(int narg, char** arg)
 {
-  if (narg != 1 && narg != 4)
-    error->all(FLERR, "Illegal pair_style command; nep requires 1 or 4 parameters");
-  model_filename = arg[0];
-  if (narg == 4) {
-    has_d3 = true;
-    xc_functional = arg[1];
-    rc_d3 = atof(arg[2]);
-    rc_d3_cn = atof(arg[3]);
-    if (rc_d3 < rc_d3_cn) {
-      error->all(FLERR, "Potential cutoff should be no less than coordination cutoff in DFT-D3");
-    }
+  if (narg != 1) {
+    error->all(FLERR, "Illegal pair_style command; nep requires 1 parameter");
   }
+  model_filename = arg[0];
 }
 
 void PairNEP::init_style()
@@ -111,16 +103,8 @@ void PairNEP::init_style()
 
   bool is_rank_0 = (comm->me == 0);
   nep_model.init_from_file(model_filename, is_rank_0);
-  if (has_d3) {
-    nep_model.init_d3(xc_functional, rc_d3, rc_d3_cn, is_rank_0);
-  }
   inited = true;
   cutoff = nep_model.paramb.rc_radial;
-  if (has_d3) {
-    if (cutoff < rc_d3) {
-      cutoff = rc_d3;
-    }
-  }
   cutoffsq = cutoff * cutoff;
   int n = atom->ntypes;
   for (int i = 1; i <= n; i++)
