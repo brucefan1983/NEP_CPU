@@ -191,4 +191,16 @@ public:
   std::vector<double> gnp_angular; // tabulated gnp_angular functions
   void construct_table(double* parameters);
 #endif
+
+  bool set_dftd3_para_one(
+    const std::string& functional_input,
+    const std::string& functional_library,
+    const double s6,
+    const double a1,
+    const double s8,
+    const double a2);
+  void set_dftd3_para_all(
+    const std::string& functional_input,
+    const double rc_potential,
+    const double rc_coordination_number);
 };

@@ -438,6 +438,7 @@ static void calculate_one_structure(
   std::vector<std::string>& atom_symbols,
   Structure& structure,
   int mode,
+  std::string& functional,
   double D3_cutoff,
   double D3_cutoff_cn)
 {
@@ -476,10 +477,10 @@ static void calculate_one_structure(
     nep3.compute(type, box, position, potential, force, virial);
   } else if (mode == 1) {
     nep3.compute_dftd3(
-      "pbe", D3_cutoff, D3_cutoff_cn, type, box, position, potential, force, virial);
+      functional, D3_cutoff, D3_cutoff_cn, type, box, position, potential, force, virial);
   } else if (mode == 2) {
     nep3.compute_with_dftd3(
-      "pbe", D3_cutoff, D3_cutoff_cn, type, box, position, potential, force, virial);
+      functional, D3_cutoff, D3_cutoff_cn, type, box, position, potential, force, virial);
   }
 
   structure.energy = 0.0;
@@ -501,13 +502,15 @@ static void calculate(
   std::string& nep_file,
   std::vector<Structure>& structures,
   int mode,
+  std::string& functional,
   double D3_cutoff,
   double D3_cutoff_cn)
 {
   NEP3 nep3(nep_file);
   std::vector<std::string> atom_symbols = get_atom_symbols(nep_file);
   for (int nc = 0; nc < structures.size(); ++nc) {
-    calculate_one_structure(nep3, atom_symbols, structures[nc], mode, D3_cutoff, D3_cutoff_cn);
+    calculate_one_structure(
+      nep3, atom_symbols, structures[nc], mode, functional, D3_cutoff, D3_cutoff_cn);
   }
 }
 
@@ -515,13 +518,16 @@ int main(int argc, char* argv[])
 {
   if (argc < 5) {
     std::cout << "Usage:\n";
-    std::cout << argv[0] << " nep_file input_xyz_file output_xyz_file mode [D3_cutoff]\n";
+    std::cout
+      << argv[0]
+      << " nep_file input_xyz_file output_xyz_file mode [functional D3_cutoff D3_cutoff_cn]\n";
     exit(1);
   } else {
     std::string nep_file = argv[1];
     std::string input_file = argv[2];
     std::string output_file = argv[3];
     int mode = atoi(argv[4]);
+    std::string functional;
     double D3_cutoff = 0.0;
     double D3_cutoff_cn = 0.0;
     if (mode < 0 || mode > 2) {
@@ -529,25 +535,35 @@ int main(int argc, char* argv[])
       exit(1);
     }
     if (mode > 0) {
-      if (argc != 7) {
+      if (argc != 8) {
         std::cout << "Usage:\n";
-        std::cout << argv[0]
-                  << " nep_file input_xyz_file output_xyz_file mode D3_cutoff D3_cutoff_cn\n";
+        std::cout
+          << argv[0]
+          << " nep_file input_xyz_file output_xyz_file mode functional D3_cutoff D3_cutoff_cn\n";
         exit(1);
       } else {
-        D3_cutoff = atof(argv[5]);
-        D3_cutoff_cn = atof(argv[6]);
+        functional = argv[5];
+        D3_cutoff = atof(argv[6]);
+        D3_cutoff_cn = atof(argv[7]);
       }
     }
     std::vector<Structure> structures;
     read(input_file, structures);
     std::cout << "Read " << structures.size() << " structures from " << input_file << std::endl;
 
+    if (mode == 0) {
+      std::cout << "Calculate NEP only." << std::endl;
+    } else if (mode == 1) {
+      std::cout << "Calculate DFT-D3 only." << std::endl;
+    } else if (mode == 2) {
+      std::cout << "Calculate NEP in combination with DFT-D3." << std::endl;
+    }
+
     clock_t time_begin = clock();
-    calculate(nep_file, structures, mode, D3_cutoff, D3_cutoff_cn);
+    calculate(nep_file, structures, mode, functional, D3_cutoff, D3_cutoff_cn);
     clock_t time_finish = clock();
     double time_used = (time_finish - time_begin) / double(CLOCKS_PER_SEC);
-    std::cout << "    Time used = " << time_used << " s.\n";
+    std::cout << "Time used = " << time_used << " s.\n";
 
     write(output_file, structures);
   }
