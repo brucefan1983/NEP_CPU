@@ -8,9 +8,10 @@
 
 # The standalone C++ implementation of NEP
 
-* The `NEP3` C++ class is defined in the following two files:
+* The `NEP3` C++ class is defined in the following three files:
   * `src/nep.h`
   * `src/nep.cpp`
+  * `src/dftd3para.h`
   
 * There is an option to use tables to speed up the calculations for the radial functions in NEP. To enable it, one can change line 20 of `src/nep.h`:
 
@@ -18,20 +19,23 @@
 // #define USE_TABLE_FOR_RADIAL_FUNCTIONS
 ```
   
-* The following folder contains some testing code and results:
+* The following folders contain some testing code and results:
   * `test/`
+  * `test_dftd3/`
   
-* The `NEP3` C++ class is used as an engine powering the following two Python packages:
-  * `PyNEP`: https://github.com/bigd4/PyNEP
+* The `NEP3` C++ class is used as an engine powering the following Python packages:
   * `calorine`: https://gitlab.com/materials-modeling/calorine
+  * `PyNEP`: https://github.com/bigd4/PyNEP
+  * `somd`: https://github.com/initqp/somd
   
 # The NEP-LAMMPS interface
 
 ## Build the NEP-LAMMPS interface
 
-* step 1: Copy `src/nep.h` and `src/nep.cpp` into `interface/lammps/USER-NEP/` such that you have the following 5 files in `interface/lammps/USER-NEP/`:
+* step 1: Copy the files in `src/` into `interface/lammps/USER-NEP/` such that you have the following files in `interface/lammps/USER-NEP/`:
   * `nep.h`
   * `nep.cpp`
+  * `dftd3para.h`
   * `pair_NEP.h`
   * `pair_NEP.cpp`
   * `install.sh`
@@ -56,7 +60,7 @@
   
 * Some atom types can be missing in the simulated system. For example you can use the above NEP model to simulate a CuNi binary alloy. It is important to make sure to still set Cu atoms to type 2 and Ni atoms to type 3. In this case, atom types 1 and 4 are missing.
 
-* Currently NEP cannot be hybridized with other potentials in LAMMPS.
+* One can hybrid NEP with other potentials in LAMMPS.
   
 * If you want to calculate the heat current correctly, use the following command to get the 9-component per-atom virial:
   ```shell
