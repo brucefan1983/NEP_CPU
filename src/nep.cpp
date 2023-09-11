@@ -1485,9 +1485,18 @@ void add_dftd3_force(
             dZ += c6_ref_ij * L_ij * (-8.0 * diff_i);
           }
         }
-        c6 = Z / W;
-        dc6 = (dZ * W - Z * dW) / (W * W);
+        if (W < 1.0e-30) {
+          int i = num_cn_1 - 1;
+          int j = num_cn_2 - 1;
+          c6 = (z1 < z2) ? dftd3para::c6_ref[z12 * dftd3para::max_cn2 + i * dftd3para::max_cn + j]
+                         : dftd3para::c6_ref[z12 * dftd3para::max_cn2 + j * dftd3para::max_cn + i];
+        } else {
+          W = 1.0 / W;
+          c6 = Z * W;
+          dc6 = dZ * W - c6 * dW * W;
+        }
       }
+
       c6 *= dftd3para::HartreeBohr6;
       dc6 *= dftd3para::HartreeBohr6;
       double c8_over_c6 = 3.0 * dftd3para::r2r4[z1] * dftd3para::r2r4[z2] * dftd3para::Bohr2;
