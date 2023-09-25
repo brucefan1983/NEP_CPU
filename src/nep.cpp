@@ -171,8 +171,6 @@ void find_f_and_fp_zbl(
   double* zbl_para,
   double zizj,
   double a_inv,
-  double rc_inner,
-  double rc_outer,
   double d12,
   double d12inv,
   double& f,
@@ -180,15 +178,16 @@ void find_f_and_fp_zbl(
 {
   double x = d12 * a_inv;
   f = fp = 0.0f;
-  find_phi_and_phip_zbl(zbl_para[0], zbl_para[1], x, f, fp);
   find_phi_and_phip_zbl(zbl_para[2], zbl_para[3], x, f, fp);
   find_phi_and_phip_zbl(zbl_para[4], zbl_para[5], x, f, fp);
+  find_phi_and_phip_zbl(zbl_para[6], zbl_para[7], x, f, fp);
+  find_phi_and_phip_zbl(zbl_para[8], zbl_para[9], x, f, fp);
   f *= zizj;
   fp *= zizj * a_inv;
   fp = fp * d12inv - f * d12inv * d12inv;
   f *= d12inv;
   double fc, fcp;
-  find_fc_and_fcp_zbl(rc_inner, rc_outer, d12, fc, fcp);
+  find_fc_and_fcp_zbl(zbl_para[0], zbl_para[1], d12, fc, fcp);
   fp = fp * fc + f * fcp;
   f *= fc;
 }
@@ -1366,13 +1365,11 @@ void find_force_ZBL_small_box(
           t2 = type1;
         }
         int zbl_index = t1 * zbl.num_types - (t1 * (t1 - 1)) / 2 + (t2 - t1);
-        double rc_inner = zbl.rc_flexible_inner[zbl_index];
-        double rc_outer = zbl.rc_flexible_outer[zbl_index];
-        double ZBL_para[6];
-        for (int i = 0; i < 6; ++i) {
-          ZBL_para[i] = zbl.para[6 * zbl_index + i];
+        double ZBL_para[10];
+        for (int i = 0; i < 10; ++i) {
+          ZBL_para[i] = zbl.para[10 * zbl_index + i];
         }
-        find_f_and_fp_zbl(ZBL_para, zizj, a_inv, rc_inner, rc_outer, d12, d12inv, f, fp);
+        find_f_and_fp_zbl(ZBL_para, zizj, a_inv, d12, d12inv, f, fp);
       } else {
         find_f_and_fp_zbl(zizj, a_inv, zbl.rc_inner, zbl.rc_outer, d12, d12inv, f, fp);
       }
@@ -2042,13 +2039,11 @@ void find_force_ZBL_for_lammps(
           t2 = type1;
         }
         int zbl_index = t1 * zbl.num_types - (t1 * (t1 - 1)) / 2 + (t2 - t1);
-        double rc_inner = zbl.rc_flexible_inner[zbl_index];
-        double rc_outer = zbl.rc_flexible_outer[zbl_index];
-        double ZBL_para[6];
-        for (int i = 0; i < 6; ++i) {
-          ZBL_para[i] = zbl.para[6 * zbl_index + i];
+        double ZBL_para[10];
+        for (int i = 0; i < 10; ++i) {
+          ZBL_para[i] = zbl.para[10 * zbl_index + i];
         }
-        find_f_and_fp_zbl(ZBL_para, zizj, a_inv, rc_inner, rc_outer, d12, d12inv, f, fp);
+        find_f_and_fp_zbl(ZBL_para, zizj, a_inv, d12, d12inv, f, fp);
       } else {
         find_f_and_fp_zbl(zizj, a_inv, zbl.rc_inner, zbl.rc_outer, d12, d12inv, f, fp);
       }
@@ -2534,15 +2529,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   // flexible zbl potential parameters if (zbl.flexibled)
   if (zbl.flexibled) {
     int num_type_zbl = (paramb.num_types * (paramb.num_types + 1)) / 2;
-    for (int d = 0; d < num_type_zbl; ++d) {
-      tokens = get_tokens(input);
-      zbl.rc_flexible_inner[d] = get_double_from_token(tokens[0], __FILE__, __LINE__);
-    }
-    for (int d = 0; d < num_type_zbl; ++d) {
-      tokens = get_tokens(input);
-      zbl.rc_flexible_outer[d] = get_double_from_token(tokens[0], __FILE__, __LINE__);
-    }
-    for (int d = 0; d < 6 * num_type_zbl; ++d) {
+    for (int d = 0; d < 10 * num_type_zbl; ++d) {
       tokens = get_tokens(input);
       zbl.para[d] = get_double_from_token(tokens[0], __FILE__, __LINE__);
     }
