@@ -85,9 +85,10 @@ void PairNEP::coeff(int narg, char** arg)
 
 void PairNEP::settings(int narg, char** arg)
 {
-  if (narg != 1)
-    error->all(FLERR, "Illegal pair_style command");
-  strcpy(model_filename, arg[0]);
+  if (narg != 1) {
+    error->all(FLERR, "Illegal pair_style command; nep requires 1 parameter");
+  }
+  model_filename = arg[0];
 }
 
 void PairNEP::init_style()

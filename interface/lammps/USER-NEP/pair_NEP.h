@@ -43,7 +43,7 @@ public:
 
 protected:
   bool inited;
-  char model_filename[1000];
+  std::string model_filename;
   double cutoffsq;
   void allocate();
 };

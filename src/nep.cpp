@@ -21,6 +21,8 @@ heat transport, Phys. Rev. B. 104, 104309 (2021).
 ------------------------------------------------------------------------------*/
 
 #include "nep.h"
+#include "dftd3para.h"
+#include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -38,7 +40,7 @@ heat transport, Phys. Rev. B. 104, 104309 (2021).
 namespace
 {
 const int MAX_NEURON = 200; // maximum number of neurons in the hidden layer
-const int MN = 1000;        // maximum number of neighbors for one atom
+const int MN = 10000;       // maximum number of neighbors for one atom
 const int NUM_OF_ABC = 24;  // 3 + 5 + 7 + 9 for L_max = 4
 const int MAX_NUM_N = 20;   // n_max+1 = 19+1
 const int MAX_DIM = MAX_NUM_N * 7;
@@ -873,6 +875,7 @@ void find_descriptor_small_box(
   const bool calculating_potential,
   const bool calculating_descriptor,
   const bool calculating_latent_space,
+  const bool calculating_polarizability,
   NEP3::ParaMB& paramb,
   NEP3::ANN& annmb,
   const int N,
@@ -895,7 +898,8 @@ void find_descriptor_small_box(
   double* g_sum_fxyz,
   double* g_potential,
   double* g_descriptor,
-  double* g_latent_space)
+  double* g_latent_space,
+  double* g_virial)
 {
 #if defined(_OPENMP)
 #pragma omp parallel for
@@ -1014,12 +1018,29 @@ void find_descriptor_small_box(
       }
     }
 
-    if (calculating_potential || calculating_latent_space) {
+    if (calculating_potential || calculating_latent_space || calculating_polarizability) {
       for (int d = 0; d < annmb.dim; ++d) {
         q[d] = q[d] * paramb.q_scaler[d];
       }
 
       double F = 0.0, Fp[MAX_DIM] = {0.0}, latent_space[MAX_NEURON] = {0.0};
+
+      if (calculating_polarizability) {
+        apply_ann_one_layer(
+          annmb.dim, annmb.num_neurons1, annmb.w0_pol[t1], annmb.b0_pol[t1], annmb.w1_pol[t1],
+          annmb.b1_pol, q, F, Fp, latent_space);
+        g_virial[n1] = F;
+        g_virial[n1 + N * 4] = F;
+        g_virial[n1 + N * 8] = F;
+
+        for (int d = 0; d < annmb.dim; ++d) {
+          Fp[d] = 0.0;
+        }
+        for (int d = 0; d < annmb.num_neurons1; ++d) {
+          latent_space[d] = 0.0;
+        }
+      }
+
       apply_ann_one_layer(
         annmb.dim, annmb.num_neurons1, annmb.w0[t1], annmb.b0[t1], annmb.w1[t1], annmb.b1, q, F, Fp,
         latent_space);
@@ -1122,13 +1143,22 @@ void find_force_radial_small_box(
       }
 #endif
 
-      if (!is_dipole) {
+      if (g_fx) {
         g_fx[n1] += f12[0];
-        g_fy[n1] += f12[1];
-        g_fz[n1] += f12[2];
         g_fx[n2] -= f12[0];
+      }
+
+      if (g_fy) {
+        g_fy[n1] += f12[1];
         g_fy[n2] -= f12[1];
+      }
+
+      if (g_fz) {
+        g_fz[n1] += f12[2];
         g_fz[n2] -= f12[2];
+      }
+
+      if (!is_dipole) {
         g_virial[n2 + 0 * N] -= r12[0] * f12[0];
         g_virial[n2 + 1 * N] -= r12[0] * f12[1];
         g_virial[n2 + 2 * N] -= r12[0] * f12[2];
@@ -1260,13 +1290,22 @@ void find_force_angular_small_box(
       }
 #endif
 
-      if (!is_dipole) {
+      if (g_fx) {
         g_fx[n1] += f12[0];
-        g_fy[n1] += f12[1];
-        g_fz[n1] += f12[2];
         g_fx[n2] -= f12[0];
+      }
+
+      if (g_fy) {
+        g_fy[n1] += f12[1];
         g_fy[n2] -= f12[1];
+      }
+
+      if (g_fz) {
+        g_fz[n1] += f12[2];
         g_fz[n2] -= f12[2];
+      }
+
+      if (!is_dipole) {
         g_virial[n2 + 0 * N] -= r12[0] * f12[0];
         g_virial[n2 + 1 * N] -= r12[0] * f12[1];
         g_virial[n2 + 2 * N] -= r12[0] * f12[2];
@@ -1352,6 +1391,189 @@ void find_force_ZBL_small_box(
       g_virial[n2 + 7 * N] -= r12[2] * f12[1];
       g_virial[n2 + 8 * N] -= r12[2] * f12[2];
       g_pe[n1] += f * 0.5;
+    }
+  }
+}
+
+void find_dftd3_coordination_number(
+  NEP3::DFTD3& dftd3,
+  const int N,
+  const int* g_NN_angular,
+  const int* g_NL_angular,
+  const int* g_type,
+  const double* g_x12,
+  const double* g_y12,
+  const double* g_z12)
+{
+#if defined(_OPENMP)
+#pragma omp parallel for
+#endif
+  for (int n1 = 0; n1 < N; ++n1) {
+    int z1 = dftd3.atomic_number[g_type[n1]];
+    double R_cov_1 = dftd3para::Bohr * dftd3para::covalent_radius[z1];
+    double cn_temp = 0.0;
+    for (int i1 = 0; i1 < g_NN_angular[n1]; ++i1) {
+      int index = i1 * N + n1;
+      int n2 = g_NL_angular[index];
+      int z2 = dftd3.atomic_number[g_type[n2]];
+      double R_cov_2 = dftd3para::Bohr * dftd3para::covalent_radius[z2];
+      double r12[3] = {g_x12[index], g_y12[index], g_z12[index]};
+      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
+      cn_temp += 1.0 / (exp(-16.0 * ((R_cov_1 + R_cov_2) / d12 - 1.0)) + 1.0);
+    }
+    dftd3.cn[n1] = cn_temp;
+  }
+}
+
+void add_dftd3_force(
+  NEP3::DFTD3& dftd3,
+  const int N,
+  const int* g_NN_radial,
+  const int* g_NL_radial,
+  const int* g_type,
+  const double* g_x12,
+  const double* g_y12,
+  const double* g_z12,
+  double* g_potential,
+  double* g_force,
+  double* g_virial)
+{
+  for (int n1 = 0; n1 < N; ++n1) {
+    int z1 = dftd3.atomic_number[g_type[n1]];
+    int num_cn_1 = dftd3para::num_cn[z1];
+    double dc6_sum = 0.0;
+    double dc8_sum = 0.0;
+    for (int i1 = 0; i1 < g_NN_radial[n1]; ++i1) {
+      int index = i1 * N + n1;
+      int n2 = g_NL_radial[index];
+      int z2 = dftd3.atomic_number[g_type[n2]];
+      int z_small = z1, z_large = z2;
+      if (z1 > z2) {
+        z_small = z2;
+        z_large = z1;
+      }
+      int z12 = z_small * dftd3para::max_elem - (z_small * (z_small - 1)) / 2 + (z_large - z_small);
+      double r12[3] = {g_x12[index], g_y12[index], g_z12[index]};
+      double d12_2 = r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2];
+      double d12_4 = d12_2 * d12_2;
+      double d12_6 = d12_4 * d12_2;
+      double d12_8 = d12_6 * d12_2;
+      double c6 = 0.0;
+      double dc6 = 0.0;
+      int num_cn_2 = dftd3para::num_cn[z2];
+      if (num_cn_1 == 1 && num_cn_2 == 1) {
+        c6 = dftd3para::c6_ref[z12 * dftd3para::max_cn2];
+      } else {
+        double W = 0.0;
+        double dW = 0.0;
+        double Z = 0.0;
+        double dZ = 0.0;
+        for (int i = 0; i < num_cn_1; ++i) {
+          for (int j = 0; j < num_cn_2; ++j) {
+            double diff_i = dftd3.cn[n1] - dftd3para::cn_ref[z1 * dftd3para::max_cn + i];
+            double diff_j = dftd3.cn[n2] - dftd3para::cn_ref[z2 * dftd3para::max_cn + j];
+            double L_ij = exp(-4.0 * (diff_i * diff_i + diff_j * diff_j));
+            W += L_ij;
+            dW += L_ij * (-8.0 * diff_i);
+            double c6_ref_ij =
+              (z1 < z2) ? dftd3para::c6_ref[z12 * dftd3para::max_cn2 + i * dftd3para::max_cn + j]
+                        : dftd3para::c6_ref[z12 * dftd3para::max_cn2 + j * dftd3para::max_cn + i];
+            Z += c6_ref_ij * L_ij;
+            dZ += c6_ref_ij * L_ij * (-8.0 * diff_i);
+          }
+        }
+        if (W < 1.0e-30) {
+          int i = num_cn_1 - 1;
+          int j = num_cn_2 - 1;
+          c6 = (z1 < z2) ? dftd3para::c6_ref[z12 * dftd3para::max_cn2 + i * dftd3para::max_cn + j]
+                         : dftd3para::c6_ref[z12 * dftd3para::max_cn2 + j * dftd3para::max_cn + i];
+        } else {
+          W = 1.0 / W;
+          c6 = Z * W;
+          dc6 = dZ * W - c6 * dW * W;
+        }
+      }
+
+      c6 *= dftd3para::HartreeBohr6;
+      dc6 *= dftd3para::HartreeBohr6;
+      double c8_over_c6 = 3.0 * dftd3para::r2r4[z1] * dftd3para::r2r4[z2] * dftd3para::Bohr2;
+      double c8 = c6 * c8_over_c6;
+      double damp = dftd3.a1 * sqrt(c8_over_c6) + dftd3.a2;
+      double damp_2 = damp * damp;
+      double damp_4 = damp_2 * damp_2;
+      double damp_6 = 1.0 / (d12_6 + damp_4 * damp_2);
+      double damp_8 = 1.0 / (d12_8 + damp_4 * damp_4);
+      g_potential[n1] -= (dftd3.s6 * c6 * damp_6 + dftd3.s8 * c8 * damp_8) * 0.5;
+      double f2 = dftd3.s6 * c6 * 3.0 * d12_4 * (damp_6 * damp_6) +
+                  dftd3.s8 * c8 * 4.0 * d12_6 * (damp_8 * damp_8);
+      double f12[3] = {r12[0] * f2, r12[1] * f2, r12[2] * f2};
+      g_force[n1 + 0 * N] += f12[0];
+      g_force[n1 + 1 * N] += f12[1];
+      g_force[n1 + 2 * N] += f12[2];
+      g_force[n2 + 0 * N] -= f12[0];
+      g_force[n2 + 1 * N] -= f12[1];
+      g_force[n2 + 2 * N] -= f12[2];
+      g_virial[n2 + 0 * N] -= r12[0] * f12[0];
+      g_virial[n2 + 1 * N] -= r12[0] * f12[1];
+      g_virial[n2 + 2 * N] -= r12[0] * f12[2];
+      g_virial[n2 + 3 * N] -= r12[1] * f12[0];
+      g_virial[n2 + 4 * N] -= r12[1] * f12[1];
+      g_virial[n2 + 5 * N] -= r12[1] * f12[2];
+      g_virial[n2 + 6 * N] -= r12[2] * f12[0];
+      g_virial[n2 + 7 * N] -= r12[2] * f12[1];
+      g_virial[n2 + 8 * N] -= r12[2] * f12[2];
+      dc6_sum += dc6 * dftd3.s6 * damp_6;
+      dc8_sum += dc6 * c8_over_c6 * dftd3.s8 * damp_8;
+    }
+    dftd3.dc6_sum[n1] = dc6_sum;
+    dftd3.dc8_sum[n1] = dc8_sum;
+  }
+}
+
+void add_dftd3_force_extra(
+  const NEP3::DFTD3& dftd3,
+  const int N,
+  const int* g_NN_angular,
+  const int* g_NL_angular,
+  const int* g_type,
+  const double* g_x12,
+  const double* g_y12,
+  const double* g_z12,
+  double* g_force,
+  double* g_virial)
+{
+  for (int n1 = 0; n1 < N; ++n1) {
+    int z1 = dftd3.atomic_number[g_type[n1]];
+    double R_cov_1 = dftd3para::Bohr * dftd3para::covalent_radius[z1];
+    double dc6_sum = dftd3.dc6_sum[n1];
+    double dc8_sum = dftd3.dc8_sum[n1];
+    for (int i1 = 0; i1 < g_NN_angular[n1]; ++i1) {
+      int index = i1 * N + n1;
+      int n2 = g_NL_angular[index];
+      int z2 = dftd3.atomic_number[g_type[n2]];
+      double R_cov_2 = dftd3para::Bohr * dftd3para::covalent_radius[z2];
+      double r12[3] = {g_x12[index], g_y12[index], g_z12[index]};
+      double d12_2 = r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2];
+      double d12 = sqrt(d12_2);
+      double cn_exp_factor = exp(-16.0 * ((R_cov_1 + R_cov_2) / d12 - 1.0));
+      double f2 = cn_exp_factor * 16.0 * (R_cov_1 + R_cov_2) * (dc6_sum + dc8_sum); // not 8.0
+      f2 /= (cn_exp_factor + 1.0) * (cn_exp_factor + 1.0) * d12 * d12_2;
+      double f12[3] = {r12[0] * f2, r12[1] * f2, r12[2] * f2};
+      g_force[n1 + 0 * N] += f12[0];
+      g_force[n1 + 1 * N] += f12[1];
+      g_force[n1 + 2 * N] += f12[2];
+      g_force[n2 + 0 * N] -= f12[0];
+      g_force[n2 + 1 * N] -= f12[1];
+      g_force[n2 + 2 * N] -= f12[2];
+      g_virial[n2 + 0 * N] -= r12[0] * f12[0];
+      g_virial[n2 + 1 * N] -= r12[0] * f12[1];
+      g_virial[n2 + 2 * N] -= r12[0] * f12[2];
+      g_virial[n2 + 3 * N] -= r12[1] * f12[0];
+      g_virial[n2 + 4 * N] -= r12[1] * f12[1];
+      g_virial[n2 + 5 * N] -= r12[1] * f12[2];
+      g_virial[n2 + 6 * N] -= r12[2] * f12[0];
+      g_virial[n2 + 7 * N] -= r12[2] * f12[1];
+      g_virial[n2 + 8 * N] -= r12[2] * f12[2];
     }
   }
 }
@@ -2103,24 +2325,55 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
     exit(1);
   }
   if (tokens[0] == "nep") {
+    paramb.model_type = 0;
+    paramb.version = 2;
+    zbl.enabled = false;
+  } else if (tokens[0] == "nep_zbl") {
+    paramb.model_type = 0;
+    paramb.version = 2;
+    zbl.enabled = true;
+  } else if (tokens[0] == "nep_dipole") {
+    paramb.model_type = 1;
+    paramb.version = 2;
+    zbl.enabled = false;
+  } else if (tokens[0] == "nep_polarizability") {
+    paramb.model_type = 2;
     paramb.version = 2;
     zbl.enabled = false;
   } else if (tokens[0] == "nep3") {
+    paramb.model_type = 0;
     paramb.version = 3;
     zbl.enabled = false;
-  } else if (tokens[0] == "nep_zbl") {
-    paramb.version = 2;
-    zbl.enabled = true;
   } else if (tokens[0] == "nep3_zbl") {
+    paramb.model_type = 0;
     paramb.version = 3;
     zbl.enabled = true;
+  } else if (tokens[0] == "nep3_dipole") {
+    paramb.model_type = 1;
+    paramb.version = 3;
+    zbl.enabled = false;
+  } else if (tokens[0] == "nep3_polarizability") {
+    paramb.model_type = 2;
+    paramb.version = 3;
+    zbl.enabled = false;
   } else if (tokens[0] == "nep4") {
+    paramb.model_type = 0;
     paramb.version = 4;
     zbl.enabled = false;
   } else if (tokens[0] == "nep4_zbl") {
+    paramb.model_type = 0;
     paramb.version = 4;
     zbl.enabled = true;
+  } else if (tokens[0] == "nep4_dipole") {
+    paramb.model_type = 1;
+    paramb.version = 4;
+    zbl.enabled = false;
+  } else if (tokens[0] == "nep4_polarizability") {
+    paramb.model_type = 2;
+    paramb.version = 4;
+    zbl.enabled = false;
   }
+
   paramb.num_types = get_int_from_token(tokens[1], __FILE__, __LINE__);
   if (tokens.size() != 2 + paramb.num_types) {
     print_tokens(tokens);
@@ -2140,6 +2393,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
       }
     }
     zbl.atomic_numbers[n] = atomic_number;
+    dftd3.atomic_number[n] = atomic_number - 1;
   }
 
   // zbl 0.7 1.4
@@ -2238,6 +2492,9 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   paramb.num_types_sq = paramb.num_types * paramb.num_types;
   annmb.num_para =
     (annmb.dim + 2) * annmb.num_neurons1 * (paramb.version == 4 ? paramb.num_types : 1) + 1;
+  if (paramb.model_type == 2) {
+    annmb.num_para *= 2;
+  }
   int num_para_descriptor =
     paramb.num_types_sq * ((paramb.n_max_radial + 1) * (paramb.basis_size_radial + 1) +
                            (paramb.n_max_angular + 1) * (paramb.basis_size_angular + 1));
@@ -2341,8 +2598,27 @@ void NEP3::update_potential(double* parameters, ANN& ann)
     ann.w1[t] = pointer;
     pointer += ann.num_neurons1;
   }
+
   ann.b1 = pointer;
-  ann.c = ann.b1 + 1;
+  pointer += 1;
+
+  if (paramb.model_type == 2) {
+    for (int t = 0; t < paramb.num_types; ++t) {
+      if (t > 0 && paramb.version != 4) { // Use the same set of NN parameters for NEP2 and NEP3
+        pointer -= (ann.dim + 2) * ann.num_neurons1;
+      }
+      ann.w0_pol[t] = pointer;
+      pointer += ann.num_neurons1 * ann.dim;
+      ann.b0_pol[t] = pointer;
+      pointer += ann.num_neurons1;
+      ann.w1_pol[t] = pointer;
+      pointer += ann.num_neurons1;
+    }
+    ann.b1_pol = pointer;
+    pointer += 1;
+  }
+
+  ann.c = pointer;
 }
 
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
@@ -2376,6 +2652,9 @@ void NEP3::allocate_memory(const int N)
     r12.resize(N * MN * 6);
     Fp.resize(N * annmb.dim);
     sum_fxyz.resize(N * (paramb.n_max_angular + 1) * NUM_OF_ABC);
+    dftd3.cn.resize(N);
+    dftd3.dc6_sum.resize(N);
+    dftd3.dc8_sum.resize(N);
     num_atoms = N;
   }
 }
@@ -2388,6 +2667,11 @@ void NEP3::compute(
   std::vector<double>& force,
   std::vector<double>& virial)
 {
+  if (paramb.model_type != 0) {
+    std::cout << "Cannot compute potential using a non-potential NEP model.\n";
+    exit(1);
+  }
+
   const int N = type.size();
   const int size_x12 = N * MN;
 
@@ -2425,13 +2709,14 @@ void NEP3::compute(
     NN_angular, NL_angular, r12);
 
   find_descriptor_small_box(
-    true, false, false, paramb, annmb, N, NN_radial.data(), NL_radial.data(), NN_angular.data(),
-    NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12, r12.data() + size_x12 * 2,
-    r12.data() + size_x12 * 3, r12.data() + size_x12 * 4, r12.data() + size_x12 * 5,
+    true, false, false, false, paramb, annmb, N, NN_radial.data(), NL_radial.data(),
+    NN_angular.data(), NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12,
+    r12.data() + size_x12 * 2, r12.data() + size_x12 * 3, r12.data() + size_x12 * 4,
+    r12.data() + size_x12 * 5,
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
     gn_radial.data(), gn_angular.data(),
 #endif
-    Fp.data(), sum_fxyz.data(), potential.data(), nullptr, nullptr);
+    Fp.data(), sum_fxyz.data(), potential.data(), nullptr, nullptr, nullptr);
 
   find_force_radial_small_box(
     false, paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
@@ -2456,6 +2741,102 @@ void NEP3::compute(
       r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, force.data(), force.data() + N,
       force.data() + N * 2, virial.data(), potential.data());
   }
+}
+
+void NEP3::compute_with_dftd3(
+  const std::string& xc,
+  const double rc_potential,
+  const double rc_coordination_number,
+  const std::vector<int>& type,
+  const std::vector<double>& box,
+  const std::vector<double>& position,
+  std::vector<double>& potential,
+  std::vector<double>& force,
+  std::vector<double>& virial)
+{
+  compute(type, box, position, potential, force, virial);
+  const int N = type.size();
+  const int size_x12 = N * MN;
+  set_dftd3_para_all(xc, rc_potential, rc_coordination_number);
+
+  find_neighbor_list_small_box(
+    dftd3.rc_radial, dftd3.rc_angular, N, box, position, num_cells, ebox, NN_radial, NL_radial,
+    NN_angular, NL_angular, r12);
+  find_dftd3_coordination_number(
+    dftd3, N, NN_angular.data(), NL_angular.data(), type.data(), r12.data() + size_x12 * 3,
+    r12.data() + size_x12 * 4, r12.data() + size_x12 * 5);
+  add_dftd3_force(
+    dftd3, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data() + size_x12 * 0,
+    r12.data() + size_x12 * 1, r12.data() + size_x12 * 2, potential.data(), force.data(),
+    virial.data());
+  add_dftd3_force_extra(
+    dftd3, N, NN_angular.data(), NL_angular.data(), type.data(), r12.data() + size_x12 * 3,
+    r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, force.data(), virial.data());
+}
+
+void NEP3::compute_dftd3(
+  const std::string& xc,
+  const double rc_potential,
+  const double rc_coordination_number,
+  const std::vector<int>& type,
+  const std::vector<double>& box,
+  const std::vector<double>& position,
+  std::vector<double>& potential,
+  std::vector<double>& force,
+  std::vector<double>& virial)
+{
+  if (paramb.model_type != 0) {
+    std::cout << "Cannot compute potential using a non-potential NEP model.\n";
+    exit(1);
+  }
+
+  const int N = type.size();
+  const int size_x12 = N * MN;
+
+  if (N * 3 != position.size()) {
+    std::cout << "Type and position sizes are inconsistent.\n";
+    exit(1);
+  }
+  if (N != potential.size()) {
+    std::cout << "Type and potential sizes are inconsistent.\n";
+    exit(1);
+  }
+  if (N * 3 != force.size()) {
+    std::cout << "Type and force sizes are inconsistent.\n";
+    exit(1);
+  }
+  if (N * 9 != virial.size()) {
+    std::cout << "Type and virial sizes are inconsistent.\n";
+    exit(1);
+  }
+
+  allocate_memory(N);
+
+  for (int n = 0; n < potential.size(); ++n) {
+    potential[n] = 0.0;
+  }
+  for (int n = 0; n < force.size(); ++n) {
+    force[n] = 0.0;
+  }
+  for (int n = 0; n < virial.size(); ++n) {
+    virial[n] = 0.0;
+  }
+
+  set_dftd3_para_all(xc, rc_potential, rc_coordination_number);
+
+  find_neighbor_list_small_box(
+    dftd3.rc_radial, dftd3.rc_angular, N, box, position, num_cells, ebox, NN_radial, NL_radial,
+    NN_angular, NL_angular, r12);
+  find_dftd3_coordination_number(
+    dftd3, N, NN_angular.data(), NL_angular.data(), type.data(), r12.data() + size_x12 * 3,
+    r12.data() + size_x12 * 4, r12.data() + size_x12 * 5);
+  add_dftd3_force(
+    dftd3, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data() + size_x12 * 0,
+    r12.data() + size_x12 * 1, r12.data() + size_x12 * 2, potential.data(), force.data(),
+    virial.data());
+  add_dftd3_force_extra(
+    dftd3, N, NN_angular.data(), NL_angular.data(), type.data(), r12.data() + size_x12 * 3,
+    r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, force.data(), virial.data());
 }
 
 void NEP3::find_descriptor(
@@ -2483,13 +2864,14 @@ void NEP3::find_descriptor(
     NN_angular, NL_angular, r12);
 
   find_descriptor_small_box(
-    false, true, false, paramb, annmb, N, NN_radial.data(), NL_radial.data(), NN_angular.data(),
-    NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12, r12.data() + size_x12 * 2,
-    r12.data() + size_x12 * 3, r12.data() + size_x12 * 4, r12.data() + size_x12 * 5,
+    false, true, false, false, paramb, annmb, N, NN_radial.data(), NL_radial.data(),
+    NN_angular.data(), NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12,
+    r12.data() + size_x12 * 2, r12.data() + size_x12 * 3, r12.data() + size_x12 * 4,
+    r12.data() + size_x12 * 5,
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
     gn_radial.data(), gn_angular.data(),
 #endif
-    Fp.data(), sum_fxyz.data(), nullptr, descriptor.data(), nullptr);
+    Fp.data(), sum_fxyz.data(), nullptr, descriptor.data(), nullptr, nullptr);
 }
 
 void NEP3::find_latent_space(
@@ -2517,13 +2899,14 @@ void NEP3::find_latent_space(
     NN_angular, NL_angular, r12);
 
   find_descriptor_small_box(
-    false, false, true, paramb, annmb, N, NN_radial.data(), NL_radial.data(), NN_angular.data(),
-    NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12, r12.data() + size_x12 * 2,
-    r12.data() + size_x12 * 3, r12.data() + size_x12 * 4, r12.data() + size_x12 * 5,
+    false, false, true, false, paramb, annmb, N, NN_radial.data(), NL_radial.data(),
+    NN_angular.data(), NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12,
+    r12.data() + size_x12 * 2, r12.data() + size_x12 * 3, r12.data() + size_x12 * 4,
+    r12.data() + size_x12 * 5,
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
     gn_radial.data(), gn_angular.data(),
 #endif
-    Fp.data(), sum_fxyz.data(), nullptr, nullptr, latent_space.data());
+    Fp.data(), sum_fxyz.data(), nullptr, nullptr, latent_space.data(), nullptr);
 }
 
 void NEP3::find_dipole(
@@ -2532,6 +2915,11 @@ void NEP3::find_dipole(
   const std::vector<double>& position,
   std::vector<double>& dipole)
 {
+  if (paramb.model_type != 1) {
+    std::cout << "Cannot compute dipole using a non-dipole NEP model.\n";
+    exit(1);
+  }
+
   const int N = type.size();
   const int size_x12 = N * MN;
 
@@ -2556,13 +2944,14 @@ void NEP3::find_dipole(
     NN_angular, NL_angular, r12);
 
   find_descriptor_small_box(
-    true, false, false, paramb, annmb, N, NN_radial.data(), NL_radial.data(), NN_angular.data(),
-    NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12, r12.data() + size_x12 * 2,
-    r12.data() + size_x12 * 3, r12.data() + size_x12 * 4, r12.data() + size_x12 * 5,
+    true, false, false, false, paramb, annmb, N, NN_radial.data(), NL_radial.data(),
+    NN_angular.data(), NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12,
+    r12.data() + size_x12 * 2, r12.data() + size_x12 * 3, r12.data() + size_x12 * 4,
+    r12.data() + size_x12 * 5,
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
     gn_radial.data(), gn_angular.data(),
 #endif
-    Fp.data(), sum_fxyz.data(), potential.data(), nullptr, nullptr);
+    Fp.data(), sum_fxyz.data(), potential.data(), nullptr, nullptr, nullptr);
 
   find_force_radial_small_box(
     true, paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
@@ -2586,6 +2975,80 @@ void NEP3::find_dipole(
     for (int n = 0; n < N; ++n) {
       dipole[d] += virial[d * N + n];
     }
+  }
+}
+
+void NEP3::find_polarizability(
+  const std::vector<int>& type,
+  const std::vector<double>& box,
+  const std::vector<double>& position,
+  std::vector<double>& polarizability)
+{
+  if (paramb.model_type != 2) {
+    std::cout << "Cannot compute polarizability using a non-polarizability NEP model.\n";
+    exit(1);
+  }
+
+  const int N = type.size();
+  const int size_x12 = N * MN;
+
+  if (N * 3 != position.size()) {
+    std::cout << "Type and position sizes are inconsistent.\n";
+    exit(1);
+  }
+
+  allocate_memory(N);
+  std::vector<double> potential(N);  // not used but needed for find_descriptor_small_box
+  std::vector<double> virial(N * 9); // per-atom polarizability
+
+  for (int n = 0; n < potential.size(); ++n) {
+    potential[n] = 0.0;
+  }
+  for (int n = 0; n < virial.size(); ++n) {
+    virial[n] = 0.0;
+  }
+
+  find_neighbor_list_small_box(
+    paramb.rc_radial, paramb.rc_angular, N, box, position, num_cells, ebox, NN_radial, NL_radial,
+    NN_angular, NL_angular, r12);
+
+  find_descriptor_small_box(
+    true, false, false, true, paramb, annmb, N, NN_radial.data(), NL_radial.data(),
+    NN_angular.data(), NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12,
+    r12.data() + size_x12 * 2, r12.data() + size_x12 * 3, r12.data() + size_x12 * 4,
+    r12.data() + size_x12 * 5,
+#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
+    gn_radial.data(), gn_angular.data(),
+#endif
+    Fp.data(), sum_fxyz.data(), potential.data(), nullptr, nullptr, virial.data());
+
+  find_force_radial_small_box(
+    false, paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
+    r12.data() + size_x12, r12.data() + size_x12 * 2, Fp.data(),
+#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
+    gnp_radial.data(),
+#endif
+    nullptr, nullptr, nullptr, virial.data());
+
+  find_force_angular_small_box(
+    false, paramb, annmb, N, NN_angular.data(), NL_angular.data(), type.data(),
+    r12.data() + size_x12 * 3, r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, Fp.data(),
+    sum_fxyz.data(),
+#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
+    gn_angular.data(), gnp_angular.data(),
+#endif
+    nullptr, nullptr, nullptr, virial.data());
+
+  for (int d = 0; d < 6; ++d) {
+    polarizability[d] = 0.0;
+  }
+  for (int n = 0; n < N; ++n) {
+    polarizability[0] += virial[0 * N + n]; // xx
+    polarizability[1] += virial[4 * N + n]; // yy
+    polarizability[2] += virial[8 * N + n]; // zz
+    polarizability[3] += virial[1 * N + n]; // xy
+    polarizability[4] += virial[5 * N + n]; // yz
+    polarizability[5] += virial[6 * N + n]; // zx
   }
 }
 
@@ -2630,3 +3093,96 @@ void NEP3::compute_for_lammps(
       zbl, N, ilist, NN, NL, type, pos, force, total_virial, virial, total_potential, potential);
   }
 }
+
+bool NEP3::set_dftd3_para_one(
+  const std::string& functional_input,
+  const std::string& functional_library,
+  const double s6,
+  const double a1,
+  const double s8,
+  const double a2)
+{
+  if (functional_input == functional_library) {
+    dftd3.s6 = s6;
+    dftd3.a1 = a1;
+    dftd3.s8 = s8;
+    dftd3.a2 = a2 * dftd3para::Bohr;
+    return true;
+  }
+  return false;
+}
+
+void NEP3::set_dftd3_para_all(
+  const std::string& functional_input,
+  const double rc_potential,
+  const double rc_coordination_number)
+{
+
+  dftd3.rc_radial = rc_potential;
+  dftd3.rc_angular = rc_coordination_number;
+
+  std::string functional = functional_input;
+  std::transform(functional.begin(), functional.end(), functional.begin(), [](unsigned char c) {
+    return std::tolower(c);
+  });
+
+  bool valid = false;
+  valid = valid || set_dftd3_para_one(functional, "b1b95", 1.000, 0.2092, 1.4507, 5.5545);
+  valid = valid || set_dftd3_para_one(functional, "b2gpplyp", 0.560, 0.0000, 0.2597, 6.3332);
+  valid = valid || set_dftd3_para_one(functional, "b2plyp", 0.640, 0.3065, 0.9147, 5.0570);
+  valid = valid || set_dftd3_para_one(functional, "b3lyp", 1.000, 0.3981, 1.9889, 4.4211);
+  valid = valid || set_dftd3_para_one(functional, "b3pw91", 1.000, 0.4312, 2.8524, 4.4693);
+  valid = valid || set_dftd3_para_one(functional, "b97d", 1.000, 0.5545, 2.2609, 3.2297);
+  valid = valid || set_dftd3_para_one(functional, "bhlyp", 1.000, 0.2793, 1.0354, 4.9615);
+  valid = valid || set_dftd3_para_one(functional, "blyp", 1.000, 0.4298, 2.6996, 4.2359);
+  valid = valid || set_dftd3_para_one(functional, "bmk", 1.000, 0.1940, 2.0860, 5.9197);
+  valid = valid || set_dftd3_para_one(functional, "bop", 1.000, 0.4870, 3.295, 3.5043);
+  valid = valid || set_dftd3_para_one(functional, "bp86", 1.000, 0.3946, 3.2822, 4.8516);
+  valid = valid || set_dftd3_para_one(functional, "bpbe", 1.000, 0.4567, 4.0728, 4.3908);
+  valid = valid || set_dftd3_para_one(functional, "camb3lyp", 1.000, 0.3708, 2.0674, 5.4743);
+  valid = valid || set_dftd3_para_one(functional, "dsdblyp", 0.500, 0.0000, 0.2130, 6.0519);
+  valid = valid || set_dftd3_para_one(functional, "hcth120", 1.000, 0.3563, 1.0821, 4.3359);
+  valid = valid || set_dftd3_para_one(functional, "hf", 1.000, 0.3385, 0.9171, 2.883);
+  valid = valid || set_dftd3_para_one(functional, "hse-hjs", 1.000, 0.3830, 2.3100, 5.685);
+  valid = valid || set_dftd3_para_one(functional, "lc-wpbe08", 1.000, 0.3919, 1.8541, 5.0897);
+  valid = valid || set_dftd3_para_one(functional, "lcwpbe", 1.000, 0.3919, 1.8541, 5.0897);
+  valid = valid || set_dftd3_para_one(functional, "m11", 1.000, 0.0000, 2.8112, 10.1389);
+  valid = valid || set_dftd3_para_one(functional, "mn12l", 1.000, 0.0000, 2.2674, 9.1494);
+  valid = valid || set_dftd3_para_one(functional, "mn12sx", 1.000, 0.0983, 1.1674, 8.0259);
+  valid = valid || set_dftd3_para_one(functional, "mpw1b95", 1.000, 0.1955, 1.0508, 6.4177);
+  valid = valid || set_dftd3_para_one(functional, "mpwb1k", 1.000, 0.1474, 0.9499, 6.6223);
+  valid = valid || set_dftd3_para_one(functional, "mpwlyp", 1.000, 0.4831, 2.0077, 4.5323);
+  valid = valid || set_dftd3_para_one(functional, "n12sx", 1.000, 0.3283, 2.4900, 5.7898);
+  valid = valid || set_dftd3_para_one(functional, "olyp", 1.000, 0.5299, 2.6205, 2.8065);
+  valid = valid || set_dftd3_para_one(functional, "opbe", 1.000, 0.5512, 3.3816, 2.9444);
+  valid = valid || set_dftd3_para_one(functional, "otpss", 1.000, 0.4634, 2.7495, 4.3153);
+  valid = valid || set_dftd3_para_one(functional, "pbe", 1.000, 0.4289, 0.7875, 4.4407);
+  valid = valid || set_dftd3_para_one(functional, "pbe0", 1.000, 0.4145, 1.2177, 4.8593);
+  valid = valid || set_dftd3_para_one(functional, "pbe38", 1.000, 0.3995, 1.4623, 5.1405);
+  valid = valid || set_dftd3_para_one(functional, "pbesol", 1.000, 0.4466, 2.9491, 6.1742);
+  valid = valid || set_dftd3_para_one(functional, "ptpss", 0.750, 0.000, 0.2804, 6.5745);
+  valid = valid || set_dftd3_para_one(functional, "pw6b95", 1.000, 0.2076, 0.7257, 6.375);
+  valid = valid || set_dftd3_para_one(functional, "pwb6k", 1.000, 0.1805, 0.9383, 7.7627);
+  valid = valid || set_dftd3_para_one(functional, "pwpb95", 0.820, 0.0000, 0.2904, 7.3141);
+  valid = valid || set_dftd3_para_one(functional, "revpbe", 1.000, 0.5238, 2.3550, 3.5016);
+  valid = valid || set_dftd3_para_one(functional, "revpbe0", 1.000, 0.4679, 1.7588, 3.7619);
+  valid = valid || set_dftd3_para_one(functional, "revpbe38", 1.000, 0.4309, 1.4760, 3.9446);
+  valid = valid || set_dftd3_para_one(functional, "revssb", 1.000, 0.4720, 0.4389, 4.0986);
+  valid = valid || set_dftd3_para_one(functional, "rpbe", 1.000, 0.1820, 0.8318, 4.0094);
+  valid = valid || set_dftd3_para_one(functional, "rpw86pbe", 1.000, 0.4613, 1.3845, 4.5062);
+  valid = valid || set_dftd3_para_one(functional, "scan", 1.000, 0.5380, 0.0000, 5.42);
+  valid = valid || set_dftd3_para_one(functional, "sogga11x", 1.000, 0.1330, 1.1426, 5.7381);
+  valid = valid || set_dftd3_para_one(functional, "ssb", 1.000, -0.0952, -0.1744, 5.2170);
+  valid = valid || set_dftd3_para_one(functional, "tpss", 1.000, 0.4535, 1.9435, 4.4752);
+  valid = valid || set_dftd3_para_one(functional, "tpss0", 1.000, 0.3768, 1.2576, 4.5865);
+  valid = valid || set_dftd3_para_one(functional, "tpssh", 1.000, 0.4529, 2.2382, 4.6550);
+  valid = valid || set_dftd3_para_one(functional, "b2kplyp", 0.64, 0.0000, 0.1521, 7.1916);
+  valid = valid || set_dftd3_para_one(functional, "dsd-pbep86", 0.418, 0.0000, 0.0000, 5.6500);
+
+  if (!valid) {
+    std::cout << "The " << functional
+              << " functional is not supported for DFT-D3 with BJ damping.\n"
+              << std::endl;
+    exit(1);
+  }
+};
