@@ -59,9 +59,7 @@ public:
     double rc_inner = 1.0;
     double rc_outer = 2.0;
     double atomic_numbers[103];
-    double rc_flexible_inner[55];
-    double rc_flexible_outer[55];
-    double para[330];
+    double para[550];
   };
 
   NEP3();
