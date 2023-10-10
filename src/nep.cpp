@@ -2211,6 +2211,30 @@ void findCell(
   cell[3] = cell[0] + numCells[0] * (cell[1] + numCells[1] * cell[2]);
 }
 
+void applyPbcOne(double& sx)
+{
+  if (sx < 0.0) {
+    sx += 1.0;
+  } else if (sx > 1.0) {
+    sx -= 1.0;
+  }
+}
+
+void applyPbc(const int N, const double* box, double* x, double* y, double* z)
+{
+  for (int n = 0; n < N; ++n) {
+    double sx = box[9] * x[n] + box[10] * y[n] + box[11] * z[n];
+    double sy = box[12] * x[n] + box[13] * y[n] + box[14] * z[n];
+    double sz = box[15] * x[n] + box[16] * y[n] + box[17] * z[n];
+    applyPbcOne(sx);
+    applyPbcOne(sy);
+    applyPbcOne(sz);
+    x[n] = box[0] * sx + box[1] * sy + box[2] * sz;
+    y[n] = box[3] * sx + box[4] * sy + box[5] * sz;
+    z[n] = box[6] * sx + box[7] * sy + box[8] * sz;
+  }
+}
+
 void find_neighbor_list_large_box(
   const double rc_radial,
   const double rc_angular,
@@ -2226,15 +2250,18 @@ void find_neighbor_list_large_box(
   std::vector<double>& r12)
 {
   const int size_x12 = N * MN;
-  const double* g_x = position.data();
-  const double* g_y = position.data() + N;
-  const double* g_z = position.data() + N * 2;
+  std::vector<double> position_copy(position);
+  double* g_x = position_copy.data();
+  double* g_y = position_copy.data() + N;
+  double* g_z = position_copy.data() + N * 2;
   double* g_x12_radial = r12.data();
   double* g_y12_radial = r12.data() + size_x12;
   double* g_z12_radial = r12.data() + size_x12 * 2;
   double* g_x12_angular = r12.data() + size_x12 * 3;
   double* g_y12_angular = r12.data() + size_x12 * 4;
   double* g_z12_angular = r12.data() + size_x12 * 5;
+  
+  applyPbc(N, ebox, g_x, g_y, g_z);
 
   const double cutoffInverse = 2.0 / rc_radial;
   double thickness[3];
