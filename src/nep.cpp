@@ -40,7 +40,7 @@ heat transport, Phys. Rev. B. 104, 104309 (2021).
 namespace
 {
 const int MAX_NEURON = 200; // maximum number of neurons in the hidden layer
-const int MN = 5000;       // maximum number of neighbors for one atom
+const int MN = 1000;       // maximum number of neighbors for one atom
 const int NUM_OF_ABC = 24;  // 3 + 5 + 7 + 9 for L_max = 4
 const int MAX_NUM_N = 20;   // n_max+1 = 19+1
 const int MAX_DIM = MAX_NUM_N * 7;
@@ -2131,7 +2131,7 @@ void get_inverse(double* cpu_h)
   }
 }
 
-void get_expanded_box(const double rc, const double* box, int* num_cells, double* ebox)
+bool get_expanded_box(const double rc, const double* box, int* num_cells, double* ebox)
 {
   double volume = get_volume(box);
   double thickness_x = volume / get_area(0, box);
@@ -2140,6 +2140,17 @@ void get_expanded_box(const double rc, const double* box, int* num_cells, double
   num_cells[0] = int(ceil(2.0 * rc / thickness_x));
   num_cells[1] = int(ceil(2.0 * rc / thickness_y));
   num_cells[2] = int(ceil(2.0 * rc / thickness_z));
+  
+  bool is_small_box = false;
+  if (thickness_x <= 2.5 * rc) {
+    is_small_box = true;
+  }
+  if (thickness_y <= 2.5 * rc) {
+    is_small_box = true;
+  }
+  if (thickness_z <= 2.5 * rc) {
+    is_small_box = true;
+  }
 
   ebox[0] = box[0] * num_cells[0];
   ebox[3] = box[3] * num_cells[0];
@@ -2152,6 +2163,9 @@ void get_expanded_box(const double rc, const double* box, int* num_cells, double
   ebox[8] = box[8] * num_cells[2];
 
   get_inverse(ebox);
+  
+
+  return is_small_box;
 }
 
 void applyMicOne(double& x12)
@@ -2175,6 +2189,147 @@ void apply_mic_small_box(const double* ebox, double& x12, double& y12, double& z
   z12 = ebox[6] * sx12 + ebox[7] * sy12 + ebox[8] * sz12;
 }
 
+void findCell(
+  const double* box,
+  const double* thickness,
+  const double* r,
+  double cutoffInverse,
+  const int* numCells,
+  int* cell)
+{
+  double s[3];
+  s[0] = box[9] * r[0] + box[10] * r[1] + box[11] * r[2];
+  s[1] = box[12] * r[0] + box[13] * r[1] + box[14] * r[2];
+  s[2] = box[15] * r[0] + box[16] * r[1] + box[17] * r[2];
+  for (int d = 0; d < 3; ++d) {
+    cell[d] = floor(s[d] * thickness[d] * cutoffInverse);
+    if (cell[d] < 0)
+      cell[d] += numCells[d];
+    if (cell[d] >= numCells[d])
+      cell[d] -= numCells[d];
+  }
+  cell[3] = cell[0] + numCells[0] * (cell[1] + numCells[1] * cell[2]);
+}
+
+void find_neighbor_list_large_box(
+  const double rc_radial,
+  const double rc_angular,
+  const int N,
+  const std::vector<double>& box,
+  const std::vector<double>& position,
+  int* num_cells,
+  double* ebox,
+  std::vector<int>& g_NN_radial,
+  std::vector<int>& g_NL_radial,
+  std::vector<int>& g_NN_angular,
+  std::vector<int>& g_NL_angular,
+  std::vector<double>& r12)
+{
+  const int size_x12 = N * MN;
+  const double* g_x = position.data();
+  const double* g_y = position.data() + N;
+  const double* g_z = position.data() + N * 2;
+  double* g_x12_radial = r12.data();
+  double* g_y12_radial = r12.data() + size_x12;
+  double* g_z12_radial = r12.data() + size_x12 * 2;
+  double* g_x12_angular = r12.data() + size_x12 * 3;
+  double* g_y12_angular = r12.data() + size_x12 * 4;
+  double* g_z12_angular = r12.data() + size_x12 * 5;
+
+  const double cutoffInverse = 1.0 / rc_radial;
+  double thickness[3];
+  double volume = get_volume(box.data());
+  thickness[0] = volume / get_area(0, box.data());
+  thickness[1] = volume / get_area(1, box.data());
+  thickness[2] = volume / get_area(2, box.data());
+
+  int numCells[4];
+
+  for (int d = 0; d < 3; ++d) {
+    numCells[d] = floor(thickness[d] * cutoffInverse);
+  }
+
+  numCells[3] = numCells[0] * numCells[1] * numCells[2];
+  int cell[4];
+
+  std::vector<int> cellCount(numCells[3], 0);
+  std::vector<int> cellCountSum(numCells[3], 0);
+
+  for (int n = 0; n < N; ++n) {
+    const double r[3] = {g_x[n], g_y[n], g_z[n]};
+    findCell(ebox, thickness, r, cutoffInverse, numCells, cell);
+    ++cellCount[cell[3]];
+  }
+
+  for (int i = 1; i < numCells[3]; ++i) {
+    cellCountSum[i] = cellCountSum[i - 1] + cellCount[i - 1];
+  }
+
+  std::fill(cellCount.begin(), cellCount.end(), 0);
+
+  std::vector<int> cellContents(N, 0);
+
+  for (int n = 0; n < N; ++n) {
+    const double r[3] = {g_x[n], g_y[n], g_z[n]};
+    findCell(ebox, thickness, r, cutoffInverse, numCells, cell);
+    cellContents[cellCountSum[cell[3]] + cellCount[cell[3]]] = n;
+    ++cellCount[cell[3]];
+  }
+
+  for (int n1 = 0; n1 < N; ++n1) {
+	int count_radial = 0;
+    int count_angular = 0;
+    const double r1[3] = {g_x[n1], g_y[n1], g_z[n1]};
+    findCell(ebox, thickness, r1, cutoffInverse, numCells, cell);
+    for (int k = -1; k <= 1; ++k) {
+      for (int j = -1; j <= 1; ++j) {
+        for (int i = -1; i <= 1; ++i) {
+          int neighborCell = cell[3] + (k * numCells[1] + j) * numCells[0] + i;
+          if (cell[0] + i < 0)
+            neighborCell += numCells[0];
+          if (cell[0] + i >= numCells[0])
+            neighborCell -= numCells[0];
+          if (cell[1] + j < 0)
+            neighborCell += numCells[1] * numCells[0];
+          if (cell[1] + j >= numCells[1])
+            neighborCell -= numCells[1] * numCells[0];
+          if (cell[2] + k < 0)
+            neighborCell += numCells[3];
+          if (cell[2] + k >= numCells[2])
+            neighborCell -= numCells[3];
+
+          for (int m = 0; m < cellCount[neighborCell]; ++m) {
+            const int n2 = cellContents[cellCountSum[neighborCell] + m];
+            if (n1 < n2) {
+              double x12 = g_x[n2] - r1[0];
+              double y12 = g_y[n2] - r1[1];
+              double z12 = g_z[n2] - r1[2];
+              apply_mic_small_box(ebox, x12, y12, z12);
+              const double distance_square = x12 * x12 + y12 * y12 + z12 * z12;
+              if (distance_square < rc_radial * rc_radial) {
+                g_NL_radial[count_radial * N + n1] = n2;
+                g_x12_radial[count_radial * N + n1] = x12;
+                g_y12_radial[count_radial * N + n1] = y12;
+                g_z12_radial[count_radial * N + n1] = z12;
+                count_radial++;
+              }
+              if (distance_square < rc_angular * rc_angular) {
+                g_NL_angular[count_angular * N + n1] = n2;
+                g_x12_angular[count_angular * N + n1] = x12;
+                g_y12_angular[count_angular * N + n1] = y12;
+                g_z12_angular[count_angular * N + n1] = z12;
+                count_angular++;
+              }
+            }
+          }
+        }
+      }
+    }
+	g_NN_radial[n1] = count_radial;
+    g_NN_angular[n1] = count_angular;
+  }
+}
+
 void find_neighbor_list_small_box(
   const double rc_radial,
   const double rc_angular,
@@ -2189,7 +2344,13 @@ void find_neighbor_list_small_box(
   std::vector<int>& g_NL_angular,
   std::vector<double>& r12)
 {
-  get_expanded_box(rc_radial, box.data(), num_cells, ebox);
+  bool is_small_box = get_expanded_box(rc_radial, box.data(), num_cells, ebox);
+  
+  if (!is_small_box) {
+    find_neighbor_list_large_box(rc_radial, rc_angular, N, box, position, num_cells, ebox, g_NN_radial,
+	  g_NL_radial, g_NN_angular, g_NL_angular, r12);
+    return;
+  }
 
   const int size_x12 = N * MN;
   const double* g_x = position.data();
