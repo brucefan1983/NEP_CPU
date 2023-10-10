@@ -2213,9 +2213,10 @@ void findCell(
 
 void applyPbcOne(double& sx)
 {
-  if (sx < 0.0) {
+  while (sx < 0.0) {
     sx += 1.0;
-  } else if (sx > 1.0) {
+  } 
+  while (sx > 1.0) {
     sx -= 1.0;
   }
 }
