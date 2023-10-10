@@ -2236,7 +2236,7 @@ void find_neighbor_list_large_box(
   double* g_y12_angular = r12.data() + size_x12 * 4;
   double* g_z12_angular = r12.data() + size_x12 * 5;
 
-  const double cutoffInverse = 1.0 / rc_radial;
+  const double cutoffInverse = 2.0 / rc_radial;
   double thickness[3];
   double volume = get_volume(box.data());
   thickness[0] = volume / get_area(0, box.data());
@@ -2281,9 +2281,9 @@ void find_neighbor_list_large_box(
     int count_angular = 0;
     const double r1[3] = {g_x[n1], g_y[n1], g_z[n1]};
     findCell(ebox, thickness, r1, cutoffInverse, numCells, cell);
-    for (int k = -1; k <= 1; ++k) {
-      for (int j = -1; j <= 1; ++j) {
-        for (int i = -1; i <= 1; ++i) {
+    for (int k = -2; k <= 2; ++k) {
+      for (int j = -2; j <= 2; ++j) {
+        for (int i = -2; i <= 2; ++i) {
           int neighborCell = cell[3] + (k * numCells[1] + j) * numCells[0] + i;
           if (cell[0] + i < 0)
             neighborCell += numCells[0];
@@ -2300,7 +2300,7 @@ void find_neighbor_list_large_box(
 
           for (int m = 0; m < cellCount[neighborCell]; ++m) {
             const int n2 = cellContents[cellCountSum[neighborCell] + m];
-            if (n1 < n2) {
+            if (n1 != n2) {
               double x12 = g_x[n2] - r1[0];
               double y12 = g_y[n2] - r1[1];
               double z12 = g_z[n2] - r1[2];
