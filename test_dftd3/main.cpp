@@ -475,7 +475,7 @@ static void calculate_one_structure(
 
   if (mode == 0) {
     nep3.compute(type, box, position, potential, force, virial);
-  } else if (mode == 1) {
+  } else if (mode == 1 || mode == 3 || mode == 4) {
     nep3.compute_dftd3(
       functional, D3_cutoff, D3_cutoff_cn, type, box, position, potential, force, virial);
   } else if (mode == 2) {
@@ -483,17 +483,32 @@ static void calculate_one_structure(
       functional, D3_cutoff, D3_cutoff_cn, type, box, position, potential, force, virial);
   }
 
-  structure.energy = 0.0;
-  for (int n = 0; n < structure.num_atom; n++) {
-    structure.energy += potential[n];
-    structure.fx[n] = force[0 * structure.num_atom + n];
-    structure.fy[n] = force[1 * structure.num_atom + n];
-    structure.fz[n] = force[2 * structure.num_atom + n];
-  }
-  for (int d = 0; d < 9; ++d) {
-    structure.virial[d] = 0.0;
+  if (mode < 3) {
+    structure.energy = 0.0;
     for (int n = 0; n < structure.num_atom; n++) {
-      structure.virial[d] += virial[d * structure.num_atom + n];
+      structure.energy += potential[n];
+      structure.fx[n] = force[0 * structure.num_atom + n];
+      structure.fy[n] = force[1 * structure.num_atom + n];
+      structure.fz[n] = force[2 * structure.num_atom + n];
+    }
+    for (int d = 0; d < 9; ++d) {
+      structure.virial[d] = 0.0;
+      for (int n = 0; n < structure.num_atom; n++) {
+        structure.virial[d] += virial[d * structure.num_atom + n];
+      }
+    }
+  } else {
+    double factor = (mode == 3) ? 1.0 : -1.0;
+    for (int n = 0; n < structure.num_atom; n++) {
+      structure.energy += factor * potential[n];
+      structure.fx[n] += factor * force[0 * structure.num_atom + n];
+      structure.fy[n] += factor * force[1 * structure.num_atom + n];
+      structure.fz[n] += factor * force[2 * structure.num_atom + n];
+    }
+    for (int d = 0; d < 9; ++d) {
+      for (int n = 0; n < structure.num_atom; n++) {
+        structure.virial[d] += factor * virial[d * structure.num_atom + n];
+      }
     }
   }
 }
@@ -530,8 +545,8 @@ int main(int argc, char* argv[])
     std::string functional;
     double D3_cutoff = 0.0;
     double D3_cutoff_cn = 0.0;
-    if (mode < 0 || mode > 2) {
-      std::cout << "mode can only be 0, 1, 2.\n";
+    if (mode < 0 || mode > 4) {
+      std::cout << "mode can only be 0, 1, 2, 3, 4.\n";
       exit(1);
     }
     if (mode > 0) {
@@ -557,6 +572,10 @@ int main(int argc, char* argv[])
       std::cout << "Calculate DFT-D3 only." << std::endl;
     } else if (mode == 2) {
       std::cout << "Calculate NEP in combination with DFT-D3." << std::endl;
+    } else if (mode == 3) {
+      std::cout << "Add DFT-D3 to existing data." << std::endl;
+    } else if (mode == 4) {
+      std::cout << "Subtract DFT-D3 from existing data." << std::endl;
     }
 
     clock_t time_begin = clock();
