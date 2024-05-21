@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-// #define USE_TABLE_FOR_RADIAL_FUNCTIONS
+//#define USE_TABLE_FOR_RADIAL_FUNCTIONS
 
 class NEP3
 {
@@ -153,6 +153,7 @@ public:
   );
 
   void compute_for_lammps(
+    int nlocal,             //list->nlocal
     int inum,                // list->inum
     int* ilist,              // list->ilist
     int* numneigh,           // list->numneigh
@@ -177,6 +178,8 @@ public:
   std::vector<double> r12;
   std::vector<double> Fp;
   std::vector<double> sum_fxyz;
+  double** Fp_lmp;
+  double** sum_fxyz_lmp;
   std::vector<double> parameters;
   std::vector<std::string> element_list;
   void update_potential(double* parameters, ANN& ann);
