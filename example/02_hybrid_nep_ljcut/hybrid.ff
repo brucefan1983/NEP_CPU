@@ -1,0 +1,64 @@
+pair_style 	hybrid  nep 	 lj/cut 12.0   
+pair_coeff  * *     nep nep.txt  Ni N C H  NULL NULL NULL NULL   NULL 
+
+########################################################################
+## pair_coeff	1	1  0.000650461563578995    2.52481       #Ni      ##
+## pair_coeff	2	2  0.00299212319246338     3.26069       #N       ##
+## pair_coeff	3	3  0.00455323094505297     3.43085       #C       ##
+## pair_coeff	4 	4  0.00190802058649839     2.57113       #H       ##
+## pair_coeff	5 	5  0.0000142234054617214   4.93463       #K       ##    
+## pair_coeff   6   6  0.000518213482774853    3.81          #OH-OW   ##
+## pair_coeff   7   7  0.000000000             0.0           #OH-HW   ## 
+## pair_coeff   8   8  0.0067387462            3.166         #OW-OW   ##
+## pair_coeff   9   9  0.000000000             0.0           #HW-HW   ##   
+########################################################################
+
+pair_coeff          1 5 lj/cut  9.618616613655687e-05 3.7297200000000004
+pair_coeff          1 6 lj/cut  0.0005805841474527594 3.167405
+pair_coeff          1 7 lj/cut  0.0 1.262405
+pair_coeff          1 8 lj/cut  0.00209363210469605 2.845405
+pair_coeff          1 9 lj/cut  0.0 1.262405
+
+pair_coeff          2 5 lj/cut  0.00020629634353964423 4.09766
+pair_coeff          2 6 lj/cut  0.001245214270901944 3.535345
+pair_coeff          2 7 lj/cut  0.0 1.630345
+pair_coeff          2 8 lj/cut  0.0044903406099253175 3.213345
+pair_coeff          2 9 lj/cut  0.0 1.630345
+
+pair_coeff          3 5 lj/cut  0.000254484675162072 4.18274
+pair_coeff          3 6 lj/cut  0.0015360812693064566 3.620425
+pair_coeff          3 7 lj/cut  0.0 1.715425
+pair_coeff          3 8 lj/cut  0.005539229885886495 3.298425
+pair_coeff          3 9 lj/cut  0.0 1.715425
+
+pair_coeff          4 5 lj/cut  0.0001647378233165598 3.75288
+pair_coeff          4 6 lj/cut  0.0009943651207355618 3.1905650000000003
+pair_coeff          4 7 lj/cut  0.0 1.285565
+pair_coeff          4 8 lj/cut  0.0035857588425307965 2.8685650000000003
+pair_coeff          4 9 lj/cut  0.0 1.285565
+pair_coeff          5 5 lj/cut  1.42234054617214e-05 4.93463
+pair_coeff          5 6 lj/cut  8.585313320571075e-05 4.372315
+pair_coeff          5 7 lj/cut  0.0 2.467315
+pair_coeff          5 8 lj/cut  0.00030959315158161097 4.050315
+pair_coeff          5 9 lj/cut  0.0 2.467315
+pair_coeff          6 6 lj/cut  0.000518213482774853 3.81
+pair_coeff          6 7 lj/cut  0.0 1.905
+pair_coeff          6 8 lj/cut  0.0018687185817660738 3.488
+pair_coeff          6 9 lj/cut  0.0 1.905
+pair_coeff          7 7 lj/cut  0.0 0.0
+pair_coeff          7 8 lj/cut  0.0 1.583
+pair_coeff          7 9 lj/cut  0.0 0.0
+pair_coeff          8 8 lj/cut  0.0067387462 3.166
+pair_coeff          8 9 lj/cut  0.0 1.583
+pair_coeff          9 9 lj/cut  0.0 0.0
+
+
+
+#bond_style 	harmonic	
+#bond_coeff	1	    0.0     1.0					  # OH-HO
+#bond_coeff	2	    0.0     1.0					  # HW-OW
+
+#angle_style	harmonic
+
+#angle_coeff	1	0.0   	109.47				# HW-OW-HW
+   

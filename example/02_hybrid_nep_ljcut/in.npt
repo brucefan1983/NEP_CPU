@@ -1,0 +1,38 @@
+units	metal   #
+boundary 		p p p#
+atom_style	atomic     #
+read_data		data_atomic.start
+
+neighbor 3.0 bin 
+neigh_modify every 2 delay 10 check yes
+
+
+
+include        "hybrid.ff"
+
+group  NiHAB type 1 2 3 4
+
+group SOL type  5 6 7 8 9
+
+group wall1 id 1:78  703:780
+group wall2 id 391:468 1093:1170
+
+  group   wall   union  wall1  wall2    
+  group   mobile  subtract all  wall
+
+fix	slabed1 wall setforce 0.0 0.0 0.0
+velocity 	wall set 0.0 0.0 0.0	
+
+
+timestep		0.0005
+
+#kspace_style	pppm 1e-5
+
+thermo_style	custom  step  time  temp press density  pe ke  etotal #
+thermo	10
+
+
+dump	trjnpt	all custom 100 mydump-npt.lammpstrj id type x y z  
+
+fix npt3 mobile nvt temp 298 298 0.05 
+run	20000000

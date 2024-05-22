@@ -10,7 +10,10 @@
 ------------------------------------------------------------------------- */
 
 /* ----------------------------------------------------------------------
-   Contributing author: Junjie Wang (Nanjing University)
+   Contributing authors: 
+   Junjie Wang (Nanjing University)
+   Wenhao Luo  (Sun Yat-sen University)
+   Xi     Tan  (Huazhong University of Science and Technology)  
 ------------------------------------------------------------------------- */
 
 #include "pair_NEP.h"
@@ -30,27 +33,25 @@
 #include <stdlib.h>
 #include <string.h>
 #include <vector>
+#include <iostream> 
 
-#define LAMMPS_VERSION_NUMBER 20220324 // use the new neighbor list starting from this version
+//#define LAMMPS_VERSION_NUMBER 20240522 // use the new neighbor list starting from this version
 
 using namespace LAMMPS_NS;
 
+/* ---------------------------------------------------------------------- */
+
 PairNEP::PairNEP(LAMMPS* lmp) : Pair(lmp)
 {
-#if LAMMPS_VERSION_NUMBER >= 20201130
-  centroidstressflag = CENTROID_AVAIL;
-#else
-  centroidstressflag = 2;
-#endif
 
-  restartinfo = 0;
-  manybody_flag = 1;
-
-  single_enable = 0;
-
-  inited = false;
-  allocated = 0;
+  single_enable = 0;    // 1 if single() routine exists
+  restartinfo = 0;      // 1 if pair style writes restart info
+  one_coeff = 1;        // 1 if allows only one coeff * * call
+  manybody_flag = 1;    // 1 if a manybody potential
 }
+
+
+/* ---------------------------------------------------------------------- */
 
 PairNEP::~PairNEP()
 {
@@ -63,43 +64,107 @@ PairNEP::~PairNEP()
   }
 }
 
+
+/* ----------------------------------------------------------------------
+   allocate all arrays
+------------------------------------------------------------------------- */
+
 void PairNEP::allocate()
 {
   int n = atom->ntypes;
 
   memory->create(setflag, n + 1, n + 1, "pair:setflag");
   for (int i = 1; i <= n; i++)
-    for (int j = 1; j <= n; j++)
+    for (int j = i; j <= n; j++) {
       setflag[i][j] = 1;
-
-  memory->create(cutsq, n + 1, n + 1, "pair:cutsq");
-
+    }
+  
+  memory->create(cutsq, n + 1, n + 1, "pair:cutsq");    
   allocated = 1;
 }
 
-void PairNEP::coeff(int narg, char** arg)
-{
-  if (!allocated)
-    allocate();
-}
+
+
+/* ----------------------------------------------------------------------
+   global settings
+------------------------------------------------------------------------- */
 
 void PairNEP::settings(int narg, char** arg)
 {
-  if (narg != 1) {
-    error->all(FLERR, "Illegal pair_style command; nep requires 1 parameter");
-  }
-  model_filename = arg[0];
+
+    // default values
+    
+    // process optional keywords  //now is none!
+        
+    if (narg != 0)
+      error->all(FLERR, "Illegal pair_style command");	
 }
 
+
+
+/* ----------------------------------------------------------------------
+   set coeffs for one or more type pairs
+------------------------------------------------------------------------- */
+
+void PairNEP::coeff(int narg, char** arg)
+{
+  int n = atom->ntypes;
+
+  if (!allocated) allocate();
+
+  if (narg != 3 + n) error->all(FLERR, "Incorrect args for pair coefficients");
+
+  if (strcmp(arg[0], "*") != 0 || strcmp(arg[1], "*") != 0)
+    error->all(FLERR, "Incorrect args for pair coefficients");
+
+  int *map = new int[n + 1];
+  for (int i = 0; i < n; i++) map[i] = 0;
+
+  emap = "";
+   for (int i = 3; i < narg; i++) {
+     if (strcmp(arg[i], "NULL") != 0) {
+       if (!emap.empty()) emap += ",";
+       emap += std::to_string(i - 1) + ":" + arg[i];
+       map[i - 2] = 1;
+     } else {
+       map[i - 2] = -1;
+     }
+   }
+
+  int count = 0;
+  for (int i = 1; i <= n; i++)
+    for (int j = i; j <= n; j++)
+      if (map[i] > 0 && map[j] > 0) {
+        setflag[i][j] = 1;
+        count++;
+      }
+
+  if (count == 0) error->all(FLERR, "Incorrect args for pair coefficients");
+  
+   // read potential file 
+   strcpy(model_filename, arg[2]);
+   
+  delete[] map;
+}
+
+
+
+
+/* ----------------------------------------------------------------------
+   init specific to this pair style
+------------------------------------------------------------------------- */
 void PairNEP::init_style()
 {
-#if LAMMPS_VERSION_NUMBER >= 20220324
-  neighbor->add_request(this, NeighConst::REQ_FULL);
-#else
-  int irequest = neighbor->request(this, instance_me);
-  neighbor->requests[irequest]->half = 0;
-  neighbor->requests[irequest]->full = 1;
-#endif
+ 
+  if (atom->tag_enable == 0)
+    error->all(FLERR,"Pair style NEP requires atom IDs");
+  if (force->newton_pair == 0)
+    error->all(FLERR,"Pair style NEP requires newton pair on");
+
+  // need a full neighbor list
+
+  neighbor->add_request(this,NeighConst::REQ_FULL);
+ 
 
   bool is_rank_0 = (comm->me == 0);
   nep_model.init_from_file(model_filename, is_rank_0);
@@ -112,8 +177,23 @@ void PairNEP::init_style()
       cutsq[i][j] = cutoffsq;
 }
 
-double PairNEP::init_one(int i, int j) { return cutoff; }
 
+
+/* ----------------------------------------------------------------------
+   init for one type pair i,j and corresponding j,i
+------------------------------------------------------------------------- */
+
+double PairNEP::init_one(int i, int j) 
+{ 
+
+  if (setflag[i][j] == 0) error->all(FLERR,"All pair coeffs are not set");
+
+  return cutoff;
+}
+
+
+
+/* ---------------------------------------------------------------------- */
 void PairNEP::compute(int eflag, int vflag)
 {
   if (eflag || vflag) {
@@ -131,7 +211,7 @@ void PairNEP::compute(int eflag, int vflag)
   }
 
   nep_model.compute_for_lammps(
-    list->inum, list->ilist, list->numneigh, list->firstneigh, atom->type, atom->x, total_potential,
+   atom->nlocal, list->inum, list->ilist, list->numneigh, list->firstneigh, atom->type, atom->x, total_potential,
     total_virial, per_atom_potential, atom->f, per_atom_virial);
 
   if (eflag) {

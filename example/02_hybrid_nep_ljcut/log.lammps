@@ -1,0 +1,172 @@
+LAMMPS (22 Dec 2022)
+units	metal   #
+boundary 		p p p#
+atom_style	atomic     #
+read_data		data_atomic.start
+Reading data file ...
+  orthogonal box = (0 0 0) to (26.4 22.863 137.2598)
+  2 by 1 by 12 MPI processor grid
+  reading atoms ...
+  8244 atoms
+  read_data CPU = 0.046 seconds
+
+neighbor 3.0 bin
+neigh_modify every 2 delay 10 check yes
+
+
+
+include        "hybrid.ff"
+pair_style 	hybrid  nep 	 lj/cut 12.0
+pair_coeff  * *     nep nep.txt  Ni N C H  NULL NULL NULL NULL   NULL
+
+########################################################################
+## pair_coeff	1	1  0.000650461563578995    2.52481       #Ni      ##
+## pair_coeff	2	2  0.00299212319246338     3.26069       #N       ##
+## pair_coeff	3	3  0.00455323094505297     3.43085       #C       ##
+## pair_coeff	4 	4  0.00190802058649839     2.57113       #H       ##
+## pair_coeff	5 	5  0.0000142234054617214   4.93463       #K       ##
+## pair_coeff   6   6  0.000518213482774853    3.81          #OH-OW   ##
+## pair_coeff   7   7  0.000000000             0.0           #OH-HW   ##
+## pair_coeff   8   8  0.0067387462            3.166         #OW-OW   ##
+## pair_coeff   9   9  0.000000000             0.0           #HW-HW   ##
+########################################################################
+
+pair_coeff          1 5 lj/cut  9.618616613655687e-05 3.7297200000000004
+pair_coeff          1 6 lj/cut  0.0005805841474527594 3.167405
+pair_coeff          1 7 lj/cut  0.0 1.262405
+pair_coeff          1 8 lj/cut  0.00209363210469605 2.845405
+pair_coeff          1 9 lj/cut  0.0 1.262405
+
+pair_coeff          2 5 lj/cut  0.00020629634353964423 4.09766
+pair_coeff          2 6 lj/cut  0.001245214270901944 3.535345
+pair_coeff          2 7 lj/cut  0.0 1.630345
+pair_coeff          2 8 lj/cut  0.0044903406099253175 3.213345
+pair_coeff          2 9 lj/cut  0.0 1.630345
+
+pair_coeff          3 5 lj/cut  0.000254484675162072 4.18274
+pair_coeff          3 6 lj/cut  0.0015360812693064566 3.620425
+pair_coeff          3 7 lj/cut  0.0 1.715425
+pair_coeff          3 8 lj/cut  0.005539229885886495 3.298425
+pair_coeff          3 9 lj/cut  0.0 1.715425
+
+pair_coeff          4 5 lj/cut  0.0001647378233165598 3.75288
+pair_coeff          4 6 lj/cut  0.0009943651207355618 3.1905650000000003
+pair_coeff          4 7 lj/cut  0.0 1.285565
+pair_coeff          4 8 lj/cut  0.0035857588425307965 2.8685650000000003
+pair_coeff          4 9 lj/cut  0.0 1.285565
+pair_coeff          5 5 lj/cut  1.42234054617214e-05 4.93463
+pair_coeff          5 6 lj/cut  8.585313320571075e-05 4.372315
+pair_coeff          5 7 lj/cut  0.0 2.467315
+pair_coeff          5 8 lj/cut  0.00030959315158161097 4.050315
+pair_coeff          5 9 lj/cut  0.0 2.467315
+pair_coeff          6 6 lj/cut  0.000518213482774853 3.81
+pair_coeff          6 7 lj/cut  0.0 1.905
+pair_coeff          6 8 lj/cut  0.0018687185817660738 3.488
+pair_coeff          6 9 lj/cut  0.0 1.905
+pair_coeff          7 7 lj/cut  0.0 0.0
+pair_coeff          7 8 lj/cut  0.0 1.583
+pair_coeff          7 9 lj/cut  0.0 0.0
+pair_coeff          8 8 lj/cut  0.0067387462 3.166
+pair_coeff          8 9 lj/cut  0.0 1.583
+pair_coeff          9 9 lj/cut  0.0 0.0
+
+
+
+#bond_style 	harmonic
+#bond_coeff	1	    0.0     1.0					  # OH-HO
+#bond_coeff	2	    0.0     1.0					  # HW-OW
+
+#angle_style	harmonic
+
+#angle_coeff	1	0.0   	109.47				# HW-OW-HW
+
+
+group  NiHAB type 1 2 3 4
+1404 atoms in group NiHAB
+
+group SOL type  5 6 7 8 9
+6840 atoms in group SOL
+
+group wall1 id 1:78  703:780
+156 atoms in group wall1
+group wall2 id 391:468 1093:1170
+156 atoms in group wall2
+
+  group   wall   union  wall1  wall2
+312 atoms in group wall
+  group   mobile  subtract all  wall
+7932 atoms in group mobile
+
+fix	slabed1 wall setforce 0.0 0.0 0.0
+velocity 	wall set 0.0 0.0 0.0
+
+
+timestep		0.0005
+
+#kspace_style	pppm 1e-5
+
+thermo_style	custom  step  time  temp press density  pe ke  etotal #
+thermo	10
+
+
+dump	trjnpt	all custom 100 mydump-npt.lammpstrj id type x y z
+
+fix npt3 mobile nvt temp 298 298 0.05
+run	20000000
+Neighbor list info ...
+  update: every = 2 steps, delay = 10 steps, check = yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 15
+  ghost atom cutoff = 15
+  binsize = 7.5, bins = 4 4 19
+  4 neighbor lists, perpetual/occasional/extra = 4 0 0
+  (1) pair nep, perpetual, skip from (3)
+      attributes: full, newton on, cut 9
+      pair build: skip
+      stencil: none
+      bin: none
+  (2) pair lj/cut, perpetual, skip from (4)
+      attributes: half, newton on
+      pair build: skip
+      stencil: none
+      bin: none
+  (3) neighbor class addition, perpetual
+      attributes: full, newton on, cut 9
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+  (4) neighbor class addition, perpetual
+      attributes: half, newton on
+      pair build: half/bin/atomonly/newton
+      stencil: half/bin/3d
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 6.652 | 8.276 | 9.451 Mbytes
+   Step          Time           Temp          Press         Density         PotEng         KinEng         TotEng    
+         0   0              0              38807.856      1.2148202     -9513.0531      0             -9513.0531    
+        10   0.005          8.541864       37319.052      1.2148202     -9522.115       9.1012824     -9513.0138    
+        20   0.01           29.019693      36703.283      1.2148202     -9543.6192      30.920232     -9512.699     
+        30   0.015          54.633486      33671.307      1.2148202     -9570.2072      58.211508     -9511.9956    
+        40   0.02           78.904517      32411.565      1.2148202     -9594.7336      84.072082     -9510.6615    
+        50   0.025          98.987709      30156.892      1.2148202     -9614.2788      105.47055     -9508.8083    
+        60   0.03           114.75674      30136.706      1.2148202     -9628.8283      122.27232     -9506.556     
+        70   0.035          126.22101      29105.079      1.2148202     -9638.487       134.4874      -9503.9996    
+        80   0.04           135.67662      29259.408      1.2148202     -9645.777       144.56226     -9501.2147    
+        90   0.045          143.64675      28459.385      1.2148202     -9651.2905      153.05437     -9498.2361    
+       100   0.05           152.12158      28591.237      1.2148202     -9657.1721      162.08423     -9495.0879    
+       110   0.055          160.6623       28099.886      1.2148202     -9662.9526      171.18429     -9491.7683    
+       120   0.06           169.48569      27620.946      1.2148202     -9668.8791      180.58554     -9488.2936    
+       130   0.065          177.9731       26846.086      1.2148202     -9674.3026      189.6288      -9484.6738    
+       140   0.07           185.86901      26163.197      1.2148202     -9678.9758      198.04182     -9480.934     
+       150   0.075          193.56166      26288.572      1.2148202     -9683.3315      206.23828     -9477.0932    
+       160   0.08           200.31186      25950.237      1.2148202     -9686.5997      213.43056     -9473.1692    
+       170   0.085          206.44469      26401.76       1.2148202     -9689.1547      219.96504     -9469.1897    
+       180   0.09           211.15567      25813.8        1.2148202     -9690.1546      224.98455     -9465.17      
+       190   0.095          215.21384      26763.9        1.2148202     -9690.4395      229.30849     -9461.131     
+       200   0.1            219.0683       26279.367      1.2148202     -9690.4887      233.41538     -9457.0733    
+       210   0.105          223.16484      27121.075      1.2148202     -9690.7813      237.78021     -9453.0011    
+       220   0.11           227.43248      25805.087      1.2148202     -9691.2431      242.32735     -9448.9158    
+       230   0.115          231.21232      26471.226      1.2148202     -9691.1819      246.35473     -9444.8272    
+       240   0.12           233.9357       25558.324      1.2148202     -9690.0077      249.25648     -9440.7512    
+       250   0.125          235.70524      26919.681      1.2148202     -9687.8404      251.1419      -9436.6985    
+       260   0.13           237.78963      26108.789      1.2148202     -9686.0275      253.3628      -9432.6647    
+     

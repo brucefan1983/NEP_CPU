@@ -1,0 +1,17 @@
+units	metal   #
+boundary 		p p p#
+atom_style	atomic     #
+read_data		data.start
+
+pair_style		nep 
+pair_coeff		* *  ./nep.txt Ni N C H 
+timestep		0.0005
+
+thermo_style	custom  step  time  temp press density  pe ke  etotal #
+thermo	100
+thermo_modify flush yes
+
+dump	trjnpt	all custom 2000 mydump-npt.lammpstrj id type x y z  
+
+fix npt3 all npt temp 298 298 0.05  iso 1.0 1.0 0.5
+run	20000000

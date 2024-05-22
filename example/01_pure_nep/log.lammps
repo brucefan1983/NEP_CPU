@@ -1,0 +1,44 @@
+LAMMPS (2 Aug 2023)
+units	metal   #
+boundary 		p p p#
+atom_style	atomic     #
+read_data		data.start
+Reading data file ...
+  triclinic box = (0 0 0) to (26.4 11.431535 9.6000004) with tilt (-6.5999999 0 0)
+WARNING: Triclinic box skew is large. LAMMPS will run inefficiently. (../domain.cpp:220)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  234 atoms
+  read_data CPU = 0.001 seconds
+
+pair_style		nep
+pair_coeff		* *  ./nep.txt Ni N C H
+timestep		0.0005
+
+thermo_style	custom  step  time  temp press density  pe ke  etotal #
+thermo	100
+thermo_modify flush yes
+
+dump	trjnpt	all custom 2000 mydump-npt.lammpstrj id type x y z
+
+fix npt3 all npt temp 298 298 0.05  iso 1.0 1.0 0.5
+run	20000000
+Neighbor list info ...
+  update: every = 1 steps, delay = 0 steps, check = yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 8
+  ghost atom cutoff = 8
+  binsize = 4, bins = 9 3 3
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair nep, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 3.234 | 3.234 | 3.234 Mbytes
+   Step          Time           Temp          Press         Density         PotEng         KinEng         TotEng    
+         0   0              0              22961.92       1.7207756     -1628.7743      0             -1628.7743    
+       100   0.05           2.4385779     -2175.7009      1.6361606     -1629.245       0.073444146   -1629.1716    
+       200   0.1            4.2087851     -5500.2072      1.635877      -1629.2355      0.12675856    -1629.1087    
+       300   0.15           1.5559         15207.8        1.7076612     -1629.0058      0.046859994   -1628.9589    
+       400   0.2            2.8751322      283.68368      1.6459673     -1629.3211      0.086592121   -1629.2346    
