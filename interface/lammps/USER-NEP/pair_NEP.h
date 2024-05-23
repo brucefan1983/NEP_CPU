@@ -48,12 +48,10 @@ protected:
   bool inited;
   std::string model_filename;
   double cutoffsq;
-  void allocate();
-  
+  void allocate(); 
   std::string emap;   //map
 };
 } // namespace LAMMPS_NS
 
 #endif
 #endif
-
