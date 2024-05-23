@@ -44,7 +44,7 @@
   
 ## Use the NEP-LAMMPS interface
 
-* `atom_style` can only be `atomic`
+* `atom_style` can be `atomic` and `full`
 * `units` must be `metal`
 * Specify the `pair_style` in the following way:
   ```shell
@@ -60,8 +60,14 @@
   
 * Some atom types can be missing in the simulated system. For example you can use the above NEP model to simulate a CuNi binary alloy. It is important to make sure to still set Cu atoms to type 2 and Ni atoms to type 3. In this case, atom types 1 and 4 are missing.
 
-* One can hybrid NEP with other potentials in LAMMPS.
-  
+* One can hybrid NEP with other potentials in LAMMPS, for example `lj/cut`
+  ```shell
+  pair_style hybrid lj/cut 1.0 nep YOUR_NEP_MODEL_FILE.txt  
+  pair_coeff 1*4 1*4 nep YOUR_NEP_MODEL_FILE.txt
+  pair_coeff 1*5 5 lj/cut 1.0 1.0
+  ```
+  This will set the interaction of elements of type 1-5 and elements of type 5 to lj/cut, as well as `lj/cut/coul/long`.
+
 * If you want to calculate the heat current correctly, use the following command to get the 9-component per-atom virial:
   ```shell
   compute 1 all centroid/stress/atom NULL
