@@ -178,8 +178,6 @@ public:
   std::vector<double> r12;
   std::vector<double> Fp;
   std::vector<double> sum_fxyz;
-  double** Fp_lmp;
-  double** sum_fxyz_lmp;
   std::vector<double> parameters;
   std::vector<std::string> element_list;
   void update_potential(double* parameters, ANN& ann);
