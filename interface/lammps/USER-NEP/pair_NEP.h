@@ -10,7 +10,10 @@
 ------------------------------------------------------------------------- */
 
 /* ----------------------------------------------------------------------
-   Contributing author: Junjie Wang (Nanjing University)
+   Contributing authors: 
+   Junjie Wang (Nanjing University)
+   Wenhao Luo  (Sun Yat-sen University)
+   Xi     Tan  (Huazhong University of Science and Technology)  
 ------------------------------------------------------------------------- */
 
 #ifdef PAIR_CLASS
@@ -46,8 +49,11 @@ protected:
   std::string model_filename;
   double cutoffsq;
   void allocate();
+  
+  std::string emap;   //map
 };
 } // namespace LAMMPS_NS
 
 #endif
 #endif
+
