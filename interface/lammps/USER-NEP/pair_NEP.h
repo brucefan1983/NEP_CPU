@@ -46,7 +46,7 @@ public:
 
 protected:
   bool inited;
-  std::string model_filename;
+  char model_filename[1000];
   double cutoffsq;
   void allocate(); 
   std::string emap;   //map
