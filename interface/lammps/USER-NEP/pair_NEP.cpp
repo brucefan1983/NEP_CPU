@@ -31,7 +31,7 @@
 #include <string.h>
 #include <vector>
 
-#define LAMMPS_VERSION_NUMBER 20240417 // use the new neighbor list starting from this version
+#define LAMMPS_VERSION_NUMBER 20220324 // use the new neighbor list starting from this version
 
 using namespace LAMMPS_NS;
 
@@ -113,6 +113,7 @@ void PairNEP::init_style()
 }
 
 double PairNEP::init_one(int i, int j) { return cutoff; }
+
 void PairNEP::compute(int eflag, int vflag)
 {
   if (eflag || vflag) {
@@ -122,9 +123,6 @@ void PairNEP::compute(int eflag, int vflag)
   double total_virial[6] = {0.0};
   double* per_atom_potential = nullptr;
   double** per_atom_virial = nullptr;
-
-
-
   if (eflag_atom) {
     per_atom_potential = eatom;
   }
