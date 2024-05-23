@@ -1815,7 +1815,7 @@ void find_force_radial_for_lammps(
             c_index += t1 * paramb.num_types + t2;
             gnp12 += fnp12[k] * annmb.c[c_index];
           }
-          double tmp12 = g_Fp[n1 + n * nlocal] * gnp12 * d12inv; ////luowh
+          double tmp12 = g_Fp[n1 + n * nlocal] * gnp12 * d12inv;
           for (int d = 0; d < 3; ++d) {
             f12[d] += tmp12 * r12[d];
           }
