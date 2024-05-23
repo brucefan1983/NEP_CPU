@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 Zheyong Fan, Junjie Wang, Eric Lindgren，Wenhao Luo, Xi Tan
+    Copyright 2022 Zheyong Fan, Junjie Wang, Eric Lindgren
     This file is part of NEP_CPU.
     NEP_CPU is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
