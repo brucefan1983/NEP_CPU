@@ -1748,7 +1748,7 @@ void find_force_radial_for_lammps(
   int** g_NL,
   int* g_type,
   double** g_pos,
-  double* g_Fp, 
+  double* g_Fp,
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
   const double* g_gnp_radial,
 #endif
