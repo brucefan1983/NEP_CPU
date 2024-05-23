@@ -1599,8 +1599,7 @@ void find_descriptor_for_lammps(
 
   for (int ii = 0; ii < N; ++ii) {
     int n1 = g_ilist[ii];
-    int t1 = g_type[n1] - 1;
-    // from LAMMPS to NEP convention
+    int t1 = g_type[n1] - 1; // from LAMMPS to NEP convention
     double q[MAX_DIM] = {0.0};
 
     for (int i1 = 0; i1 < g_NN[n1]; ++i1) {
@@ -1877,7 +1876,6 @@ void find_force_angular_for_lammps(
     double sum_fxyz[NUM_OF_ABC * MAX_NUM_N];
     for (int d = 0; d < paramb.dim_angular; ++d) {
       Fp[d] = g_Fp_lmp[paramb.n_max_radial+1+d][n1];
-      double a =g_Fp_lmp[paramb.n_max_radial+1+d][n1];
     }
     for (int d = 0; d < (paramb.n_max_angular + 1) * NUM_OF_ABC; ++d) {
       sum_fxyz[d] = g_sum_fxyz_lmp[d][n1];
