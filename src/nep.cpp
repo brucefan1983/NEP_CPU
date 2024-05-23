@@ -1581,6 +1581,7 @@ void add_dftd3_force_extra(
 void find_descriptor_for_lammps(
   NEP3::ParaMB& paramb,
   NEP3::ANN& annmb,
+  int nlocal,
   int N,
   int* g_ilist,
   int* g_NN,
@@ -1713,7 +1714,7 @@ void find_descriptor_for_lammps(
         find_q_with_5body(paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
       }
       for (int abc = 0; abc < NUM_OF_ABC; ++abc) {
-        g_sum_fxyz[(n * NUM_OF_ABC + abc) * N + n1] = s[abc];
+        g_sum_fxyz[(n * NUM_OF_ABC + abc) * nlocal + n1] = s[abc];
       }
     }
 
@@ -1732,7 +1733,7 @@ void find_descriptor_for_lammps(
     }
 
     for (int d = 0; d < annmb.dim; ++d) {
-      g_Fp[d * N + n1] = Fp[d] * paramb.q_scaler[d];
+      g_Fp[d * nlocal + n1] = Fp[d] * paramb.q_scaler[d];
     }
   }
 }
@@ -1740,6 +1741,7 @@ void find_descriptor_for_lammps(
 void find_force_radial_for_lammps(
   NEP3::ParaMB& paramb,
   NEP3::ANN& annmb,
+  int nlocal,
   int N,
   int* g_ilist,
   int* g_NN,
@@ -1782,7 +1784,7 @@ void find_force_radial_for_lammps(
             weight_left +
           g_gnp_radial[(index_right * paramb.num_types_sq + t12) * (paramb.n_max_radial + 1) + n] *
             weight_right;
-        double tmp12 = g_Fp[n1 + n * N] * gnp12 * d12inv;
+        double tmp12 = g_Fp[n1 + n * nlocal] * gnp12 * d12inv;
         for (int d = 0; d < 3; ++d) {
           f12[d] += tmp12 * r12[d];
         }
@@ -1795,7 +1797,7 @@ void find_force_radial_for_lammps(
       if (paramb.version == 2) {
         find_fn_and_fnp(paramb.n_max_radial, paramb.rcinv_radial, d12, fc12, fcp12, fn12, fnp12);
         for (int n = 0; n <= paramb.n_max_radial; ++n) {
-          double tmp12 = g_Fp[n1 + n * N] * fnp12[n] * d12inv;
+          double tmp12 = g_Fp[n1 + n * nlocal] * fnp12[n] * d12inv;
           tmp12 *= (paramb.num_types == 1)
                      ? 1.0
                      : annmb.c[(n * paramb.num_types + t1) * paramb.num_types + t2];
@@ -1813,7 +1815,7 @@ void find_force_radial_for_lammps(
             c_index += t1 * paramb.num_types + t2;
             gnp12 += fnp12[k] * annmb.c[c_index];
           }
-          double tmp12 = g_Fp[n1 + n * N] * gnp12 * d12inv;
+          double tmp12 = g_Fp[n1 + n * nlocal] * gnp12 * d12inv;
           for (int d = 0; d < 3; ++d) {
             f12[d] += tmp12 * r12[d];
           }
@@ -1853,6 +1855,7 @@ void find_force_radial_for_lammps(
 void find_force_angular_for_lammps(
   NEP3::ParaMB& paramb,
   NEP3::ANN& annmb,
+  int nlocal,
   int N,
   int* g_ilist,
   int* g_NN,
@@ -1874,10 +1877,10 @@ void find_force_angular_for_lammps(
     double Fp[MAX_DIM_ANGULAR] = {0.0};
     double sum_fxyz[NUM_OF_ABC * MAX_NUM_N];
     for (int d = 0; d < paramb.dim_angular; ++d) {
-      Fp[d] = g_Fp[(paramb.n_max_radial + 1 + d) * N + n1];
+      Fp[d] = g_Fp[(paramb.n_max_radial + 1 + d) * nlocal + n1];
     }
     for (int d = 0; d < (paramb.n_max_angular + 1) * NUM_OF_ABC; ++d) {
-      sum_fxyz[d] = g_sum_fxyz[d * N + n1];
+      sum_fxyz[d] = g_sum_fxyz[d * nlocal + n1];
     }
 
     int t1 = g_type[n1] - 1; // from LAMMPS to NEP convention
@@ -3242,6 +3245,7 @@ void NEP3::find_polarizability(
 }
 
 void NEP3::compute_for_lammps(
+  int nlocal,
   int N,
   int* ilist,
   int* NN,
@@ -3254,25 +3258,25 @@ void NEP3::compute_for_lammps(
   double** force,
   double** virial)
 {
-  if (num_atoms < N) {
-    Fp.resize(N * annmb.dim);
-    sum_fxyz.resize(N * (paramb.n_max_angular + 1) * NUM_OF_ABC);
-    num_atoms = N;
+  if (num_atoms < nlocal) {
+    Fp.resize(nlocal * annmb.dim);
+    sum_fxyz.resize(nlocal * (paramb.n_max_angular + 1) * NUM_OF_ABC);
+    num_atoms = nlocal;
   }
   find_descriptor_for_lammps(
-    paramb, annmb, N, ilist, NN, NL, type, pos,
+    paramb, annmb, nlocal, N, ilist, NN, NL, type, pos,
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
     gn_radial.data(), gn_angular.data(),
 #endif
     Fp.data(), sum_fxyz.data(), total_potential, potential);
   find_force_radial_for_lammps(
-    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(),
+    paramb, annmb, nlocal, N, ilist, NN, NL, type, pos, Fp.data(),
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
     gnp_radial.data(),
 #endif
     force, total_virial, virial);
   find_force_angular_for_lammps(
-    paramb, annmb, N, ilist, NN, NL, type, pos, Fp.data(), sum_fxyz.data(),
+    paramb, annmb, nlocal, N, ilist, NN, NL, type, pos, Fp.data(), sum_fxyz.data(),
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
     gn_angular.data(), gnp_angular.data(),
 #endif

@@ -153,6 +153,7 @@ public:
   );
 
   void compute_for_lammps(
+    int nlocal,              // list->nlocal
     int inum,                // list->inum
     int* ilist,              // list->ilist
     int* numneigh,           // list->numneigh
