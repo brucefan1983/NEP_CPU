@@ -35,12 +35,11 @@
 #include <vector>
 #include <iostream> 
 
-//#define LAMMPS_VERSION_NUMBER 20220324 // use the new neighbor list starting from this version
+#define LAMMPS_VERSION_NUMBER 20220324 // use the new neighbor list starting from this version
 
 using namespace LAMMPS_NS;
 
 /* ---------------------------------------------------------------------- */
-
 PairNEP::PairNEP(LAMMPS* lmp) : Pair(lmp)
 {
 
@@ -50,9 +49,7 @@ PairNEP::PairNEP(LAMMPS* lmp) : Pair(lmp)
   manybody_flag = 1;    // 1 if a manybody potential
 }
 
-
 /* ---------------------------------------------------------------------- */
-
 PairNEP::~PairNEP()
 {
   if (copymode)
@@ -64,11 +61,9 @@ PairNEP::~PairNEP()
   }
 }
 
-
 /* ----------------------------------------------------------------------
    allocate all arrays
 ------------------------------------------------------------------------- */
-
 void PairNEP::allocate()
 {
   int n = atom->ntypes;
@@ -83,8 +78,6 @@ void PairNEP::allocate()
   allocated = 1;
 }
 
-
-
 /* ----------------------------------------------------------------------
    global settings
 ------------------------------------------------------------------------- */
@@ -96,12 +89,9 @@ void PairNEP::settings(int narg, char** arg)
       error->all(FLERR, "Illegal pair_style command");	
 }
 
-
-
 /* ----------------------------------------------------------------------
    set coeffs for one or more type pairs
 ------------------------------------------------------------------------- */
-
 void PairNEP::coeff(int narg, char** arg)
 {
   int n = atom->ntypes;
@@ -143,9 +133,6 @@ void PairNEP::coeff(int narg, char** arg)
   delete[] map;
 }
 
-
-
-
 /* ----------------------------------------------------------------------
    init specific to this pair style
 ------------------------------------------------------------------------- */
@@ -157,11 +144,8 @@ void PairNEP::init_style()
   if (force->newton_pair == 0)
     error->all(FLERR,"Pair style NEP requires newton pair on");
 
-  // need a full neighbor list
-
   neighbor->add_request(this,NeighConst::REQ_FULL);
  
-
   bool is_rank_0 = (comm->me == 0);
   nep_model.init_from_file(model_filename, is_rank_0);
   inited = true;
@@ -173,12 +157,9 @@ void PairNEP::init_style()
       cutsq[i][j] = cutoffsq;
 }
 
-
-
 /* ----------------------------------------------------------------------
    init for one type pair i,j and corresponding j,i
 ------------------------------------------------------------------------- */
-
 double PairNEP::init_one(int i, int j) 
 { 
 
@@ -186,8 +167,6 @@ double PairNEP::init_one(int i, int j)
 
   return cutoff;
 }
-
-
 
 /* ---------------------------------------------------------------------- */
 void PairNEP::compute(int eflag, int vflag)
