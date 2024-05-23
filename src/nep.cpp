@@ -1597,7 +1597,6 @@ void find_descriptor_for_lammps(
   double& g_total_potential,
   double* g_potential)
 { 
-
   for (int ii = 0; ii < N; ++ii) {
     int n1 = g_ilist[ii];
     int t1 = g_type[n1] - 1; // from LAMMPS to NEP convention
@@ -1715,7 +1714,7 @@ void find_descriptor_for_lammps(
         find_q_with_5body(paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
       }
       for (int abc = 0; abc < NUM_OF_ABC; ++abc) {
-        g_sum_fxyz[(n * NUM_OF_ABC + abc) * nlocal + n1] = s[abc];///////luowh
+        g_sum_fxyz[(n * NUM_OF_ABC + abc) * nlocal + n1] = s[abc];
       }
     }
 
@@ -1749,7 +1748,7 @@ void find_force_radial_for_lammps(
   int** g_NL,
   int* g_type,
   double** g_pos,
-  double* g_Fp, ///////luowh
+  double* g_Fp, 
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
   const double* g_gnp_radial,
 #endif
