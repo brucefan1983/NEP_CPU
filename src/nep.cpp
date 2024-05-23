@@ -1596,7 +1596,7 @@ void find_descriptor_for_lammps(
   double* g_sum_fxyz,
   double& g_total_potential,
   double* g_potential)
-{ 
+{
   for (int ii = 0; ii < N; ++ii) {
     int n1 = g_ilist[ii];
     int t1 = g_type[n1] - 1; // from LAMMPS to NEP convention
