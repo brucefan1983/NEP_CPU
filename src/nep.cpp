@@ -3371,9 +3371,9 @@ void NEP3::set_dftd3_para_all(
   valid = valid || set_dftd3_para_one(functional, "tpssh", 1.000, 0.4529, 2.2382, 4.6550);
   valid = valid || set_dftd3_para_one(functional, "b2kplyp", 0.64, 0.0000, 0.1521, 7.1916);
   valid = valid || set_dftd3_para_one(functional, "dsd-pbep86", 0.418, 0.0000, 0.0000, 5.6500);
-  valid = valid || set_dftd3_para_one(functional, "b97m", 1.0000 -0.0780 0.1384 5.5946);
-  valid = valid || set_dftd3_para_one(functional, "wb97x", 1.0000 0.0000 0.2641 5.4959);
-  valid = valid || set_dftd3_para_one(functional, "wb97m", 1.0000 0.5660 0.3908 3.1280);
+  valid = valid || set_dftd3_para_one(functional, "b97m", 1.0000, -0.0780, 0.1384, 5.5946);
+  valid = valid || set_dftd3_para_one(functional, "wb97x", 1.0000, 0.0000, 0.2641, 5.4959);
+  valid = valid || set_dftd3_para_one(functional, "wb97m", 1.0000, 0.5660, 0.3908, 3.1280);
 
   if (!valid) {
     std::cout << "The " << functional
