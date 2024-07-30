@@ -153,12 +153,13 @@ public:
   );
 
   void compute_for_lammps(
-    int nlocal,              // list->nlocal
+    int nlocal,              // atom->nlocal
     int inum,                // list->inum
     int* ilist,              // list->ilist
     int* numneigh,           // list->numneigh
     int** firstneigh,        // list->firstneigh
     int* type,               // atom->type
+    int* type_map,           // map from atom type to element
     double** x,              // atom->x
     double& total_potential, // total potential energy for the current processor
     double total_virial[6],  // total virial for the current processor
