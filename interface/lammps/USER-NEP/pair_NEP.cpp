@@ -114,6 +114,7 @@ void PairNEP::init_style()
 
   bool is_rank_0 = (comm->me == 0);
   nep_model.init_from_file(model_filename, is_rank_0);
+  nep_model.update_type_map(atom->ntypes, type_map, elements);
   inited = true;
   cutoff = nep_model.paramb.rc_radial;
   cutoffsq = cutoff * cutoff;

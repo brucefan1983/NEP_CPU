@@ -86,6 +86,8 @@ public:
 
   void init_from_file(const std::string& potential_filename, const bool is_rank_0);
 
+  void update_type_map(const int ntype, int* type_map, char** elements);
+
   // type[num_atoms] should be integers 0, 1, ..., mapping to the atom types in nep.txt in order
   // box[9] is ordered as ax, bx, cx, ay, by, cy, az, bz, cz
   // position[num_atoms * 3] is ordered as x[num_atoms], y[num_atoms], z[num_atoms]

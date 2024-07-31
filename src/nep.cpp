@@ -2780,6 +2780,35 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   }
 }
 
+void NEP3::update_type_map(
+  const int ntype,
+  int* type_map,
+  char** elements)
+{
+  int n = 0;
+  for (int itype = 0; itype < ntype + 1; ++itype) {
+    // check if set NULL in lammps input file
+    if (type_map[itype] == -1) {
+      continue;
+    }
+
+    // find the same element name in potential file
+    std::string element_name = elements[type_map[itype]];
+    for (n = 0; n < paramb.num_types; ++n) {
+      if (element_name == element_list[n]) {
+        type_map[itype] = n;
+        break;
+      }
+    }
+
+    // check if no corresponding element
+    if (n == paramb.num_types) {
+      std::cout << "There is no element " << element_name << " in the potential file." << std::endl;
+      exit(1);
+    }
+  }
+}
+
 void NEP3::update_potential(double* parameters, ANN& ann)
 {
   double* pointer = parameters;
