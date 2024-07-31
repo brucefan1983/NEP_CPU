@@ -17,7 +17,6 @@
 #include <string>
 #include <vector>
 
-#define NUM_ELEMENTS_NEP 94
 // #define USE_TABLE_FOR_RADIAL_FUNCTIONS
 
 class NEP3
@@ -25,9 +24,7 @@ class NEP3
 public:
   struct ParaMB {
     int model_type = 0; // 0=potential, 1=dipole, 2=polarizability
-    bool use_typewise_cutoff = false;
-    bool use_typewise_cutoff_zbl = false;
-    int version = 4;
+    int version = 2;
     double rc_radial = 0.0;
     double rc_angular = 0.0;
     double rcinv_radial = 0.0;
@@ -43,22 +40,21 @@ public:
     int num_c_radial = 0;
     int num_types = 0;
     double q_scaler[140];
-    int atomic_numbers[NUM_ELEMENTS_NEP];
   };
 
   struct ANN {
     int dim = 0;
     int num_neurons1 = 0;
     int num_para = 0;
-    const double* w0[NUM_ELEMENTS_NEP];
-    const double* b0[NUM_ELEMENTS_NEP];
-    const double* w1[NUM_ELEMENTS_NEP];
+    const double* w0[103];
+    const double* b0[103];
+    const double* w1[103];
     const double* b1;
     const double* c;
     // for the scalar part of polarizability
-    const double* w0_pol[NUM_ELEMENTS_NEP];
-    const double* b0_pol[NUM_ELEMENTS_NEP];
-    const double* w1_pol[NUM_ELEMENTS_NEP];
+    const double* w0_pol[103];
+    const double* b0_pol[103];
+    const double* w1_pol[103];
     const double* b1_pol;
   };
 
@@ -68,7 +64,7 @@ public:
     int num_types;
     double rc_inner = 1.0;
     double rc_outer = 2.0;
-    int atomic_numbers[NUM_ELEMENTS_NEP];
+    double atomic_numbers[103];
     double para[550];
   };
 
@@ -79,7 +75,7 @@ public:
     double a2 = 0.0;
     double rc_radial = 20.0;
     double rc_angular = 10.0;
-    int atomic_number[NUM_ELEMENTS_NEP]; // H to Pu
+    int atomic_number[94]; // H to Pu
     std::vector<double> cn;
     std::vector<double> dc6_sum;
     std::vector<double> dc8_sum;
