@@ -40,7 +40,7 @@ heat transport, Phys. Rev. B. 104, 104309 (2021).
 namespace
 {
 const int MAX_NEURON = 200; // maximum number of neurons in the hidden layer
-const int MN = 1000;       // maximum number of neighbors for one atom
+const int MN = 1000;        // maximum number of neighbors for one atom
 const int NUM_OF_ABC = 24;  // 3 + 5 + 7 + 9 for L_max = 4
 const int MAX_NUM_N = 20;   // n_max+1 = 19+1
 const int MAX_DIM = MAX_NUM_N * 7;
@@ -57,15 +57,25 @@ const double C5B[3] = {0.026596810706114, 0.053193621412227, 0.026596810706114};
 const double K_C_SP = 14.399645; // 1/(4*PI*epsilon_0)
 const double PI = 3.141592653589793;
 const double PI_HALF = 1.570796326794897;
-const int NUM_ELEMENTS = 103;
-const std::string ELEMENTS[NUM_ELEMENTS] = {
-  "H",  "He", "Li", "Be", "B",  "C",  "N",  "O",  "F",  "Ne", "Na", "Mg", "Al", "Si", "P",
-  "S",  "Cl", "Ar", "K",  "Ca", "Sc", "Ti", "V",  "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn",
-  "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr", "Y",  "Zr", "Nb", "Mo", "Tc", "Ru", "Rh",
-  "Pd", "Ag", "Cd", "In", "Sn", "Sb", "Te", "I",  "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd",
-  "Pm", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "W",  "Re",
-  "Os", "Ir", "Pt", "Au", "Hg", "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th",
-  "Pa", "U",  "Np", "Pu", "Am", "Cm", "Bk", "Cf", "Es", "Fm", "Md", "No", "Lr"};
+const std::string ELEMENTS[NUM_ELEMENTS_NEP] = {
+  "H",  "He", "Li", "Be", "B",  "C",  "N",  "O",  "F",  "Ne", "Na", "Mg", "Al", "Si", "P",  "S",
+  "Cl", "Ar", "K",  "Ca", "Sc", "Ti", "V",  "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn", "Ga", "Ge",
+  "As", "Se", "Br", "Kr", "Rb", "Sr", "Y",  "Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd",
+  "In", "Sn", "Sb", "Te", "I",  "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd",
+  "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "W",  "Re", "Os", "Ir", "Pt", "Au", "Hg",
+  "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th", "Pa", "U",  "Np", "Pu"};
+double COVALENT_RADIUS[NUM_ELEMENTS_NEP] = {
+  0.426667f, 0.613333f, 1.6f,     1.25333f, 1.02667f, 1.0f,     0.946667f, 0.84f,    0.853333f,
+  0.893333f, 1.86667f,  1.66667f, 1.50667f, 1.38667f, 1.46667f, 1.36f,     1.32f,    1.28f,
+  2.34667f,  2.05333f,  1.77333f, 1.62667f, 1.61333f, 1.46667f, 1.42667f,  1.38667f, 1.33333f,
+  1.32f,     1.34667f,  1.45333f, 1.49333f, 1.45333f, 1.53333f, 1.46667f,  1.52f,    1.56f,
+  2.52f,     2.22667f,  1.96f,    1.85333f, 1.76f,    1.65333f, 1.53333f,  1.50667f, 1.50667f,
+  1.44f,     1.53333f,  1.64f,    1.70667f, 1.68f,    1.68f,    1.64f,     1.76f,    1.74667f,
+  2.78667f,  2.34667f,  2.16f,    1.96f,    2.10667f, 2.09333f, 2.08f,     2.06667f, 2.01333f,
+  2.02667f,  2.01333f,  2.0f,     1.98667f, 1.98667f, 1.97333f, 2.04f,     1.94667f, 1.82667f,
+  1.74667f,  1.64f,     1.57333f, 1.54667f, 1.48f,    1.49333f, 1.50667f,  1.76f,    1.73333f,
+  1.73333f,  1.81333f,  1.74667f, 1.84f,    1.89333f, 2.68f,    2.41333f,  2.22667f, 2.10667f,
+  2.02667f,  2.04f,     2.05333f, 2.06667f};
 
 void apply_ann_one_layer(
   const int dim,
@@ -168,13 +178,7 @@ void find_f_and_fp_zbl(
 }
 
 void find_f_and_fp_zbl(
-  double* zbl_para,
-  double zizj,
-  double a_inv,
-  double d12,
-  double d12inv,
-  double& f,
-  double& fp)
+  double* zbl_para, double zizj, double a_inv, double d12, double d12inv, double& f, double& fp)
 {
   double x = d12 * a_inv;
   f = fp = 0.0f;
@@ -844,26 +848,17 @@ void construct_table_radial_or_angular(
         int t12 = t1 * num_types + t2;
         double fn12[MAX_NUM_N];
         double fnp12[MAX_NUM_N];
-        if (version == 2) {
-          find_fn_and_fnp(n_max, rcinv, d12, fc12, fcp12, fn12, fnp12);
-          for (int n = 0; n <= n_max; ++n) {
-            int index_all = (table_index * num_types_sq + t12) * (n_max + 1) + n;
-            gn[index_all] = fn12[n] * ((num_types == 1) ? 1.0 : c[n * num_types_sq + t12]);
-            gnp[index_all] = fnp12[n] * ((num_types == 1) ? 1.0 : c[n * num_types_sq + t12]);
+        find_fn_and_fnp(basis_size, rcinv, d12, fc12, fcp12, fn12, fnp12);
+        for (int n = 0; n <= n_max; ++n) {
+          double gn12 = 0.0;
+          double gnp12 = 0.0;
+          for (int k = 0; k <= basis_size; ++k) {
+            gn12 += fn12[k] * c[(n * (basis_size + 1) + k) * num_types_sq + t12];
+            gnp12 += fnp12[k] * c[(n * (basis_size + 1) + k) * num_types_sq + t12];
           }
-        } else {
-          find_fn_and_fnp(basis_size, rcinv, d12, fc12, fcp12, fn12, fnp12);
-          for (int n = 0; n <= n_max; ++n) {
-            double gn12 = 0.0;
-            double gnp12 = 0.0;
-            for (int k = 0; k <= basis_size; ++k) {
-              gn12 += fn12[k] * c[(n * (basis_size + 1) + k) * num_types_sq + t12];
-              gnp12 += fnp12[k] * c[(n * (basis_size + 1) + k) * num_types_sq + t12];
-            }
-            int index_all = (table_index * num_types_sq + t12) * (n_max + 1) + n;
-            gn[index_all] = gn12;
-            gnp[index_all] = gnp12;
-          }
+          int index_all = (table_index * num_types_sq + t12) * (n_max + 1) + n;
+          gn[index_all] = gn12;
+          gnp[index_all] = gnp12;
         }
       }
     }
@@ -929,28 +924,29 @@ void find_descriptor_small_box(
       }
 #else
       double fc12;
-      find_fc(paramb.rc_radial, paramb.rcinv_radial, d12, fc12);
       int t2 = g_type[n2];
+      double rc = paramb.rc_radial;
+      double rcinv = paramb.rcinv_radial;
+      if (paramb.use_typewise_cutoff) {
+        rc = std::min(
+          (COVALENT_RADIUS[paramb.atomic_numbers[t1]] +
+           COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
+            2.5,
+          rc);
+        rcinv = 1.0f / rc;
+      }
+      find_fc(rc, rcinv, d12, fc12);
+
       double fn12[MAX_NUM_N];
-      if (paramb.version == 2) {
-        find_fn(paramb.n_max_radial, paramb.rcinv_radial, d12, fc12, fn12);
-        for (int n = 0; n <= paramb.n_max_radial; ++n) {
-          double c = (paramb.num_types == 1)
-                       ? 1.0
-                       : annmb.c[(n * paramb.num_types + t1) * paramb.num_types + t2];
-          q[n] += fn12[n] * c;
+      find_fn(paramb.basis_size_radial, rcinv, d12, fc12, fn12);
+      for (int n = 0; n <= paramb.n_max_radial; ++n) {
+        double gn12 = 0.0;
+        for (int k = 0; k <= paramb.basis_size_radial; ++k) {
+          int c_index = (n * (paramb.basis_size_radial + 1) + k) * paramb.num_types_sq;
+          c_index += t1 * paramb.num_types + t2;
+          gn12 += fn12[k] * annmb.c[c_index];
         }
-      } else {
-        find_fn(paramb.basis_size_radial, paramb.rcinv_radial, d12, fc12, fn12);
-        for (int n = 0; n <= paramb.n_max_radial; ++n) {
-          double gn12 = 0.0;
-          for (int k = 0; k <= paramb.basis_size_radial; ++k) {
-            int c_index = (n * (paramb.basis_size_radial + 1) + k) * paramb.num_types_sq;
-            c_index += t1 * paramb.num_types + t2;
-            gn12 += fn12[k] * annmb.c[c_index];
-          }
-          q[n] += gn12;
-        }
+        q[n] += gn12;
       }
 #endif
     }
@@ -976,28 +972,28 @@ void find_descriptor_small_box(
         accumulate_s(d12, r12[0], r12[1], r12[2], gn12, s);
 #else
         double fc12;
-        find_fc(paramb.rc_angular, paramb.rcinv_angular, d12, fc12);
         int t2 = g_type[n2];
-        if (paramb.version == 2) {
-          double fn;
-          find_fn(n, paramb.rcinv_angular, d12, fc12, fn);
-          fn *=
-            (paramb.num_types == 1)
-              ? 1.0
-              : annmb.c
-                  [((paramb.n_max_radial + 1 + n) * paramb.num_types + t1) * paramb.num_types + t2];
-          accumulate_s(d12, r12[0], r12[1], r12[2], fn, s);
-        } else {
-          double fn12[MAX_NUM_N];
-          find_fn(paramb.basis_size_angular, paramb.rcinv_angular, d12, fc12, fn12);
-          double gn12 = 0.0;
-          for (int k = 0; k <= paramb.basis_size_angular; ++k) {
-            int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
-            c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
-            gn12 += fn12[k] * annmb.c[c_index];
-          }
-          accumulate_s(d12, r12[0], r12[1], r12[2], gn12, s);
+        double rc = paramb.rc_angular;
+        double rcinv = paramb.rcinv_angular;
+        if (paramb.use_typewise_cutoff) {
+          rc = std::min(
+            (COVALENT_RADIUS[paramb.atomic_numbers[t1]] +
+             COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
+              2.0,
+            rc);
+          rcinv = 1.0f / rc;
         }
+        find_fc(rc, rcinv, d12, fc12);
+
+        double fn12[MAX_NUM_N];
+        find_fn(paramb.basis_size_angular, rcinv, d12, fc12, fn12);
+        double gn12 = 0.0;
+        for (int k = 0; k <= paramb.basis_size_angular; ++k) {
+          int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
+          c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
+          gn12 += fn12[k] * annmb.c[c_index];
+        }
+        accumulate_s(d12, r12[0], r12[1], r12[2], gn12, s);
 #endif
       }
       if (paramb.num_L == paramb.L_max) {
@@ -1111,34 +1107,30 @@ void find_force_radial_small_box(
       }
 #else
       double fc12, fcp12;
-      find_fc_and_fcp(paramb.rc_radial, paramb.rcinv_radial, d12, fc12, fcp12);
+      double rc = paramb.rc_radial;
+      double rcinv = paramb.rcinv_radial;
+      if (paramb.use_typewise_cutoff) {
+        rc = std::min(
+          (COVALENT_RADIUS[paramb.atomic_numbers[t1]] +
+           COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
+            2.5,
+          rc);
+        rcinv = 1.0f / rc;
+      }
+      find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
       double fn12[MAX_NUM_N];
       double fnp12[MAX_NUM_N];
-      if (paramb.version == 2) {
-        find_fn_and_fnp(paramb.n_max_radial, paramb.rcinv_radial, d12, fc12, fcp12, fn12, fnp12);
-        for (int n = 0; n <= paramb.n_max_radial; ++n) {
-          double tmp12 = g_Fp[n1 + n * N] * fnp12[n] * d12inv;
-          tmp12 *= (paramb.num_types == 1)
-                     ? 1.0
-                     : annmb.c[(n * paramb.num_types + t1) * paramb.num_types + t2];
-          for (int d = 0; d < 3; ++d) {
-            f12[d] += tmp12 * r12[d];
-          }
+      find_fn_and_fnp(paramb.basis_size_radial, rcinv, d12, fc12, fcp12, fn12, fnp12);
+      for (int n = 0; n <= paramb.n_max_radial; ++n) {
+        double gnp12 = 0.0;
+        for (int k = 0; k <= paramb.basis_size_radial; ++k) {
+          int c_index = (n * (paramb.basis_size_radial + 1) + k) * paramb.num_types_sq;
+          c_index += t1 * paramb.num_types + t2;
+          gnp12 += fnp12[k] * annmb.c[c_index];
         }
-      } else {
-        find_fn_and_fnp(
-          paramb.basis_size_radial, paramb.rcinv_radial, d12, fc12, fcp12, fn12, fnp12);
-        for (int n = 0; n <= paramb.n_max_radial; ++n) {
-          double gnp12 = 0.0;
-          for (int k = 0; k <= paramb.basis_size_radial; ++k) {
-            int c_index = (n * (paramb.basis_size_radial + 1) + k) * paramb.num_types_sq;
-            c_index += t1 * paramb.num_types + t2;
-            gnp12 += fnp12[k] * annmb.c[c_index];
-          }
-          double tmp12 = g_Fp[n1 + n * N] * gnp12 * d12inv;
-          for (int d = 0; d < 3; ++d) {
-            f12[d] += tmp12 * r12[d];
-          }
+        double tmp12 = g_Fp[n1 + n * N] * gnp12 * d12inv;
+        for (int d = 0; d < 3; ++d) {
+          f12[d] += tmp12 * r12[d];
         }
       }
 #endif
@@ -1245,47 +1237,41 @@ void find_force_angular_small_box(
         }
       }
 #else
-      double fc12, fcp12;
-      find_fc_and_fcp(paramb.rc_angular, paramb.rcinv_angular, d12, fc12, fcp12);
       int t2 = g_type[n2];
+      double fc12, fcp12;
+      double rc = paramb.rc_angular;
+      double rcinv = paramb.rcinv_angular;
+      if (paramb.use_typewise_cutoff) {
+        rc = std::min(
+          (COVALENT_RADIUS[paramb.atomic_numbers[t1]] +
+           COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
+            2.0,
+          rc);
+        rcinv = 1.0f / rc;
+      }
 
-      if (paramb.version == 2) {
-        for (int n = 0; n <= paramb.n_max_angular; ++n) {
-          double fn;
-          double fnp;
-          find_fn_and_fnp(n, paramb.rcinv_angular, d12, fc12, fcp12, fn, fnp);
-          const double c =
-            (paramb.num_types == 1)
-              ? 1.0
-              : annmb.c
-                  [((paramb.n_max_radial + 1 + n) * paramb.num_types + t1) * paramb.num_types + t2];
-          fn *= c;
-          fnp *= c;
-          accumulate_f12(n, paramb.n_max_angular + 1, d12, r12, fn, fnp, Fp, sum_fxyz, f12);
+      find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
+
+      double fn12[MAX_NUM_N];
+      double fnp12[MAX_NUM_N];
+      find_fn_and_fnp(paramb.basis_size_angular, rcinv, d12, fc12, fcp12, fn12, fnp12);
+      for (int n = 0; n <= paramb.n_max_angular; ++n) {
+        double gn12 = 0.0;
+        double gnp12 = 0.0;
+        for (int k = 0; k <= paramb.basis_size_angular; ++k) {
+          int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
+          c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
+          gn12 += fn12[k] * annmb.c[c_index];
+          gnp12 += fnp12[k] * annmb.c[c_index];
         }
-      } else {
-        double fn12[MAX_NUM_N];
-        double fnp12[MAX_NUM_N];
-        find_fn_and_fnp(
-          paramb.basis_size_angular, paramb.rcinv_angular, d12, fc12, fcp12, fn12, fnp12);
-        for (int n = 0; n <= paramb.n_max_angular; ++n) {
-          double gn12 = 0.0;
-          double gnp12 = 0.0;
-          for (int k = 0; k <= paramb.basis_size_angular; ++k) {
-            int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
-            c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
-            gn12 += fn12[k] * annmb.c[c_index];
-            gnp12 += fnp12[k] * annmb.c[c_index];
-          }
-          if (paramb.num_L == paramb.L_max) {
-            accumulate_f12(n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
-          } else if (paramb.num_L == paramb.L_max + 1) {
-            accumulate_f12_with_4body(
-              n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
-          } else {
-            accumulate_f12_with_5body(
-              n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
-          }
+        if (paramb.num_L == paramb.L_max) {
+          accumulate_f12(n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
+        } else if (paramb.num_L == paramb.L_max + 1) {
+          accumulate_f12_with_4body(
+            n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
+        } else {
+          accumulate_f12_with_5body(
+            n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
         }
       }
 #endif
@@ -1326,6 +1312,7 @@ void find_force_angular_small_box(
 }
 
 void find_force_ZBL_small_box(
+  NEP3::ParaMB& paramb,
   const int N,
   const NEP3::ZBL& zbl,
   const int* g_NN,
@@ -1342,8 +1329,8 @@ void find_force_ZBL_small_box(
 {
   for (int n1 = 0; n1 < N; ++n1) {
     int type1 = g_type[n1];
-    double zi = zbl.atomic_numbers[type1];
-    double pow_zi = pow(zi, 0.23);
+    int zi = zbl.atomic_numbers[type1];
+    double pow_zi = pow(double(zi), 0.23);
     for (int i1 = 0; i1 < g_NN[n1]; ++i1) {
       int index = i1 * N + n1;
       int n2 = g_NL[index];
@@ -1352,8 +1339,8 @@ void find_force_ZBL_small_box(
       double d12inv = 1.0 / d12;
       double f, fp;
       int type2 = g_type[n2];
-      double zj = zbl.atomic_numbers[type2];
-      double a_inv = (pow_zi + pow(zj, 0.23)) * 2.134563;
+      int zj = zbl.atomic_numbers[type2];
+      double a_inv = (pow_zi + pow(double(zj), 0.23)) * 2.134563;
       double zizj = K_C_SP * zi * zj;
       if (zbl.flexibled) {
         int t1, t2;
@@ -1371,7 +1358,14 @@ void find_force_ZBL_small_box(
         }
         find_f_and_fp_zbl(ZBL_para, zizj, a_inv, d12, d12inv, f, fp);
       } else {
-        find_f_and_fp_zbl(zizj, a_inv, zbl.rc_inner, zbl.rc_outer, d12, d12inv, f, fp);
+        double rc_inner = zbl.rc_inner;
+        double rc_outer = zbl.rc_outer;
+        if (paramb.use_typewise_cutoff_zbl) {
+          // zi and zj start from 1, so need to minus 1 here
+          rc_outer = std::min((COVALENT_RADIUS[zi - 1] + COVALENT_RADIUS[zj - 1]) * 0.6, rc_outer);
+          rc_inner = rc_outer * 0.5;
+        }
+        find_f_and_fp_zbl(zizj, a_inv, rc_inner, rc_outer, d12, d12inv, f, fp);
       }
       double f2 = fp * d12inv * 0.5;
       double f12[3] = {r12[0] * f2, r12[1] * f2, r12[2] * f2};
@@ -1632,25 +1626,15 @@ void find_descriptor_for_lammps(
       double fc12;
       find_fc(paramb.rc_radial, paramb.rcinv_radial, d12, fc12);
       double fn12[MAX_NUM_N];
-      if (paramb.version == 2) {
-        find_fn(paramb.n_max_radial, paramb.rcinv_radial, d12, fc12, fn12);
-        for (int n = 0; n <= paramb.n_max_radial; ++n) {
-          double c = (paramb.num_types == 1)
-                       ? 1.0
-                       : annmb.c[(n * paramb.num_types + t1) * paramb.num_types + t2];
-          q[n] += fn12[n] * c;
+      find_fn(paramb.basis_size_radial, paramb.rcinv_radial, d12, fc12, fn12);
+      for (int n = 0; n <= paramb.n_max_radial; ++n) {
+        double gn12 = 0.0;
+        for (int k = 0; k <= paramb.basis_size_radial; ++k) {
+          int c_index = (n * (paramb.basis_size_radial + 1) + k) * paramb.num_types_sq;
+          c_index += t1 * paramb.num_types + t2;
+          gn12 += fn12[k] * annmb.c[c_index];
         }
-      } else {
-        find_fn(paramb.basis_size_radial, paramb.rcinv_radial, d12, fc12, fn12);
-        for (int n = 0; n <= paramb.n_max_radial; ++n) {
-          double gn12 = 0.0;
-          for (int k = 0; k <= paramb.basis_size_radial; ++k) {
-            int c_index = (n * (paramb.basis_size_radial + 1) + k) * paramb.num_types_sq;
-            c_index += t1 * paramb.num_types + t2;
-            gn12 += fn12[k] * annmb.c[c_index];
-          }
-          q[n] += gn12;
-        }
+        q[n] += gn12;
       }
 #endif
     }
@@ -1685,26 +1669,15 @@ void find_descriptor_for_lammps(
         double fc12;
         find_fc(paramb.rc_angular, paramb.rcinv_angular, d12, fc12);
 
-        if (paramb.version == 2) {
-          double fn;
-          find_fn(n, paramb.rcinv_angular, d12, fc12, fn);
-          fn *=
-            (paramb.num_types == 1)
-              ? 1.0
-              : annmb.c
-                  [((paramb.n_max_radial + 1 + n) * paramb.num_types + t1) * paramb.num_types + t2];
-          accumulate_s(d12, r12[0], r12[1], r12[2], fn, s);
-        } else {
-          double fn12[MAX_NUM_N];
-          find_fn(paramb.basis_size_angular, paramb.rcinv_angular, d12, fc12, fn12);
-          double gn12 = 0.0;
-          for (int k = 0; k <= paramb.basis_size_angular; ++k) {
-            int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
-            c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
-            gn12 += fn12[k] * annmb.c[c_index];
-          }
-          accumulate_s(d12, r12[0], r12[1], r12[2], gn12, s);
+        double fn12[MAX_NUM_N];
+        find_fn(paramb.basis_size_angular, paramb.rcinv_angular, d12, fc12, fn12);
+        double gn12 = 0.0;
+        for (int k = 0; k <= paramb.basis_size_angular; ++k) {
+          int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
+          c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
+          gn12 += fn12[k] * annmb.c[c_index];
         }
+        accumulate_s(d12, r12[0], r12[1], r12[2], gn12, s);
 #endif
       }
       if (paramb.num_L == paramb.L_max) {
@@ -1796,31 +1769,17 @@ void find_force_radial_for_lammps(
       find_fc_and_fcp(paramb.rc_radial, paramb.rcinv_radial, d12, fc12, fcp12);
       double fn12[MAX_NUM_N];
       double fnp12[MAX_NUM_N];
-      if (paramb.version == 2) {
-        find_fn_and_fnp(paramb.n_max_radial, paramb.rcinv_radial, d12, fc12, fcp12, fn12, fnp12);
-        for (int n = 0; n <= paramb.n_max_radial; ++n) {
-          double tmp12 = g_Fp[n1 + n * nlocal] * fnp12[n] * d12inv;
-          tmp12 *= (paramb.num_types == 1)
-                     ? 1.0
-                     : annmb.c[(n * paramb.num_types + t1) * paramb.num_types + t2];
-          for (int d = 0; d < 3; ++d) {
-            f12[d] += tmp12 * r12[d];
-          }
+      find_fn_and_fnp(paramb.basis_size_radial, paramb.rcinv_radial, d12, fc12, fcp12, fn12, fnp12);
+      for (int n = 0; n <= paramb.n_max_radial; ++n) {
+        double gnp12 = 0.0;
+        for (int k = 0; k <= paramb.basis_size_radial; ++k) {
+          int c_index = (n * (paramb.basis_size_radial + 1) + k) * paramb.num_types_sq;
+          c_index += t1 * paramb.num_types + t2;
+          gnp12 += fnp12[k] * annmb.c[c_index];
         }
-      } else {
-        find_fn_and_fnp(
-          paramb.basis_size_radial, paramb.rcinv_radial, d12, fc12, fcp12, fn12, fnp12);
-        for (int n = 0; n <= paramb.n_max_radial; ++n) {
-          double gnp12 = 0.0;
-          for (int k = 0; k <= paramb.basis_size_radial; ++k) {
-            int c_index = (n * (paramb.basis_size_radial + 1) + k) * paramb.num_types_sq;
-            c_index += t1 * paramb.num_types + t2;
-            gnp12 += fnp12[k] * annmb.c[c_index];
-          }
-          double tmp12 = g_Fp[n1 + n * nlocal] * gnp12 * d12inv;
-          for (int d = 0; d < 3; ++d) {
-            f12[d] += tmp12 * r12[d];
-          }
+        double tmp12 = g_Fp[n1 + n * nlocal] * gnp12 * d12inv;
+        for (int d = 0; d < 3; ++d) {
+          f12[d] += tmp12 * r12[d];
         }
       }
 #endif
@@ -1929,43 +1888,28 @@ void find_force_angular_for_lammps(
 #else
       double fc12, fcp12;
       find_fc_and_fcp(paramb.rc_angular, paramb.rcinv_angular, d12, fc12, fcp12);
-      if (paramb.version == 2) {
-        for (int n = 0; n <= paramb.n_max_angular; ++n) {
-          double fn;
-          double fnp;
-          find_fn_and_fnp(n, paramb.rcinv_angular, d12, fc12, fcp12, fn, fnp);
-          const double c =
-            (paramb.num_types == 1)
-              ? 1.0
-              : annmb.c
-                  [((paramb.n_max_radial + 1 + n) * paramb.num_types + t1) * paramb.num_types + t2];
-          fn *= c;
-          fnp *= c;
-          accumulate_f12(n, paramb.n_max_angular + 1, d12, r12, fn, fnp, Fp, sum_fxyz, f12);
+
+      double fn12[MAX_NUM_N];
+      double fnp12[MAX_NUM_N];
+      find_fn_and_fnp(
+        paramb.basis_size_angular, paramb.rcinv_angular, d12, fc12, fcp12, fn12, fnp12);
+      for (int n = 0; n <= paramb.n_max_angular; ++n) {
+        double gn12 = 0.0;
+        double gnp12 = 0.0;
+        for (int k = 0; k <= paramb.basis_size_angular; ++k) {
+          int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
+          c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
+          gn12 += fn12[k] * annmb.c[c_index];
+          gnp12 += fnp12[k] * annmb.c[c_index];
         }
-      } else {
-        double fn12[MAX_NUM_N];
-        double fnp12[MAX_NUM_N];
-        find_fn_and_fnp(
-          paramb.basis_size_angular, paramb.rcinv_angular, d12, fc12, fcp12, fn12, fnp12);
-        for (int n = 0; n <= paramb.n_max_angular; ++n) {
-          double gn12 = 0.0;
-          double gnp12 = 0.0;
-          for (int k = 0; k <= paramb.basis_size_angular; ++k) {
-            int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
-            c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
-            gn12 += fn12[k] * annmb.c[c_index];
-            gnp12 += fnp12[k] * annmb.c[c_index];
-          }
-          if (paramb.num_L == paramb.L_max) {
-            accumulate_f12(n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
-          } else if (paramb.num_L == paramb.L_max + 1) {
-            accumulate_f12_with_4body(
-              n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
-          } else {
-            accumulate_f12_with_5body(
-              n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
-          }
+        if (paramb.num_L == paramb.L_max) {
+          accumulate_f12(n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
+        } else if (paramb.num_L == paramb.L_max + 1) {
+          accumulate_f12_with_4body(
+            n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
+        } else {
+          accumulate_f12_with_5body(
+            n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
         }
       }
 #endif
@@ -2147,7 +2091,7 @@ bool get_expanded_box(const double rc, const double* box, int* num_cells, double
   num_cells[0] = int(ceil(2.0 * rc / thickness_x));
   num_cells[1] = int(ceil(2.0 * rc / thickness_y));
   num_cells[2] = int(ceil(2.0 * rc / thickness_z));
-  
+
   bool is_small_box = false;
   if (thickness_x <= 2.5 * rc) {
     is_small_box = true;
@@ -2170,7 +2114,6 @@ bool get_expanded_box(const double rc, const double* box, int* num_cells, double
   ebox[8] = box[8] * num_cells[2];
 
   get_inverse(ebox);
-  
 
   return is_small_box;
 }
@@ -2222,7 +2165,7 @@ void applyPbcOne(double& sx)
 {
   while (sx < 0.0) {
     sx += 1.0;
-  } 
+  }
   while (sx > 1.0) {
     sx -= 1.0;
   }
@@ -2268,7 +2211,7 @@ void find_neighbor_list_large_box(
   double* g_x12_angular = r12.data() + size_x12 * 3;
   double* g_y12_angular = r12.data() + size_x12 * 4;
   double* g_z12_angular = r12.data() + size_x12 * 5;
-  
+
   applyPbc(N, ebox, g_x, g_y, g_z);
 
   const double cutoffInverse = 2.0 / rc_radial;
@@ -2312,7 +2255,7 @@ void find_neighbor_list_large_box(
   }
 
   for (int n1 = 0; n1 < N; ++n1) {
-	int count_radial = 0;
+    int count_radial = 0;
     int count_angular = 0;
     const double r1[3] = {g_x[n1], g_y[n1], g_z[n1]};
     findCell(ebox, thickness, r1, cutoffInverse, numCells, cell);
@@ -2360,7 +2303,7 @@ void find_neighbor_list_large_box(
         }
       }
     }
-	g_NN_radial[n1] = count_radial;
+    g_NN_radial[n1] = count_radial;
     g_NN_angular[n1] = count_angular;
   }
 }
@@ -2380,10 +2323,11 @@ void find_neighbor_list_small_box(
   std::vector<double>& r12)
 {
   bool is_small_box = get_expanded_box(rc_radial, box.data(), num_cells, ebox);
-  
+
   if (!is_small_box) {
-    find_neighbor_list_large_box(rc_radial, rc_angular, N, box, position, num_cells, ebox, g_NN_radial,
-	  g_NL_radial, g_NN_angular, g_NL_angular, r12);
+    find_neighbor_list_large_box(
+      rc_radial, rc_angular, N, box, position, num_cells, ebox, g_NN_radial, g_NL_radial,
+      g_NN_angular, g_NL_angular, r12);
     return;
   }
 
@@ -2520,23 +2464,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
     std::cout << "The first line of nep.txt should have at least 3 items." << std::endl;
     exit(1);
   }
-  if (tokens[0] == "nep") {
-    paramb.model_type = 0;
-    paramb.version = 2;
-    zbl.enabled = false;
-  } else if (tokens[0] == "nep_zbl") {
-    paramb.model_type = 0;
-    paramb.version = 2;
-    zbl.enabled = true;
-  } else if (tokens[0] == "nep_dipole") {
-    paramb.model_type = 1;
-    paramb.version = 2;
-    zbl.enabled = false;
-  } else if (tokens[0] == "nep_polarizability") {
-    paramb.model_type = 2;
-    paramb.version = 2;
-    zbl.enabled = false;
-  } else if (tokens[0] == "nep3") {
+  if (tokens[0] == "nep3") {
     paramb.model_type = 0;
     paramb.version = 3;
     zbl.enabled = false;
@@ -2582,13 +2510,14 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   for (int n = 0; n < paramb.num_types; ++n) {
     int atomic_number = 0;
     element_list[n] = tokens[2 + n];
-    for (int m = 0; m < NUM_ELEMENTS; ++m) {
+    for (int m = 0; m < NUM_ELEMENTS_NEP; ++m) {
       if (tokens[2 + n] == ELEMENTS[m]) {
         atomic_number = m + 1;
         break;
       }
     }
     zbl.atomic_numbers[n] = atomic_number;
+    paramb.atomic_numbers[n] = atomic_number - 1;
     dftd3.atomic_number[n] = atomic_number - 1;
   }
 
@@ -2609,13 +2538,26 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
 
   // cutoff 4.2 3.7 80 47
   tokens = get_tokens(input);
-  if (tokens.size() != 3 && tokens.size() != 5) {
+  if (tokens.size() != 5 && tokens.size() != 7) {
     print_tokens(tokens);
-    std::cout << "This line should be cutoff rc_radial rc_angular [MN_radial] [MN_angular].\n";
+    std::cout << "This line should be cutoff rc_radial rc_angular MN_radial MN_angular "
+                 "[use_typewise_cutoff] [use_typewise_cutoff_zbl].\n";
     exit(1);
   }
   paramb.rc_radial = get_double_from_token(tokens[1], __FILE__, __LINE__);
   paramb.rc_angular = get_double_from_token(tokens[2], __FILE__, __LINE__);
+  int MN_radial = get_int_from_token(tokens[3], __FILE__, __LINE__);
+  int MN_angular = get_int_from_token(tokens[4], __FILE__, __LINE__);
+  if (tokens.size() == 7) {
+    paramb.use_typewise_cutoff = get_int_from_token(tokens[5], __FILE__, __LINE__);
+    paramb.use_typewise_cutoff_zbl = get_int_from_token(tokens[6], __FILE__, __LINE__);
+  }
+#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
+  if (paramd.use_typewise_cutoff) {
+    std::cout << "Cannot use tabulated radial functions with typewise cutoff.\n";
+    exit(1);
+  }
+#endif
 
   // n_max 10 8
   tokens = get_tokens(input);
@@ -2628,46 +2570,34 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   paramb.n_max_angular = get_int_from_token(tokens[2], __FILE__, __LINE__);
 
   // basis_size 10 8
-  if (paramb.version >= 3) {
-    tokens = get_tokens(input);
-    if (tokens.size() != 3) {
-      print_tokens(tokens);
-      std::cout << "This line should be basis_size basis_size_radial basis_size_angular."
-                << std::endl;
-      exit(1);
-    }
-    paramb.basis_size_radial = get_int_from_token(tokens[1], __FILE__, __LINE__);
-    paramb.basis_size_angular = get_int_from_token(tokens[2], __FILE__, __LINE__);
+  tokens = get_tokens(input);
+  if (tokens.size() != 3) {
+    print_tokens(tokens);
+    std::cout << "This line should be basis_size basis_size_radial basis_size_angular."
+              << std::endl;
+    exit(1);
   }
+  paramb.basis_size_radial = get_int_from_token(tokens[1], __FILE__, __LINE__);
+  paramb.basis_size_angular = get_int_from_token(tokens[2], __FILE__, __LINE__);
 
   // l_max
   tokens = get_tokens(input);
-  if (paramb.version == 2) {
-    if (tokens.size() != 2) {
-      print_tokens(tokens);
-      std::cout << "This line should be l_max l_max_3body." << std::endl;
-      exit(1);
-    }
-  } else {
-    if (tokens.size() != 4) {
-      print_tokens(tokens);
-      std::cout << "This line should be l_max l_max_3body l_max_4body l_max_5body." << std::endl;
-      exit(1);
-    }
+  if (tokens.size() != 4) {
+    print_tokens(tokens);
+    std::cout << "This line should be l_max l_max_3body l_max_4body l_max_5body." << std::endl;
+    exit(1);
   }
 
   paramb.L_max = get_int_from_token(tokens[1], __FILE__, __LINE__);
   paramb.num_L = paramb.L_max;
 
-  if (paramb.version >= 3) {
-    int L_max_4body = get_int_from_token(tokens[2], __FILE__, __LINE__);
-    int L_max_5body = get_int_from_token(tokens[3], __FILE__, __LINE__);
-    if (L_max_4body == 2) {
-      paramb.num_L += 1;
-    }
-    if (L_max_5body == 1) {
-      paramb.num_L += 1;
-    }
+  int L_max_4body = get_int_from_token(tokens[2], __FILE__, __LINE__);
+  int L_max_5body = get_int_from_token(tokens[3], __FILE__, __LINE__);
+  if (L_max_4body == 2) {
+    paramb.num_L += 1;
+  }
+  if (L_max_5body == 1) {
+    paramb.num_L += 1;
   }
 
   paramb.dim_angular = (paramb.n_max_angular + 1) * paramb.num_L;
@@ -2694,21 +2624,10 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   int num_para_descriptor =
     paramb.num_types_sq * ((paramb.n_max_radial + 1) * (paramb.basis_size_radial + 1) +
                            (paramb.n_max_angular + 1) * (paramb.basis_size_angular + 1));
-  if (paramb.version == 2) {
-    num_para_descriptor =
-      (paramb.num_types == 1)
-        ? 0
-        : paramb.num_types_sq * (paramb.n_max_radial + paramb.n_max_angular + 2);
-  }
   annmb.num_para += num_para_descriptor;
 
   paramb.num_c_radial =
     paramb.num_types_sq * (paramb.n_max_radial + 1) * (paramb.basis_size_radial + 1);
-
-  if (paramb.version == 2) {
-    paramb.num_c_radial =
-      (paramb.num_types == 1) ? 0 : paramb.num_types_sq * (paramb.n_max_radial + 1);
-  }
 
   // NN and descriptor parameters
   parameters.resize(annmb.num_para);
@@ -2765,10 +2684,8 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
     std::cout << "    angular cutoff = " << paramb.rc_angular << " A.\n";
     std::cout << "    n_max_radial = " << paramb.n_max_radial << ".\n";
     std::cout << "    n_max_angular = " << paramb.n_max_angular << ".\n";
-    if (paramb.version >= 3) {
-      std::cout << "    basis_size_radial = " << paramb.basis_size_radial << ".\n";
-      std::cout << "    basis_size_angular = " << paramb.basis_size_angular << ".\n";
-    }
+    std::cout << "    basis_size_radial = " << paramb.basis_size_radial << ".\n";
+    std::cout << "    basis_size_angular = " << paramb.basis_size_angular << ".\n";
     std::cout << "    l_max_3body = " << paramb.L_max << ".\n";
     std::cout << "    l_max_4body = " << (paramb.num_L >= 5 ? 2 : 0) << ".\n";
     std::cout << "    l_max_5body = " << (paramb.num_L >= 6 ? 1 : 0) << ".\n";
@@ -2813,7 +2730,7 @@ void NEP3::update_potential(double* parameters, ANN& ann)
 {
   double* pointer = parameters;
   for (int t = 0; t < paramb.num_types; ++t) {
-    if (t > 0 && paramb.version != 4) { // Use the same set of NN parameters for NEP2 and NEP3
+    if (t > 0 && paramb.version != 4) { // Use the same set of NN parameters for NEP3
       pointer -= (ann.dim + 2) * ann.num_neurons1;
     }
     ann.w0[t] = pointer;
@@ -2829,7 +2746,7 @@ void NEP3::update_potential(double* parameters, ANN& ann)
 
   if (paramb.model_type == 2) {
     for (int t = 0; t < paramb.num_types; ++t) {
-      if (t > 0 && paramb.version != 4) { // Use the same set of NN parameters for NEP2 and NEP3
+      if (t > 0 && paramb.version != 4) { // Use the same set of NN parameters for NEP3
         pointer -= (ann.dim + 2) * ann.num_neurons1;
       }
       ann.w0_pol[t] = pointer;
@@ -2962,7 +2879,7 @@ void NEP3::compute(
 
   if (zbl.enabled) {
     find_force_ZBL_small_box(
-      N, zbl, NN_angular.data(), NL_angular.data(), type.data(), r12.data() + size_x12 * 3,
+      paramb, N, zbl, NN_angular.data(), NL_angular.data(), type.data(), r12.data() + size_x12 * 3,
       r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, force.data(), force.data() + N,
       force.data() + N * 2, virial.data(), potential.data());
   }
