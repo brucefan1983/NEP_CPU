@@ -46,15 +46,15 @@ public:
     int dim = 0;
     int num_neurons1 = 0;
     int num_para = 0;
-    const double* w0[103];
-    const double* b0[103];
-    const double* w1[103];
+    const double* w0[94];
+    const double* b0[94];
+    const double* w1[94];
     const double* b1;
     const double* c;
     // for the scalar part of polarizability
-    const double* w0_pol[103];
-    const double* b0_pol[103];
-    const double* w1_pol[103];
+    const double* w0_pol[94];
+    const double* b0_pol[94];
+    const double* w1_pol[94];
     const double* b1_pol;
   };
 
@@ -64,7 +64,7 @@ public:
     int num_types;
     double rc_inner = 1.0;
     double rc_outer = 2.0;
-    double atomic_numbers[103];
+    double atomic_numbers[94];
     double para[550];
   };
 
