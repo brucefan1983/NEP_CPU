@@ -33,6 +33,7 @@ class PairNEP : public Pair
 public:
   double cutoff;
   NEP3 nep_model;
+  int *type_map;
   PairNEP(class LAMMPS*);
   virtual ~PairNEP();
   virtual void coeff(int, char**);

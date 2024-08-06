@@ -23,7 +23,6 @@
 #include "neigh_list.h"
 #include "neigh_request.h"
 #include "neighbor.h"
-#include "nep.h"
 #include <fstream>
 #include <math.h>
 #include <stdio.h>
@@ -47,6 +46,7 @@ PairNEP::PairNEP(LAMMPS* lmp) : Pair(lmp)
   manybody_flag = 1;
 
   single_enable = 0;
+  one_coeff = 1;
 
   inited = false;
   allocated = 0;
@@ -60,6 +60,7 @@ PairNEP::~PairNEP()
   if (allocated) {
     memory->destroy(setflag);
     memory->destroy(cutsq);
+    delete[] type_map;
   }
 }
 
@@ -74,6 +75,8 @@ void PairNEP::allocate()
 
   memory->create(cutsq, n + 1, n + 1, "pair:cutsq");
 
+  map = new int[n + 1];
+  type_map = new int[n + 1];
   allocated = 1;
 }
 
@@ -81,14 +84,22 @@ void PairNEP::coeff(int narg, char** arg)
 {
   if (!allocated)
     allocate();
+
+  map_element2type(narg-3, arg+3);
+  model_filename = arg[2];
+
+  // copy the type map list
+  int ntype = atom->ntypes;
+  for (int i = 0; i <= ntype; ++i) {
+    type_map[i] = map[i];
+  }
 }
 
 void PairNEP::settings(int narg, char** arg)
 {
-  if (narg != 1) {
-    error->all(FLERR, "Illegal pair_style command; nep requires 1 parameter");
+  if (narg > 0) {
+    error->all(FLERR, "Illegal pair_style command; nep doesn't require any parameter");
   }
-  model_filename = arg[0];
 }
 
 void PairNEP::init_style()
@@ -103,6 +114,7 @@ void PairNEP::init_style()
 
   bool is_rank_0 = (comm->me == 0);
   nep_model.init_from_file(model_filename, is_rank_0);
+  nep_model.update_type_map(atom->ntypes, type_map, elements);
   inited = true;
   cutoff = nep_model.paramb.rc_radial;
   cutoffsq = cutoff * cutoff;
@@ -131,8 +143,8 @@ void PairNEP::compute(int eflag, int vflag)
   }
 
   nep_model.compute_for_lammps(
-   atom->nlocal, list->inum, list->ilist, list->numneigh, list->firstneigh, atom->type, atom->x, total_potential,
-    total_virial, per_atom_potential, atom->f, per_atom_virial);
+    atom->nlocal, list->inum, list->ilist, list->numneigh, list->firstneigh, atom->type, type_map, 
+    atom->x, total_potential, total_virial, per_atom_potential, atom->f, per_atom_virial);
 
   if (eflag) {
     eng_vdwl += total_potential;
