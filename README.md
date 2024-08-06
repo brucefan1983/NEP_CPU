@@ -46,27 +46,20 @@
 
 * `atom_style` can be `atomic` and `full`
 * `units` must be `metal`
-* Specify the `pair_style` in the following way:
+* Specify the `pair_style` in the same way as other potentials in LAMMPS (the first 2 arguments must be * * so as to span all atom types). For example, if you have a NEP model `NEP_HBCN.txt`, and your data file just have element carbon, you can set
   ```shell
-  pair_style nep YOUR_NEP_MODEL_FILE.txt  # YOUR_NEP_MODEL_FILE.txt is your NEP model file (with path)
-  pair_coeff * *                          # This format is fixed
+  pair_style nep   
+  pair_coeff * *  NEP_HBCN.txt C
   ```
   
-* For multi-element system, the atom types must be carefully set. Take a NEP model `NEP_PdCuNiP.txt` as an example. In this NEP model file, the first line is `nep3 4 Pd Cu Ni P`. Then in your LAMMPS input file, you must set 
-  * Pd atoms to type 1
-  * Cu atoms to type 2
-  * Ni atoms to type 3
-  * P atoms to type 4
-  
-* Some atom types can be missing in the simulated system. For example you can use the above NEP model to simulate a CuNi binary alloy. It is important to make sure to still set Cu atoms to type 2 and Ni atoms to type 3. In this case, atom types 1 and 4 are missing.
-
-* One can hybrid NEP with other potentials in LAMMPS, for example `lj/cut`
+* The interface also supports multi-element system and hybrid potentials. Take a NEP model `NEP_PdCuNiP.txt` as an example. In this NEP model file, the first line is `nep3 4 Pd Cu Ni P`. Then in your LAMMPS input file, the next setting is allowed:
   ```shell
-  pair_style hybrid lj/cut 1.0 nep YOUR_NEP_MODEL_FILE.txt  
-  pair_coeff 1*4 1*4 nep YOUR_NEP_MODEL_FILE.txt
-  pair_coeff 1*5 5 lj/cut 1.0 1.0
+  pair_style hybrid/overlay nep nep ij/cut 1.0
+  pair_coeff * * nep 1 NEP_PdCuNiP.txt Cu   Ni   NULL
+  pair_coeff * * nep 2 NEP_PdCuNiP.txt NULL NULL Pd
+  pair_ceoff 1*2 3 lj/cut 1.0 1.0
   ```
-  This will set the interaction of elements of type 1-5 and elements of type 5 to lj/cut, as well as `lj/cut/coul/long`.
+  
 
 * If you want to calculate the heat current correctly, use the following command to get the 9-component per-atom virial:
   ```shell
