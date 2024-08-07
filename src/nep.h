@@ -23,8 +23,14 @@ class NEP3
 {
 public:
   struct ParaMB {
+    bool use_typewise_cutoff = false;
+    bool use_typewise_cutoff_zbl = false;
+    float typewise_cutoff_radial_factor = 2.5f;
+    float typewise_cutoff_angular_factor = 2.0f;
+    float typewise_cutoff_zbl_factor = 0.65f;
+
     int model_type = 0; // 0=potential, 1=dipole, 2=polarizability
-    int version = 2;
+    int version = 4;
     double rc_radial = 0.0;
     double rc_angular = 0.0;
     double rcinv_radial = 0.0;
@@ -40,6 +46,7 @@ public:
     int num_c_radial = 0;
     int num_types = 0;
     double q_scaler[140];
+    int atomic_numbers[94];
   };
 
   struct ANN {
@@ -64,7 +71,6 @@ public:
     int num_types;
     double rc_inner = 1.0;
     double rc_outer = 2.0;
-    double atomic_numbers[94];
     double para[550];
   };
 
