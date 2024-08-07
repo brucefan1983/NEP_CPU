@@ -1928,8 +1928,7 @@ void find_force_angular_for_lammps(
       find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
       double fn12[MAX_NUM_N];
       double fnp12[MAX_NUM_N];
-      find_fn_and_fnp(
-        paramb.basis_size_angular, rcinv, d12, fc12, fcp12, fn12, fnp12);
+      find_fn_and_fnp(paramb.basis_size_angular, rcinv, d12, fc12, fcp12, fn12, fnp12);
       for (int n = 0; n <= paramb.n_max_angular; ++n) {
         double gn12 = 0.0;
         double gnp12 = 0.0;
@@ -2564,7 +2563,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
       }
     }
     paramb.atomic_numbers[n] = atomic_number;
-    dftd3.atomic_number[n] = atomic_number; // TODO: remove
+    dftd3.atomic_number[n] = atomic_number;
   }
 
   // zbl 0.7 1.4
@@ -2701,7 +2700,8 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
 
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
   if (paramb.use_typewise_cutoff) {
-    PRINT_ERROR("Cannot use tabulated radial functions with typewise cutoff.")
+    std::cout << "Cannot use tabulated radial functions with typewise cutoff." << std::endl;
+    exit(1);
   }
   construct_table(parameters.data());
 #endif
