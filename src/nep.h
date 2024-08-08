@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
- #define USE_TABLE_FOR_RADIAL_FUNCTIONS
+// #define USE_TABLE_FOR_RADIAL_FUNCTIONS
 
 class NEP3
 {
