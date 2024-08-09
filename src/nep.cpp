@@ -65,6 +65,17 @@ const std::string ELEMENTS[NUM_ELEMENTS] = {
   "In", "Sn", "Sb", "Te", "I",  "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd",
   "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "W",  "Re", "Os", "Ir", "Pt", "Au", "Hg",
   "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th", "Pa", "U",  "Np", "Pu"};
+double COVALENT_RADIUS[NUM_ELEMENTS] = {
+  0.426667, 0.613333, 1.6,     1.25333, 1.02667, 1.0,     0.946667, 0.84,    0.853333, 0.893333,
+  1.86667,  1.66667,  1.50667, 1.38667, 1.46667, 1.36,    1.32,     1.28,    2.34667,  2.05333,
+  1.77333,  1.62667,  1.61333, 1.46667, 1.42667, 1.38667, 1.33333,  1.32,    1.34667,  1.45333,
+  1.49333,  1.45333,  1.53333, 1.46667, 1.52,    1.56,    2.52,     2.22667, 1.96,     1.85333,
+  1.76,     1.65333,  1.53333, 1.50667, 1.50667, 1.44,    1.53333,  1.64,    1.70667,  1.68,
+  1.68,     1.64,     1.76,    1.74667, 2.78667, 2.34667, 2.16,     1.96,    2.10667,  2.09333,
+  2.08,     2.06667,  2.01333, 2.02667, 2.01333, 2.0,     1.98667,  1.98667, 1.97333,  2.04,
+  1.94667,  1.82667,  1.74667, 1.64,    1.57333, 1.54667, 1.48,     1.49333, 1.50667,  1.76,
+  1.73333,  1.73333,  1.81333, 1.74667, 1.84,    1.89333, 2.68,     2.41333, 2.22667,  2.10667,
+  2.02667,  2.04,     2.05333, 2.06667};
 
 void apply_ann_one_layer(
   const int dim,
@@ -913,10 +924,20 @@ void find_descriptor_small_box(
       }
 #else
       double fc12;
-      find_fc(paramb.rc_radial, paramb.rcinv_radial, d12, fc12);
       int t2 = g_type[n2];
+      double rc = paramb.rc_radial;
+      double rcinv = paramb.rcinv_radial;
+      if (paramb.use_typewise_cutoff) {
+        rc = std::min(
+          (COVALENT_RADIUS[paramb.atomic_numbers[t1]] +
+           COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
+            paramb.typewise_cutoff_radial_factor,
+          rc);
+        rcinv = 1.0f / rc;
+      }
+      find_fc(rc, rcinv, d12, fc12);
       double fn12[MAX_NUM_N];
-      find_fn(paramb.basis_size_radial, paramb.rcinv_radial, d12, fc12, fn12);
+      find_fn(paramb.basis_size_radial, rcinv, d12, fc12, fn12);
       for (int n = 0; n <= paramb.n_max_radial; ++n) {
         double gn12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_radial; ++k) {
@@ -949,11 +970,21 @@ void find_descriptor_small_box(
             weight_right;
         accumulate_s(d12, r12[0], r12[1], r12[2], gn12, s);
 #else
-        double fc12;
-        find_fc(paramb.rc_angular, paramb.rcinv_angular, d12, fc12);
         int t2 = g_type[n2];
+        double fc12;
+        double rc = paramb.rc_angular;
+        double rcinv = paramb.rcinv_angular;
+        if (paramb.use_typewise_cutoff) {
+          rc = std::min(
+            (COVALENT_RADIUS[paramb.atomic_numbers[t1]] +
+             COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
+              paramb.typewise_cutoff_angular_factor,
+            rc);
+          rcinv = 1.0f / rc;
+        }
+        find_fc(rc, rcinv, d12, fc12);
         double fn12[MAX_NUM_N];
-        find_fn(paramb.basis_size_angular, paramb.rcinv_angular, d12, fc12, fn12);
+        find_fn(paramb.basis_size_angular, rcinv, d12, fc12, fn12);
         double gn12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_angular; ++k) {
           int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
@@ -1074,10 +1105,20 @@ void find_force_radial_small_box(
       }
 #else
       double fc12, fcp12;
-      find_fc_and_fcp(paramb.rc_radial, paramb.rcinv_radial, d12, fc12, fcp12);
+      double rc = paramb.rc_radial;
+      double rcinv = paramb.rcinv_radial;
+      if (paramb.use_typewise_cutoff) {
+        rc = std::min(
+          (COVALENT_RADIUS[paramb.atomic_numbers[t1]] +
+           COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
+            paramb.typewise_cutoff_radial_factor,
+          rc);
+        rcinv = 1.0f / rc;
+      }
+      find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
       double fn12[MAX_NUM_N];
       double fnp12[MAX_NUM_N];
-      find_fn_and_fnp(paramb.basis_size_radial, paramb.rcinv_radial, d12, fc12, fcp12, fn12, fnp12);
+      find_fn_and_fnp(paramb.basis_size_radial, rcinv, d12, fc12, fcp12, fn12, fnp12);
       for (int n = 0; n <= paramb.n_max_radial; ++n) {
         double gnp12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_radial; ++k) {
@@ -1194,14 +1235,23 @@ void find_force_angular_small_box(
         }
       }
 #else
-      double fc12, fcp12;
-      find_fc_and_fcp(paramb.rc_angular, paramb.rcinv_angular, d12, fc12, fcp12);
       int t2 = g_type[n2];
+      double fc12, fcp12;
+      double rc = paramb.rc_angular;
+      double rcinv = paramb.rcinv_angular;
+      if (paramb.use_typewise_cutoff) {
+        rc = std::min(
+          (COVALENT_RADIUS[paramb.atomic_numbers[t1]] +
+           COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
+            paramb.typewise_cutoff_angular_factor,
+          rc);
+        rcinv = 1.0f / rc;
+      }
+      find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
 
       double fn12[MAX_NUM_N];
       double fnp12[MAX_NUM_N];
-      find_fn_and_fnp(
-        paramb.basis_size_angular, paramb.rcinv_angular, d12, fc12, fcp12, fn12, fnp12);
+      find_fn_and_fnp(paramb.basis_size_angular, rcinv, d12, fc12, fcp12, fn12, fnp12);
       for (int n = 0; n <= paramb.n_max_angular; ++n) {
         double gn12 = 0.0;
         double gnp12 = 0.0;
@@ -1260,6 +1310,7 @@ void find_force_angular_small_box(
 
 void find_force_ZBL_small_box(
   const int N,
+  NEP3::ParaMB& paramb,
   const NEP3::ZBL& zbl,
   const int* g_NN,
   const int* g_NL,
@@ -1275,8 +1326,8 @@ void find_force_ZBL_small_box(
 {
   for (int n1 = 0; n1 < N; ++n1) {
     int type1 = g_type[n1];
-    double zi = zbl.atomic_numbers[type1];
-    double pow_zi = pow(zi, 0.23);
+    int zi = paramb.atomic_numbers[type1] + 1;
+    double pow_zi = pow(double(zi), 0.23);
     for (int i1 = 0; i1 < g_NN[n1]; ++i1) {
       int index = i1 * N + n1;
       int n2 = g_NL[index];
@@ -1285,8 +1336,8 @@ void find_force_ZBL_small_box(
       double d12inv = 1.0 / d12;
       double f, fp;
       int type2 = g_type[n2];
-      double zj = zbl.atomic_numbers[type2];
-      double a_inv = (pow_zi + pow(zj, 0.23)) * 2.134563;
+      int zj = paramb.atomic_numbers[type2] + 1;
+      double a_inv = (pow_zi + pow(double(zj), 0.23)) * 2.134563;
       double zizj = K_C_SP * zi * zj;
       if (zbl.flexibled) {
         int t1, t2;
@@ -1304,7 +1355,16 @@ void find_force_ZBL_small_box(
         }
         find_f_and_fp_zbl(ZBL_para, zizj, a_inv, d12, d12inv, f, fp);
       } else {
-        find_f_and_fp_zbl(zizj, a_inv, zbl.rc_inner, zbl.rc_outer, d12, d12inv, f, fp);
+        double rc_inner = zbl.rc_inner;
+        double rc_outer = zbl.rc_outer;
+        if (paramb.use_typewise_cutoff_zbl) {
+          // zi and zj start from 1, so need to minus 1 here
+          rc_outer = std::min(
+            (COVALENT_RADIUS[zi - 1] + COVALENT_RADIUS[zj - 1]) * paramb.typewise_cutoff_zbl_factor,
+            rc_outer);
+          rc_inner = rc_outer * 0.5f;
+        }
+        find_f_and_fp_zbl(zizj, a_inv, rc_inner, rc_outer, d12, d12inv, f, fp);
       }
       double f2 = fp * d12inv * 0.5;
       double f12[3] = {r12[0] * f2, r12[1] * f2, r12[2] * f2};
@@ -1563,9 +1623,19 @@ void find_descriptor_for_lammps(
       }
 #else
       double fc12;
-      find_fc(paramb.rc_radial, paramb.rcinv_radial, d12, fc12);
+      double rc = paramb.rc_radial;
+      double rcinv = paramb.rcinv_radial;
+      if (paramb.use_typewise_cutoff) {
+        rc = std::min(
+          (COVALENT_RADIUS[paramb.atomic_numbers[t1]] +
+           COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
+            paramb.typewise_cutoff_radial_factor,
+          rc);
+        rcinv = 1.0f / rc;
+      }
+      find_fc(rc, rcinv, d12, fc12);
       double fn12[MAX_NUM_N];
-      find_fn(paramb.basis_size_radial, paramb.rcinv_radial, d12, fc12, fn12);
+      find_fn(paramb.basis_size_radial, rcinv, d12, fc12, fn12);
       for (int n = 0; n <= paramb.n_max_radial; ++n) {
         double gn12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_radial; ++k) {
@@ -1606,9 +1676,19 @@ void find_descriptor_for_lammps(
         accumulate_s(d12, r12[0], r12[1], r12[2], gn12, s);
 #else
         double fc12;
-        find_fc(paramb.rc_angular, paramb.rcinv_angular, d12, fc12);
+        double rc = paramb.rc_angular;
+        double rcinv = paramb.rcinv_angular;
+        if (paramb.use_typewise_cutoff) {
+          rc = std::min(
+            (COVALENT_RADIUS[paramb.atomic_numbers[t1]] +
+             COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
+              paramb.typewise_cutoff_angular_factor,
+            rc);
+          rcinv = 1.0f / rc;
+        }
+        find_fc(rc, rcinv, d12, fc12);
         double fn12[MAX_NUM_N];
-        find_fn(paramb.basis_size_angular, paramb.rcinv_angular, d12, fc12, fn12);
+        find_fn(paramb.basis_size_angular, rcinv, d12, fc12, fn12);
         double gn12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_angular; ++k) {
           int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
@@ -1704,10 +1784,20 @@ void find_force_radial_for_lammps(
       }
 #else
       double fc12, fcp12;
-      find_fc_and_fcp(paramb.rc_radial, paramb.rcinv_radial, d12, fc12, fcp12);
+      double rc = paramb.rc_radial;
+      double rcinv = paramb.rcinv_radial;
+      if (paramb.use_typewise_cutoff) {
+        rc = std::min(
+          (COVALENT_RADIUS[paramb.atomic_numbers[t1]] +
+           COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
+            paramb.typewise_cutoff_radial_factor,
+          rc);
+        rcinv = 1.0f / rc;
+      }
+      find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
       double fn12[MAX_NUM_N];
       double fnp12[MAX_NUM_N];
-      find_fn_and_fnp(paramb.basis_size_radial, paramb.rcinv_radial, d12, fc12, fcp12, fn12, fnp12);
+      find_fn_and_fnp(paramb.basis_size_radial, rcinv, d12, fc12, fcp12, fn12, fnp12);
       for (int n = 0; n <= paramb.n_max_radial; ++n) {
         double gnp12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_radial; ++k) {
@@ -1825,11 +1915,20 @@ void find_force_angular_for_lammps(
       }
 #else
       double fc12, fcp12;
-      find_fc_and_fcp(paramb.rc_angular, paramb.rcinv_angular, d12, fc12, fcp12);
+      double rc = paramb.rc_angular;
+      double rcinv = paramb.rcinv_angular;
+      if (paramb.use_typewise_cutoff) {
+        rc = std::min(
+          (COVALENT_RADIUS[paramb.atomic_numbers[t1]] +
+           COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
+            paramb.typewise_cutoff_angular_factor,
+          rc);
+        rcinv = 1.0f / rc;
+      }
+      find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
       double fn12[MAX_NUM_N];
       double fnp12[MAX_NUM_N];
-      find_fn_and_fnp(
-        paramb.basis_size_angular, paramb.rcinv_angular, d12, fc12, fcp12, fn12, fnp12);
+      find_fn_and_fnp(paramb.basis_size_angular, rcinv, d12, fc12, fcp12, fn12, fnp12);
       for (int n = 0; n <= paramb.n_max_angular; ++n) {
         double gn12 = 0.0;
         double gnp12 = 0.0;
@@ -1880,6 +1979,7 @@ void find_force_angular_for_lammps(
 }
 
 void find_force_ZBL_for_lammps(
+  NEP3::ParaMB& paramb,
   const NEP3::ZBL& zbl,
   int N,
   int* g_ilist,
@@ -1896,9 +1996,9 @@ void find_force_ZBL_for_lammps(
 {
   for (int ii = 0; ii < N; ++ii) {
     int n1 = g_ilist[ii];
-    int type1 = type_map[g_type[n1]];
-    double zi = zbl.atomic_numbers[type1]; // from LAMMPS to NEP convention
-    double pow_zi = pow(zi, 0.23);
+    int type1 = type_map[g_type[n1]]; // from LAMMPS to NEP convention
+    int zi = paramb.atomic_numbers[type1] + 1;
+    double pow_zi = pow(double(zi), 0.23);
     for (int i1 = 0; i1 < g_NN[n1]; ++i1) {
       int n2 = g_NL[n1][i1];
       double r12[3] = {
@@ -1913,9 +2013,9 @@ void find_force_ZBL_for_lammps(
 
       double d12inv = 1.0 / d12;
       double f, fp;
-      int type2 = type_map[g_type[n2]];
-      double zj = zbl.atomic_numbers[type2]; // from LAMMPS to NEP convention
-      double a_inv = (pow_zi + pow(zj, 0.23)) * 2.134563;
+      int type2 = type_map[g_type[n2]]; // from LAMMPS to NEP convention
+      int zj = paramb.atomic_numbers[type2] + 1;
+      double a_inv = (pow_zi + pow(double(zj), 0.23)) * 2.134563;
       double zizj = K_C_SP * zi * zj;
       if (zbl.flexibled) {
         int t1, t2;
@@ -1933,7 +2033,16 @@ void find_force_ZBL_for_lammps(
         }
         find_f_and_fp_zbl(ZBL_para, zizj, a_inv, d12, d12inv, f, fp);
       } else {
-        find_f_and_fp_zbl(zizj, a_inv, zbl.rc_inner, zbl.rc_outer, d12, d12inv, f, fp);
+        double rc_inner = zbl.rc_inner;
+        double rc_outer = zbl.rc_outer;
+        if (paramb.use_typewise_cutoff_zbl) {
+          // zi and zj start from 1, so need to minus 1 here
+          rc_outer = std::min(
+            (COVALENT_RADIUS[zi - 1] + COVALENT_RADIUS[zj - 1]) * paramb.typewise_cutoff_zbl_factor,
+            rc_outer);
+          rc_inner = rc_outer * 0.5f;
+        }
+        find_f_and_fp_zbl(zizj, a_inv, rc_inner, rc_outer, d12, d12inv, f, fp);
       }
       double f2 = fp * d12inv * 0.5;
       double f12[3] = {r12[0] * f2, r12[1] * f2, r12[2] * f2};
@@ -2449,12 +2558,12 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
     element_list[n] = tokens[2 + n];
     for (int m = 0; m < NUM_ELEMENTS; ++m) {
       if (tokens[2 + n] == ELEMENTS[m]) {
-        atomic_number = m + 1;
+        atomic_number = m;
         break;
       }
     }
-    zbl.atomic_numbers[n] = atomic_number;
-    dftd3.atomic_number[n] = atomic_number - 1;
+    paramb.atomic_numbers[n] = atomic_number;
+    dftd3.atomic_number[n] = atomic_number;
   }
 
   // zbl 0.7 1.4
@@ -2474,13 +2583,27 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
 
   // cutoff 4.2 3.7 80 47
   tokens = get_tokens(input);
-  if (tokens.size() != 3 && tokens.size() != 5) {
+  if (tokens.size() != 5 && tokens.size() != 8) {
     print_tokens(tokens);
-    std::cout << "This line should be cutoff rc_radial rc_angular [MN_radial] [MN_angular].\n";
+    std::cout << "This line should be cutoff rc_radial rc_angular MN_radial MN_angular "
+                 "[radial_factor] [angular_factor] [zbl_factor].\n";
     exit(1);
   }
   paramb.rc_radial = get_double_from_token(tokens[1], __FILE__, __LINE__);
   paramb.rc_angular = get_double_from_token(tokens[2], __FILE__, __LINE__);
+  int MN_radial = get_int_from_token(tokens[3], __FILE__, __LINE__);  // not used
+  int MN_angular = get_int_from_token(tokens[4], __FILE__, __LINE__); // not used
+  if (tokens.size() == 8) {
+    paramb.typewise_cutoff_radial_factor = get_double_from_token(tokens[5], __FILE__, __LINE__);
+    paramb.typewise_cutoff_angular_factor = get_double_from_token(tokens[6], __FILE__, __LINE__);
+    paramb.typewise_cutoff_zbl_factor = get_double_from_token(tokens[7], __FILE__, __LINE__);
+    if (paramb.typewise_cutoff_radial_factor > 0.0f) {
+      paramb.use_typewise_cutoff = true;
+    }
+    if (paramb.typewise_cutoff_zbl_factor > 0.0f) {
+      paramb.use_typewise_cutoff_zbl = true;
+    }
+  }
 
   // n_max 10 8
   tokens = get_tokens(input);
@@ -2576,6 +2699,10 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   input.close();
 
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
+  if (paramb.use_typewise_cutoff) {
+    std::cout << "Cannot use tabulated radial functions with typewise cutoff." << std::endl;
+    exit(1);
+  }
   construct_table(parameters.data());
 #endif
 
@@ -2592,7 +2719,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
 
     for (int n = 0; n < paramb.num_types; ++n) {
       std::cout << "    type " << n << "( " << element_list[n]
-                << " with Z = " << zbl.atomic_numbers[n] << ").\n";
+                << " with Z = " << paramb.atomic_numbers[n] + 1 << ").\n";
     }
 
     if (zbl.enabled) {
@@ -2601,10 +2728,20 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
       } else {
         std::cout << "    has universal ZBL with inner cutoff " << zbl.rc_inner
                   << " A and outer cutoff " << zbl.rc_outer << " A.\n";
+        if (paramb.use_typewise_cutoff_zbl) {
+          std::cout << "    ZBL typewise cutoff is enabled with factor "
+                    << paramb.typewise_cutoff_zbl_factor << ".\n";
+        }
       }
     }
     std::cout << "    radial cutoff = " << paramb.rc_radial << " A.\n";
     std::cout << "    angular cutoff = " << paramb.rc_angular << " A.\n";
+    if (paramb.use_typewise_cutoff) {
+      std::cout << "    typewise cutoff is enabled with radial factor "
+                << paramb.typewise_cutoff_radial_factor << " and angular factor "
+                << paramb.typewise_cutoff_angular_factor << ".\n";
+    }
+
     std::cout << "    n_max_radial = " << paramb.n_max_radial << ".\n";
     std::cout << "    n_max_angular = " << paramb.n_max_angular << ".\n";
     std::cout << "    basis_size_radial = " << paramb.basis_size_radial << ".\n";
@@ -2799,7 +2936,7 @@ void NEP3::compute(
 
   if (zbl.enabled) {
     find_force_ZBL_small_box(
-      N, zbl, NN_angular.data(), NL_angular.data(), type.data(), r12.data() + size_x12 * 3,
+      N, paramb, zbl, NN_angular.data(), NL_angular.data(), type.data(), r12.data() + size_x12 * 3,
       r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, force.data(), force.data() + N,
       force.data() + N * 2, virial.data(), potential.data());
   }
@@ -3154,8 +3291,8 @@ void NEP3::compute_for_lammps(
     force, total_virial, virial);
   if (zbl.enabled) {
     find_force_ZBL_for_lammps(
-      zbl, N, ilist, NN, NL, type, type_map, pos, force, total_virial, virial, total_potential,
-      potential);
+      paramb, zbl, N, ilist, NN, NL, type, type_map, pos, force, total_virial, virial,
+      total_potential, potential);
   }
 }
 
