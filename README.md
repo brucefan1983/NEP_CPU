@@ -51,7 +51,7 @@
   pair_style nep   
   pair_coeff * *  NEP_HBCN.txt C
   ```
-  
+  Firstly, we should set `pair_stype` to `nep`, showed in the first line. Then we need set the NEP potential file and atom types by the command `pair_coeff`. Two asterisks `* *` mean every atom type will be set an element type or `NULL`. `NULL` means this potential doesn't consider the atom type. In this example, we set atom type `1` in LAMMPS data file to element `C` in NEP potential file. 
 * The interface also supports multi-element system and hybrid potentials. Take a NEP model `NEP_PdCuNiP.txt` as an example. In this NEP model file, the first line is `nep3 4 Pd Cu Ni P`. Then in your LAMMPS input file, the next setting is allowed:
   ```shell
   pair_style hybrid/overlay nep nep ij/cut 1.0
@@ -59,7 +59,8 @@
   pair_coeff * * nep 2 NEP_PdCuNiP.txt NULL NULL Pd
   pair_ceoff 1*2 3 lj/cut 1.0 1.0
   ```
-  
+  The `pair_style` should be set `hybrid/overly` or other hybrid methods in LAMMPS. The hybrid potentials should be set after hybrid method. Then, in command `pair_coeff` we need set potential name again to identify which potential is setting for and the number of the potential if more than one. 
+  Here, we set two NEP potentials. The first one just computes the NEP potential between atom type `1` `Cu` and `2` `Ni`, and of themselves. The second computes NEP potential of atom type `3` `Pd` itself.
 
 * If you want to calculate the heat current correctly, use the following command to get the 9-component per-atom virial:
   ```shell
