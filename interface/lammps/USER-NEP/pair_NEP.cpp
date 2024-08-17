@@ -85,14 +85,30 @@ void PairNEP::coeff(int narg, char** arg)
   if (!allocated)
     allocate();
 
-  map_element2type(narg-3, arg+3);
+  bool is_rank_0 = (comm->me == 0);
   model_filename = arg[2];
+
+  // get atom types in lammps input file
+  map_element2type(narg-3, arg+3);
 
   // copy the type map list
   int ntype = atom->ntypes;
   for (int i = 0; i <= ntype; ++i) {
     type_map[i] = map[i];
   }
+
+  // read the potential file
+  nep_model.init_from_file(model_filename, is_rank_0);
+  // update the type map to elements in potential file
+  nep_model.update_type_map(atom->ntypes, type_map, elements);
+
+  // get cutoff from NEP model
+  cutoff = nep_model.paramb.rc_radial;
+  cutoffsq = cutoff * cutoff;
+  int n = atom->ntypes;
+  for (int i = 1; i <= n; i++)
+    for (int j = 1; j <= n; j++)
+      cutsq[i][j] = cutoffsq;
 }
 
 void PairNEP::settings(int narg, char** arg)
@@ -112,16 +128,6 @@ void PairNEP::init_style()
   neighbor->requests[irequest]->full = 1;
 #endif
 
-  bool is_rank_0 = (comm->me == 0);
-  nep_model.init_from_file(model_filename, is_rank_0);
-  nep_model.update_type_map(atom->ntypes, type_map, elements);
-  inited = true;
-  cutoff = nep_model.paramb.rc_radial;
-  cutoffsq = cutoff * cutoff;
-  int n = atom->ntypes;
-  for (int i = 1; i <= n; i++)
-    for (int j = 1; j <= n; j++)
-      cutsq[i][j] = cutoffsq;
 }
 
 double PairNEP::init_one(int i, int j) { return cutoff; }
