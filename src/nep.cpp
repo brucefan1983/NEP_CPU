@@ -197,6 +197,34 @@ void apply_ann_one_layer(
   energy -= b1[0];
 }
 
+void apply_ann_one_layer_nep5(
+  const int dim,
+  const int num_neurons1,
+  const double* w0,
+  const double* b0,
+  const double* w1,
+  const double* b1,
+  double* q,
+  double& energy,
+  double* energy_derivative,
+  double* latent_space)
+{
+  for (int n = 0; n < num_neurons1; ++n) {
+    double w0_times_q = 0.0;
+    for (int d = 0; d < dim; ++d) {
+      w0_times_q += w0[n * dim + d] * q[d];
+    }
+    double x1 = tanh(w0_times_q - b0[n]);
+    latent_space[n] = w1[n] * x1; // also try x1
+    energy += w1[n] * x1;
+    for (int d = 0; d < dim; ++d) {
+      double y1 = (1.0 - x1 * x1) * w0[n * dim + d];
+      energy_derivative[d] += w1[n] * y1;
+    }
+  }
+  energy -= w1[num_neurons1] + b1[0]; // typewise bias + common bias
+}
+
 void find_fc(double rc, double rcinv, double d12, double& fc)
 {
   if (d12 < rc) {
@@ -1063,9 +1091,15 @@ void find_descriptor_small_box(
         }
       }
 
-      apply_ann_one_layer(
-        annmb.dim, annmb.num_neurons1, annmb.w0[t1], annmb.b0[t1], annmb.w1[t1], annmb.b1, q, F, Fp,
-        latent_space);
+      if (paramb.version == 5) {
+        apply_ann_one_layer_nep5(
+          annmb.dim, annmb.num_neurons1, annmb.w0[t1], annmb.b0[t1], annmb.w1[t1], annmb.b1, q, F, Fp,
+          latent_space);
+      } else {
+        apply_ann_one_layer(
+          annmb.dim, annmb.num_neurons1, annmb.w0[t1], annmb.b0[t1], annmb.w1[t1], annmb.b1, q, F, Fp,
+          latent_space);
+      }
 
       if (calculating_latent_space) {
         for (int n = 0; n < annmb.num_neurons1; ++n) {
@@ -1721,9 +1755,16 @@ void find_descriptor_for_lammps(
     }
 
     double F = 0.0, Fp[MAX_DIM] = {0.0}, latent_space[MAX_NEURON] = {0.0};
-    apply_ann_one_layer(
-      annmb.dim, annmb.num_neurons1, annmb.w0[t1], annmb.b0[t1], annmb.w1[t1], annmb.b1, q, F, Fp,
-      latent_space);
+
+    if (paramb.version == 5) {
+      apply_ann_one_layer_nep5(
+        annmb.dim, annmb.num_neurons1, annmb.w0[t1], annmb.b0[t1], annmb.w1[t1], annmb.b1, q, F, Fp,
+        latent_space);
+    } else {
+      apply_ann_one_layer(
+        annmb.dim, annmb.num_neurons1, annmb.w0[t1], annmb.b0[t1], annmb.w1[t1], annmb.b1, q, F, Fp,
+        latent_space);
+    }
 
     g_total_potential += F; // always calculate this
     if (g_potential) {      // only calculate when required
@@ -2532,6 +2573,14 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
     paramb.model_type = 2;
     paramb.version = 4;
     zbl.enabled = false;
+  } else if (tokens[0] == "nep5") {
+    paramb.model_type = 0;
+    paramb.version = 5;
+    zbl.enabled = false;
+  } else if (tokens[0] == "nep5_zbl") {
+    paramb.model_type = 0;
+    paramb.version = 5;
+    zbl.enabled = true;
   }
 
   paramb.num_types = get_int_from_token(tokens[1], __FILE__, __LINE__);
@@ -2652,15 +2701,20 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   paramb.rcinv_radial = 1.0 / paramb.rc_radial;
   paramb.rcinv_angular = 1.0 / paramb.rc_angular;
   paramb.num_types_sq = paramb.num_types * paramb.num_types;
-  annmb.num_para =
-    (annmb.dim + 2) * annmb.num_neurons1 * (paramb.version == 4 ? paramb.num_types : 1) + 1;
+  if (paramb.version == 3) {
+    annmb.num_para_ann = (annmb.dim + 2) * annmb.num_neurons1 + 1;
+  } else if (paramb.version == 4) {
+    annmb.num_para_ann = (annmb.dim + 2) * annmb.num_neurons1 * paramb.num_types + 1;
+  } else {
+    annmb.num_para_ann = ((annmb.dim + 2) * annmb.num_neurons1 + 1) * paramb.num_types + 1;
+  }
   if (paramb.model_type == 2) {
-    annmb.num_para *= 2;
+    annmb.num_para_ann *= 2;
   }
   int num_para_descriptor =
     paramb.num_types_sq * ((paramb.n_max_radial + 1) * (paramb.basis_size_radial + 1) +
                            (paramb.n_max_angular + 1) * (paramb.basis_size_angular + 1));
-  annmb.num_para += num_para_descriptor;
+  annmb.num_para = annmb.num_para_ann + num_para_descriptor;
 
   paramb.num_c_radial =
     paramb.num_types_sq * (paramb.n_max_radial + 1) * (paramb.basis_size_radial + 1);
@@ -2740,8 +2794,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
     std::cout << "    l_max_4body = " << (paramb.num_L >= 5 ? 2 : 0) << ".\n";
     std::cout << "    l_max_5body = " << (paramb.num_L >= 6 ? 1 : 0) << ".\n";
     std::cout << "    ANN = " << annmb.dim << "-" << annmb.num_neurons1 << "-1.\n";
-    std::cout << "    number of neural network parameters = "
-              << annmb.num_para - num_para_descriptor << ".\n";
+    std::cout << "    number of neural network parameters = " << annmb.num_para_ann << ".\n";
     std::cout << "    number of descriptor parameters = " << num_para_descriptor << ".\n";
     std::cout << "    total number of parameters = " << annmb.num_para << ".\n";
   }
@@ -2777,7 +2830,7 @@ void NEP3::update_potential(double* parameters, ANN& ann)
 {
   double* pointer = parameters;
   for (int t = 0; t < paramb.num_types; ++t) {
-    if (t > 0 && paramb.version != 4) { // Use the same set of NN parameters for NEP3
+    if (t > 0 && paramb.version == 3) { // Use the same set of NN parameters for NEP3
       pointer -= (ann.dim + 2) * ann.num_neurons1;
     }
     ann.w0[t] = pointer;
@@ -2786,6 +2839,9 @@ void NEP3::update_potential(double* parameters, ANN& ann)
     pointer += ann.num_neurons1;
     ann.w1[t] = pointer;
     pointer += ann.num_neurons1;
+    if (paramb.version == 5) {
+      pointer += 1; // one extra bias for NEP5 stored in ann.w1[t]
+    }
   }
 
   ann.b1 = pointer;
@@ -2793,7 +2849,7 @@ void NEP3::update_potential(double* parameters, ANN& ann)
 
   if (paramb.model_type == 2) {
     for (int t = 0; t < paramb.num_types; ++t) {
-      if (t > 0 && paramb.version != 4) { // Use the same set of NN parameters for NEP3
+      if (t > 0 && paramb.version == 3) { // Use the same set of NN parameters for NEP3
         pointer -= (ann.dim + 2) * ann.num_neurons1;
       }
       ann.w0_pol[t] = pointer;
@@ -2817,9 +2873,7 @@ void NEP3::construct_table(double* parameters)
   gnp_radial.resize(table_length * paramb.num_types_sq * (paramb.n_max_radial + 1));
   gn_angular.resize(table_length * paramb.num_types_sq * (paramb.n_max_angular + 1));
   gnp_angular.resize(table_length * paramb.num_types_sq * (paramb.n_max_angular + 1));
-  double* c_pointer =
-    parameters +
-    (annmb.dim + 2) * annmb.num_neurons1 * (paramb.version == 4 ? paramb.num_types : 1) + 1;
+  double* c_pointer = parameters + annmb.num_para_ann;
   construct_table_radial_or_angular(
     paramb.version, paramb.num_types, paramb.num_types_sq, paramb.n_max_radial,
     paramb.basis_size_radial, paramb.rc_radial, paramb.rcinv_radial, c_pointer, gn_radial.data(),
