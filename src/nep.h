@@ -25,9 +25,9 @@ public:
   struct ParaMB {
     bool use_typewise_cutoff = false;
     bool use_typewise_cutoff_zbl = false;
-    float typewise_cutoff_radial_factor = 2.5f;
-    float typewise_cutoff_angular_factor = 2.0f;
-    float typewise_cutoff_zbl_factor = 0.65f;
+    double typewise_cutoff_radial_factor = 2.5;
+    double typewise_cutoff_angular_factor = 2.0;
+    double typewise_cutoff_zbl_factor = 0.65;
 
     int model_type = 0; // 0=potential, 1=dipole, 2=polarizability
     int version = 4;
