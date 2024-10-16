@@ -41,19 +41,104 @@ namespace
 {
 const int MAX_NEURON = 200; // maximum number of neurons in the hidden layer
 const int MN = 1000;        // maximum number of neighbors for one atom
-const int NUM_OF_ABC = 24;  // 3 + 5 + 7 + 9 for L_max = 4
+const int NUM_OF_ABC = 80; // 3 + 5 + 7 + 9 + 11 + 13 + 15 + 17 for L_max = 8
 const int MAX_NUM_N = 20;   // n_max+1 = 19+1
 const int MAX_DIM = MAX_NUM_N * 7;
 const int MAX_DIM_ANGULAR = MAX_NUM_N * 6;
 const double C3B[NUM_OF_ABC] = {
-  0.238732414637843, 0.119366207318922, 0.119366207318922, 0.099471839432435, 0.596831036594608,
-  0.596831036594608, 0.149207759148652, 0.149207759148652, 0.139260575205408, 0.104445431404056,
-  0.104445431404056, 1.044454314040563, 1.044454314040563, 0.174075719006761, 0.174075719006761,
-  0.011190581936149, 0.223811638722978, 0.223811638722978, 0.111905819361489, 0.111905819361489,
-  1.566681471060845, 1.566681471060845, 0.195835183882606, 0.195835183882606};
+  0.238732414637843, 0.119366207318922, 0.119366207318922, 0.099471839432435,
+  0.596831036594608, 0.596831036594608, 0.149207759148652, 0.149207759148652,
+  0.139260575205408, 0.104445431404056, 0.104445431404056, 1.044454314040563,
+  1.044454314040563, 0.174075719006761, 0.174075719006761, 0.011190581936149,
+  0.223811638722978, 0.223811638722978, 0.111905819361489, 0.111905819361489,
+  1.566681471060845, 1.566681471060845, 0.195835183882606, 0.195835183882606,
+  0.013677377921960, 0.102580334414698, 0.102580334414698, 2.872249363611549,
+  2.872249363611549, 0.119677056817148, 0.119677056817148, 2.154187022708661,
+  2.154187022708661, 0.215418702270866, 0.215418702270866, 0.004041043476943,
+  0.169723826031592, 0.169723826031592, 0.106077391269745, 0.106077391269745,
+  0.424309565078979, 0.424309565078979, 0.127292869523694, 0.127292869523694,
+  2.800443129521260, 2.800443129521260, 0.233370260793438, 0.233370260793438,
+  0.004662742473395, 0.004079899664221, 0.004079899664221, 0.024479397985326,
+  0.024479397985326, 0.012239698992663, 0.012239698992663, 0.538546755677165,
+  0.538546755677165, 0.134636688919291, 0.134636688919291, 3.500553911901575,
+  3.500553911901575, 0.250039565135827, 0.250039565135827, 0.000082569397966,
+  0.005944996653579, 0.005944996653579, 0.104037441437634, 0.104037441437634,
+  0.762941237209318, 0.762941237209318, 0.114441185581398, 0.114441185581398,
+  5.950941650232678, 5.950941650232678, 0.141689086910302, 0.141689086910302,
+  4.250672607309055, 4.250672607309055, 0.265667037956816, 0.265667037956816
+};
 const double C4B[5] = {
   -0.007499480826664, -0.134990654879954, 0.067495327439977, 0.404971964639861, -0.809943929279723};
 const double C5B[3] = {0.026596810706114, 0.053193621412227, 0.026596810706114};
+
+const double Z_COEFFICIENT_1[2][2] = {
+  {0.0, 1.0},
+  {1.0, 0.0}
+};
+
+const double Z_COEFFICIENT_2[3][3] = {
+  {-1.0, 0.0, 3.0},
+  {0.0, 1.0, 0.0},
+  {1.0, 0.0, 0.0}
+};
+
+const double Z_COEFFICIENT_3[4][4] = {
+  {0.0, -3.0, 0.0, 5.0},
+  {-1.0, 0.0, 5.0, 0.0},
+  {0.0, 1.0, 0.0, 0.0},
+  {1.0, 0.0, 0.0, 0.0}
+};
+
+const double Z_COEFFICIENT_4[5][5] = {
+  {3.0, 0.0, -30.0, 0.0, 35.0},
+  {0.0, -3.0, 0.0, 7.0, 0.0},
+  {-1.0, 0.0, 7.0, 0.0, 0.0},
+  {0.0, 1.0, 0.0, 0.0, 0.0},
+  {1.0, 0.0, 0.0, 0.0, 0.0}
+};
+
+const double Z_COEFFICIENT_5[6][6] = {
+  {0.0, 15.0, 0.0, -70.0, 0.0, 63.0},
+  {1.0, 0.0, -14.0, 0.0, 21.0, 0.0},
+  {0.0, -1.0, 0.0, 3.0, 0.0, 0.0},
+  {-1.0, 0.0, 9.0, 0.0, 0.0, 0.0},
+  {0.0, 1.0, 0.0, 0.0, 0.0, 0.0},
+  {1.0, 0.0, 0.0, 0.0, 0.0, 0.0}
+};
+
+const double Z_COEFFICIENT_6[7][7] = {
+  {-5.0, 0.0, 105.0, 0.0, -315.0, 0.0, 231.0},
+  {0.0, 5.0, 0.0, -30.0, 0.0, 33.0, 0.0},
+  {1.0, 0.0, -18.0, 0.0, 33.0, 0.0, 0.0},
+  {0.0, -3.0, 0.0, 11.0, 0.0, 0.0, 0.0},
+  {-1.0, 0.0, 11.0, 0.0, 0.0, 0.0, 0.0},
+  {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+  {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
+};
+
+const double Z_COEFFICIENT_7[8][8] = {
+  {0.0, -35.0, 0.0, 315.0, 0.0, -693.0, 0.0, 429.0},
+  {-5.0, 0.0, 135.0, 0.0, -495.0, 0.0, 429.0, 0.0},
+  {0.0, 15.0, 0.0, -110.0, 0.0, 143.0, 0.0, 0.0},
+  {3.0, 0.0, -66.0, 0.0, 143.0, 0.0, 0.0, 0.0},
+  {0.0, -3.0, 0.0, 13.0, 0.0, 0.0, 0.0, 0.0},
+  {-1.0, 0.0, 13.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+  {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+  {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
+};
+
+const double Z_COEFFICIENT_8[9][9] = {
+  {35.0, 0.0, -1260.0, 0.0, 6930.0, 0.0, -12012.0, 0.0, 6435.0},
+  {0.0, -35.0, 0.0, 385.0, 0.0, -1001.0, 0.0, 715.0, 0.0},
+  {-1.0, 0.0, 33.0, 0.0, -143.0, 0.0, 143.0, 0.0, 0.0},
+  {0.0, 3.0, 0.0, -26.0, 0.0, 39.0, 0.0, 0.0, 0.0},
+  {1.0, 0.0, -26.0, 0.0, 65.0, 0.0, 0.0, 0.0, 0.0},
+  {0.0, -1.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+  {-1.0, 0.0, 15.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+  {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+  {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
+};
+
 const double K_C_SP = 14.399645; // 1/(4*PI*epsilon_0)
 const double PI = 3.141592653589793;
 const double PI_HALF = 1.570796326794897;
@@ -76,6 +161,13 @@ double COVALENT_RADIUS[NUM_ELEMENTS] = {
   1.94667,  1.82667,  1.74667, 1.64,    1.57333, 1.54667, 1.48,     1.49333, 1.50667,  1.76,
   1.73333,  1.73333,  1.81333, 1.74667, 1.84,    1.89333, 2.68,     2.41333, 2.22667,  2.10667,
   2.02667,  2.04,     2.05333, 2.06667};
+
+void complex_product(const double a, const double b, double& real_part, double& imag_part)
+{
+  const double real_temp = real_part;
+  real_part = a * real_temp - b * imag_part;
+  imag_part = a * imag_part + b * real_temp;
+}
 
 void apply_ann_one_layer(
   const int dim,
@@ -181,7 +273,7 @@ void find_f_and_fp_zbl(
   double* zbl_para, double zizj, double a_inv, double d12, double d12inv, double& f, double& fp)
 {
   double x = d12 * a_inv;
-  f = fp = 0.0f;
+  f = fp = 0.0;
   find_phi_and_phip_zbl(zbl_para[2], zbl_para[3], x, f, fp);
   find_phi_and_phip_zbl(zbl_para[4], zbl_para[5], x, f, fp);
   find_phi_and_phip_zbl(zbl_para[6], zbl_para[7], x, f, fp);
@@ -302,55 +394,6 @@ void find_fn_and_fnp(
   }
 }
 
-void get_f12_1(
-  const double d12inv,
-  const double fn,
-  const double fnp,
-  const double Fp,
-  const double* s,
-  const double* r12,
-  double* f12)
-{
-  double tmp = s[1] * r12[0];
-  tmp += s[2] * r12[1];
-  tmp *= 2.0;
-  tmp += s[0] * r12[2];
-  tmp *= Fp * fnp * d12inv * 2.0;
-  for (int d = 0; d < 3; ++d) {
-    f12[d] += tmp * r12[d];
-  }
-  tmp = Fp * fn * 2.0;
-  f12[0] += tmp * 2.0 * s[1];
-  f12[1] += tmp * 2.0 * s[2];
-  f12[2] += tmp * s[0];
-}
-
-void get_f12_2(
-  const double d12,
-  const double d12inv,
-  const double fn,
-  const double fnp,
-  const double Fp,
-  const double* s,
-  const double* r12,
-  double* f12)
-{
-  double tmp = s[1] * r12[0] * r12[2];               // Re[Y21]
-  tmp += s[2] * r12[1] * r12[2];                     // Im[Y21]
-  tmp += s[3] * (r12[0] * r12[0] - r12[1] * r12[1]); // Re[Y22]
-  tmp += s[4] * 2.0 * r12[0] * r12[1];               // Im[Y22]
-  tmp *= 2.0;
-  tmp += s[0] * (3.0 * r12[2] * r12[2] - d12 * d12); // Y20
-  tmp *= Fp * fnp * d12inv * 2.0;
-  for (int d = 0; d < 3; ++d) {
-    f12[d] += tmp * r12[d];
-  }
-  tmp = Fp * fn * 4.0;
-  f12[0] += tmp * (-s[0] * r12[0] + s[1] * r12[2] + 2.0 * s[3] * r12[0] + 2.0 * s[4] * r12[1]);
-  f12[1] += tmp * (-s[0] * r12[1] + s[2] * r12[2] - 2.0 * s[3] * r12[1] + 2.0 * s[4] * r12[0]);
-  f12[2] += tmp * (2.0 * s[0] * r12[2] + s[1] * r12[0] + s[2] * r12[1]);
-}
-
 void get_f12_4body(
   const double d12,
   const double d12inv,
@@ -446,141 +489,124 @@ void get_f12_5body(
   f12[2] += tmp1 * r12[2];
 }
 
-void get_f12_3(
-  const double d12,
+template <int L>
+void calculate_s_one(
+  const int n,
+  const int n_max_angular_plus_1,
+  const double* Fp,
+  const double* sum_fxyz,
+  double* s)
+{
+  const int L_minus_1 = L - 1;
+  const int L_twice_plus_1 = 2 * L + 1;
+  const int L_square_minus_1 = L * L - 1;
+  double Fp_factor = 2.0 * Fp[L_minus_1 * n_max_angular_plus_1 + n];
+  s[0] = sum_fxyz[n * NUM_OF_ABC + L_square_minus_1] * C3B[L_square_minus_1] * Fp_factor;
+  Fp_factor *= 2.0;
+  for (int k = 1; k < L_twice_plus_1; ++k) {
+    s[k] = sum_fxyz[n * NUM_OF_ABC + L_square_minus_1 + k] * C3B[L_square_minus_1 + k] * Fp_factor;
+  }
+}
+
+template <int L>
+void accumulate_f12_one(
   const double d12inv,
   const double fn,
   const double fnp,
-  const double Fp,
   const double* s,
   const double* r12,
   double* f12)
 {
-  double d12sq = d12 * d12;
-  double x2 = r12[0] * r12[0];
-  double y2 = r12[1] * r12[1];
-  double z2 = r12[2] * r12[2];
-  double xy = r12[0] * r12[1];
-  double xz = r12[0] * r12[2];
-  double yz = r12[1] * r12[2];
+  const double dx[3] = {(1.0 - r12[0] * r12[0]) * d12inv, -r12[0] * r12[1] * d12inv, -r12[0] * r12[2] * d12inv};
+  const double dy[3] = {-r12[0] * r12[1] * d12inv, (1.0 - r12[1] * r12[1]) * d12inv, -r12[1] * r12[2] * d12inv};
+  const double dz[3] = {-r12[0] * r12[2] * d12inv, -r12[1] * r12[2] * d12inv, (1.0 - r12[2] * r12[2]) * d12inv};
 
-  double tmp = s[1] * (5.0 * z2 - d12sq) * r12[0];
-  tmp += s[2] * (5.0 * z2 - d12sq) * r12[1];
-  tmp += s[3] * (x2 - y2) * r12[2];
-  tmp += s[4] * 2.0 * xy * r12[2];
-  tmp += s[5] * r12[0] * (x2 - 3.0 * y2);
-  tmp += s[6] * r12[1] * (3.0 * x2 - y2);
-  tmp *= 2.0;
-  tmp += s[0] * (5.0 * z2 - 3.0 * d12sq) * r12[2];
-  tmp *= Fp * fnp * d12inv * 2.0;
-  for (int d = 0; d < 3; ++d) {
-    f12[d] += tmp * r12[d];
+  double z_pow[L + 1] = {1.0};
+  for (int n = 1; n <= L; ++n) {
+    z_pow[n] = r12[2] * z_pow[n - 1];
   }
 
-  // x
-  tmp = s[1] * (4.0 * z2 - 3.0 * x2 - y2);
-  tmp += s[2] * (-2.0 * xy);
-  tmp += s[3] * 2.0 * xz;
-  tmp += s[4] * (2.0 * yz);
-  tmp += s[5] * (3.0 * (x2 - y2));
-  tmp += s[6] * (6.0 * xy);
-  tmp *= 2.0;
-  tmp += s[0] * (-6.0 * xz);
-  f12[0] += tmp * Fp * fn * 2.0;
-  // y
-  tmp = s[1] * (-2.0 * xy);
-  tmp += s[2] * (4.0 * z2 - 3.0 * y2 - x2);
-  tmp += s[3] * (-2.0 * yz);
-  tmp += s[4] * (2.0 * xz);
-  tmp += s[5] * (-6.0 * xy);
-  tmp += s[6] * (3.0 * (x2 - y2));
-  tmp *= 2.0;
-  tmp += s[0] * (-6.0 * yz);
-  f12[1] += tmp * Fp * fn * 2.0;
-  // z
-  tmp = s[1] * (8.0 * xz);
-  tmp += s[2] * (8.0 * yz);
-  tmp += s[3] * (x2 - y2);
-  tmp += s[4] * (2.0 * xy);
-  tmp *= 2.0;
-  tmp += s[0] * (9.0 * z2 - 3.0 * d12sq);
-  f12[2] += tmp * Fp * fn * 2.0;
-}
-
-void get_f12_4(
-  const double x,
-  const double y,
-  const double z,
-  const double r,
-  const double rinv,
-  const double fn,
-  const double fnp,
-  const double Fp,
-  const double* s,
-  double* f12)
-{
-  const double r2 = r * r;
-  const double x2 = x * x;
-  const double y2 = y * y;
-  const double z2 = z * z;
-  const double xy = x * y;
-  const double xz = x * z;
-  const double yz = y * z;
-  const double xyz = x * yz;
-  const double x2my2 = x2 - y2;
-
-  double tmp = s[1] * (7.0 * z2 - 3.0 * r2) * xz; // Y41_real
-  tmp += s[2] * (7.0 * z2 - 3.0 * r2) * yz;       // Y41_imag
-  tmp += s[3] * (7.0 * z2 - r2) * x2my2;          // Y42_real
-  tmp += s[4] * (7.0 * z2 - r2) * 2.0 * xy;       // Y42_imag
-  tmp += s[5] * (x2 - 3.0 * y2) * xz;             // Y43_real
-  tmp += s[6] * (3.0 * x2 - y2) * yz;             // Y43_imag
-  tmp += s[7] * (x2my2 * x2my2 - 4.0 * x2 * y2);  // Y44_real
-  tmp += s[8] * (4.0 * xy * x2my2);               // Y44_imag
-  tmp *= 2.0;
-  tmp += s[0] * ((35.0 * z2 - 30.0 * r2) * z2 + 3.0 * r2 * r2); // Y40
-  tmp *= Fp * fnp * rinv * 2.0;
-  f12[0] += tmp * x;
-  f12[1] += tmp * y;
-  f12[2] += tmp * z;
-
-  // x
-  tmp = s[1] * z * (7.0 * z2 - 3.0 * r2 - 6.0 * x2);  // Y41_real
-  tmp += s[2] * (-6.0 * xyz);                         // Y41_imag
-  tmp += s[3] * 4.0 * x * (3.0 * z2 - x2);            // Y42_real
-  tmp += s[4] * 2.0 * y * (7.0 * z2 - r2 - 2.0 * x2); // Y42_imag
-  tmp += s[5] * 3.0 * z * x2my2;                      // Y43_real
-  tmp += s[6] * 6.0 * xyz;                            // Y43_imag
-  tmp += s[7] * 4.0 * x * (x2 - 3.0 * y2);            // Y44_real
-  tmp += s[8] * 4.0 * y * (3.0 * x2 - y2);            // Y44_imag
-  tmp *= 2.0;
-  tmp += s[0] * 12.0 * x * (r2 - 5.0 * z2); // Y40
-  f12[0] += tmp * Fp * fn * 2.0;
-  // y
-  tmp = s[1] * (-6.0 * xyz);                          // Y41_real
-  tmp += s[2] * z * (7.0 * z2 - 3.0 * r2 - 6.0 * y2); // Y41_imag
-  tmp += s[3] * 4.0 * y * (y2 - 3.0 * z2);            // Y42_real
-  tmp += s[4] * 2.0 * x * (7.0 * z2 - r2 - 2.0 * y2); // Y42_imag
-  tmp += s[5] * (-6.0 * xyz);                         // Y43_real
-  tmp += s[6] * 3.0 * z * x2my2;                      // Y43_imag
-  tmp += s[7] * 4.0 * y * (y2 - 3.0 * x2);            // Y44_real
-  tmp += s[8] * 4.0 * x * (x2 - 3.0 * y2);            // Y44_imag
-  tmp *= 2.0;
-  tmp += s[0] * 12.0 * y * (r2 - 5.0 * z2); // Y40
-  f12[1] += tmp * Fp * fn * 2.0;
-  // z
-  tmp = s[1] * 3.0 * x * (5.0 * z2 - r2);  // Y41_real
-  tmp += s[2] * 3.0 * y * (5.0 * z2 - r2); // Y41_imag
-  tmp += s[3] * 12.0 * z * x2my2;          // Y42_real
-  tmp += s[4] * 24.0 * xyz;                // Y42_imag
-  tmp += s[5] * x * (x2 - 3.0 * y2);       // Y43_real
-  tmp += s[6] * y * (3.0 * x2 - y2);       // Y43_imag
-  tmp *= 2.0;
-  tmp += s[0] * 16.0 * z * (5.0 * z2 - 3.0 * r2); // Y40
-  f12[2] += tmp * Fp * fn * 2.0;
+  double real_part = 1.0;
+  double imag_part = 0.0;
+  for (int n1 = 0; n1 <= L; ++n1) {
+    int n2_start = (L + n1) % 2 == 0 ? 0 : 1;
+    double z_factor = 0.0;
+    double dz_factor = 0.0;
+    for (int n2 = n2_start; n2 <= L - n1; n2 += 2) {
+      if (L == 1) {
+        z_factor += Z_COEFFICIENT_1[n1][n2] * z_pow[n2];
+        if (n2 > 0) {
+          dz_factor += Z_COEFFICIENT_1[n1][n2] * n2 * z_pow[n2 - 1];
+        }
+      }
+      if (L == 2) {
+        z_factor += Z_COEFFICIENT_2[n1][n2] * z_pow[n2];
+        if (n2 > 0) {
+          dz_factor += Z_COEFFICIENT_2[n1][n2] * n2 * z_pow[n2 - 1];
+        }
+      }
+      if (L == 3) {
+        z_factor += Z_COEFFICIENT_3[n1][n2] * z_pow[n2];
+        if (n2 > 0) {
+          dz_factor += Z_COEFFICIENT_3[n1][n2] * n2 * z_pow[n2 - 1];
+        }
+      }
+      if (L == 4) {
+        z_factor += Z_COEFFICIENT_4[n1][n2] * z_pow[n2];
+        if (n2 > 0) {
+          dz_factor += Z_COEFFICIENT_4[n1][n2] * n2 * z_pow[n2 - 1];
+        }
+      }
+      if (L == 5) {
+        z_factor += Z_COEFFICIENT_5[n1][n2] * z_pow[n2];
+        if (n2 > 0) {
+          dz_factor += Z_COEFFICIENT_5[n1][n2] * n2 * z_pow[n2 - 1];
+        }
+      }
+      if (L == 6) {
+        z_factor += Z_COEFFICIENT_6[n1][n2] * z_pow[n2];
+        if (n2 > 0) {
+          dz_factor += Z_COEFFICIENT_6[n1][n2] * n2 * z_pow[n2 - 1];
+        }
+      }
+      if (L == 7) {
+        z_factor += Z_COEFFICIENT_7[n1][n2] * z_pow[n2];
+        if (n2 > 0) {
+          dz_factor += Z_COEFFICIENT_7[n1][n2] * n2 * z_pow[n2 - 1];
+        }
+      }
+      if (L == 8) {
+        z_factor += Z_COEFFICIENT_8[n1][n2] * z_pow[n2];
+        if (n2 > 0) {
+          dz_factor += Z_COEFFICIENT_8[n1][n2] * n2 * z_pow[n2 - 1];
+        }
+      }
+    }
+    if (n1 == 0) {
+      for (int d = 0; d < 3; ++d) {
+        f12[d] += s[0] * (z_factor * fnp * r12[d] + fn * dz_factor * dz[d]);
+      }
+    } else {
+      double real_part_n1 = n1 * real_part;
+      double imag_part_n1 = n1 * imag_part;
+      for (int d = 0; d < 3; ++d) {
+        double real_part_dx = dx[d];
+        double imag_part_dy = dy[d];
+        complex_product(real_part_n1, imag_part_n1, real_part_dx, imag_part_dy);
+        f12[d] += (s[2 * n1 - 1] * real_part_dx + s[2 * n1 - 0] * imag_part_dy) * z_factor * fn;
+      }
+      complex_product(r12[0], r12[1], real_part, imag_part);
+      const double xy_temp = s[2 * n1 - 1] * real_part + s[2 * n1 - 0] * imag_part;
+      for (int d = 0; d < 3; ++d) {
+        f12[d] += xy_temp * (z_factor * fnp * r12[d] + fn * dz_factor * dz[d]);
+      }
+    }
+  }
 }
 
 void accumulate_f12(
+  const int L_max,
+  const int num_L,
   const int n,
   const int n_max_angular_plus_1,
   const double d12,
@@ -591,218 +617,226 @@ void accumulate_f12(
   const double* sum_fxyz,
   double* f12)
 {
+  const double fn_original = fn;
+  const double fnp_original = fnp;
   const double d12inv = 1.0 / d12;
-  // l = 1
+  const double r12unit[3] = {r12[0]*d12inv, r12[1]*d12inv, r12[2]*d12inv};
+
   fnp = fnp * d12inv - fn * d12inv * d12inv;
   fn = fn * d12inv;
-  double s1[3] = {
-    sum_fxyz[n * NUM_OF_ABC + 0] * C3B[0], sum_fxyz[n * NUM_OF_ABC + 1] * C3B[1],
-    sum_fxyz[n * NUM_OF_ABC + 2] * C3B[2]};
-  get_f12_1(d12inv, fn, fnp, Fp[n], s1, r12, f12);
-  // l = 2
+  if (num_L >= L_max + 2) {
+    double s1[3] = {
+      sum_fxyz[n * NUM_OF_ABC + 0], sum_fxyz[n * NUM_OF_ABC + 1], sum_fxyz[n * NUM_OF_ABC + 2]};
+    get_f12_5body(d12, d12inv, fn, fnp, Fp[(L_max + 1) * n_max_angular_plus_1 + n], s1, r12, f12);
+  }
+
+  if (L_max >= 1) {
+    double s1[3];
+    calculate_s_one<1>(n, n_max_angular_plus_1, Fp, sum_fxyz, s1);
+    accumulate_f12_one<1>(d12inv, fn_original, fnp_original, s1, r12unit, f12);
+  }
+  
   fnp = fnp * d12inv - fn * d12inv * d12inv;
   fn = fn * d12inv;
-  double s2[5] = {
-    sum_fxyz[n * NUM_OF_ABC + 3] * C3B[3], sum_fxyz[n * NUM_OF_ABC + 4] * C3B[4],
-    sum_fxyz[n * NUM_OF_ABC + 5] * C3B[5], sum_fxyz[n * NUM_OF_ABC + 6] * C3B[6],
-    sum_fxyz[n * NUM_OF_ABC + 7] * C3B[7]};
-  get_f12_2(d12, d12inv, fn, fnp, Fp[n_max_angular_plus_1 + n], s2, r12, f12);
-  // l = 3
-  fnp = fnp * d12inv - fn * d12inv * d12inv;
-  fn = fn * d12inv;
-  double s3[7] = {sum_fxyz[n * NUM_OF_ABC + 8] * C3B[8],   sum_fxyz[n * NUM_OF_ABC + 9] * C3B[9],
-                  sum_fxyz[n * NUM_OF_ABC + 10] * C3B[10], sum_fxyz[n * NUM_OF_ABC + 11] * C3B[11],
-                  sum_fxyz[n * NUM_OF_ABC + 12] * C3B[12], sum_fxyz[n * NUM_OF_ABC + 13] * C3B[13],
-                  sum_fxyz[n * NUM_OF_ABC + 14] * C3B[14]};
-  get_f12_3(d12, d12inv, fn, fnp, Fp[2 * n_max_angular_plus_1 + n], s3, r12, f12);
-  // l = 4
-  fnp = fnp * d12inv - fn * d12inv * d12inv;
-  fn = fn * d12inv;
-  double s4[9] = {sum_fxyz[n * NUM_OF_ABC + 15] * C3B[15], sum_fxyz[n * NUM_OF_ABC + 16] * C3B[16],
-                  sum_fxyz[n * NUM_OF_ABC + 17] * C3B[17], sum_fxyz[n * NUM_OF_ABC + 18] * C3B[18],
-                  sum_fxyz[n * NUM_OF_ABC + 19] * C3B[19], sum_fxyz[n * NUM_OF_ABC + 20] * C3B[20],
-                  sum_fxyz[n * NUM_OF_ABC + 21] * C3B[21], sum_fxyz[n * NUM_OF_ABC + 22] * C3B[22],
-                  sum_fxyz[n * NUM_OF_ABC + 23] * C3B[23]};
-  get_f12_4(
-    r12[0], r12[1], r12[2], d12, d12inv, fn, fnp, Fp[3 * n_max_angular_plus_1 + n], s4, f12);
+  if (num_L >= L_max + 1) {
+    double s2[5] = {
+      sum_fxyz[n * NUM_OF_ABC + 3],
+      sum_fxyz[n * NUM_OF_ABC + 4],
+      sum_fxyz[n * NUM_OF_ABC + 5],
+      sum_fxyz[n * NUM_OF_ABC + 6],
+      sum_fxyz[n * NUM_OF_ABC + 7]};
+    get_f12_4body(d12, d12inv, fn, fnp, Fp[L_max * n_max_angular_plus_1 + n], s2, r12, f12);
+  }
+
+  if (L_max >= 2) {
+    double s2[5];
+    calculate_s_one<2>(n, n_max_angular_plus_1, Fp, sum_fxyz, s2);
+    accumulate_f12_one<2>(d12inv, fn_original, fnp_original, s2, r12unit, f12);
+  }
+
+  if (L_max >= 3) {
+    double s3[7];
+    calculate_s_one<3>(n, n_max_angular_plus_1, Fp, sum_fxyz, s3);
+    accumulate_f12_one<3>(d12inv, fn_original, fnp_original, s3, r12unit, f12);
+  }
+
+  if (L_max >= 4) {
+    double s4[9];
+    calculate_s_one<4>(n, n_max_angular_plus_1, Fp, sum_fxyz, s4);
+    accumulate_f12_one<4>(d12inv, fn_original, fnp_original, s4, r12unit, f12);
+  }
+
+  if (L_max >= 5) {
+    double s5[11];
+    calculate_s_one<5>(n, n_max_angular_plus_1, Fp, sum_fxyz, s5);
+    accumulate_f12_one<5>(d12inv, fn_original, fnp_original, s5, r12unit, f12);
+  }
+
+  if (L_max >= 6) {
+    double s6[13];
+    calculate_s_one<6>(n, n_max_angular_plus_1, Fp, sum_fxyz, s6);
+    accumulate_f12_one<6>(d12inv, fn_original, fnp_original, s6, r12unit, f12);
+  }
+
+  if (L_max >= 7) {
+    double s7[15];
+    calculate_s_one<7>(n, n_max_angular_plus_1, Fp, sum_fxyz, s7);
+    accumulate_f12_one<7>(d12inv, fn_original, fnp_original, s7, r12unit, f12);
+  }
+
+  if (L_max >= 8) {
+    double s8[17];
+    calculate_s_one<8>(n, n_max_angular_plus_1, Fp, sum_fxyz, s8);
+    accumulate_f12_one<8>(d12inv, fn_original, fnp_original, s8, r12unit, f12);
+  }
 }
 
-void accumulate_f12_with_4body(
-  const int n,
-  const int n_max_angular_plus_1,
-  const double d12,
-  const double* r12,
-  double fn,
-  double fnp,
-  const double* Fp,
-  const double* sum_fxyz,
-  double* f12)
+template <int L>
+void accumulate_s_one(
+  const double x12,
+  const double y12,
+  const double z12,
+  const double fn,
+  double* s)
 {
-  const double d12inv = 1.0 / d12;
-  // l = 1
-  fnp = fnp * d12inv - fn * d12inv * d12inv;
-  fn = fn * d12inv;
-  double s1[3] = {
-    sum_fxyz[n * NUM_OF_ABC + 0] * C3B[0], sum_fxyz[n * NUM_OF_ABC + 1] * C3B[1],
-    sum_fxyz[n * NUM_OF_ABC + 2] * C3B[2]};
-  get_f12_1(d12inv, fn, fnp, Fp[n], s1, r12, f12);
-  // l = 2
-  fnp = fnp * d12inv - fn * d12inv * d12inv;
-  fn = fn * d12inv;
-  double s2[5] = {
-    sum_fxyz[n * NUM_OF_ABC + 3], sum_fxyz[n * NUM_OF_ABC + 4], sum_fxyz[n * NUM_OF_ABC + 5],
-    sum_fxyz[n * NUM_OF_ABC + 6], sum_fxyz[n * NUM_OF_ABC + 7]};
-  get_f12_4body(d12, d12inv, fn, fnp, Fp[4 * n_max_angular_plus_1 + n], s2, r12, f12);
-  s2[0] *= C3B[3];
-  s2[1] *= C3B[4];
-  s2[2] *= C3B[5];
-  s2[3] *= C3B[6];
-  s2[4] *= C3B[7];
-  get_f12_2(d12, d12inv, fn, fnp, Fp[n_max_angular_plus_1 + n], s2, r12, f12);
-  // l = 3
-  fnp = fnp * d12inv - fn * d12inv * d12inv;
-  fn = fn * d12inv;
-  double s3[7] = {sum_fxyz[n * NUM_OF_ABC + 8] * C3B[8],   sum_fxyz[n * NUM_OF_ABC + 9] * C3B[9],
-                  sum_fxyz[n * NUM_OF_ABC + 10] * C3B[10], sum_fxyz[n * NUM_OF_ABC + 11] * C3B[11],
-                  sum_fxyz[n * NUM_OF_ABC + 12] * C3B[12], sum_fxyz[n * NUM_OF_ABC + 13] * C3B[13],
-                  sum_fxyz[n * NUM_OF_ABC + 14] * C3B[14]};
-  get_f12_3(d12, d12inv, fn, fnp, Fp[2 * n_max_angular_plus_1 + n], s3, r12, f12);
-  // l = 4
-  fnp = fnp * d12inv - fn * d12inv * d12inv;
-  fn = fn * d12inv;
-  double s4[9] = {sum_fxyz[n * NUM_OF_ABC + 15] * C3B[15], sum_fxyz[n * NUM_OF_ABC + 16] * C3B[16],
-                  sum_fxyz[n * NUM_OF_ABC + 17] * C3B[17], sum_fxyz[n * NUM_OF_ABC + 18] * C3B[18],
-                  sum_fxyz[n * NUM_OF_ABC + 19] * C3B[19], sum_fxyz[n * NUM_OF_ABC + 20] * C3B[20],
-                  sum_fxyz[n * NUM_OF_ABC + 21] * C3B[21], sum_fxyz[n * NUM_OF_ABC + 22] * C3B[22],
-                  sum_fxyz[n * NUM_OF_ABC + 23] * C3B[23]};
-  get_f12_4(
-    r12[0], r12[1], r12[2], d12, d12inv, fn, fnp, Fp[3 * n_max_angular_plus_1 + n], s4, f12);
+  int s_index = L * L - 1;
+  double z_pow[L + 1] = {1.0};
+  for (int n = 1; n <= L; ++n) {
+    z_pow[n] = z12 * z_pow[n - 1];
+  }
+  double real_part = x12;
+  double imag_part = y12;
+  for (int n1 = 0; n1 <= L; ++n1) {
+    int n2_start = (L + n1) % 2 == 0 ? 0 : 1;
+    double z_factor = 0.0;
+    for (int n2 = n2_start; n2 <= L - n1; n2 += 2) {
+      if (L == 1) {
+        z_factor += Z_COEFFICIENT_1[n1][n2] * z_pow[n2];
+      }
+      if (L == 2) {
+        z_factor += Z_COEFFICIENT_2[n1][n2] * z_pow[n2];
+      }
+      if (L == 3) {
+        z_factor += Z_COEFFICIENT_3[n1][n2] * z_pow[n2];
+      }
+      if (L == 4) {
+        z_factor += Z_COEFFICIENT_4[n1][n2] * z_pow[n2];
+      }
+      if (L == 5) {
+        z_factor += Z_COEFFICIENT_5[n1][n2] * z_pow[n2];
+      }
+      if (L == 6) {
+        z_factor += Z_COEFFICIENT_6[n1][n2] * z_pow[n2];
+      }
+      if (L == 7) {
+        z_factor += Z_COEFFICIENT_7[n1][n2] * z_pow[n2];
+      }
+      if (L == 8) {
+        z_factor += Z_COEFFICIENT_8[n1][n2] * z_pow[n2];
+      }
+    }
+    z_factor *= fn;
+    if (n1 == 0) {
+      s[s_index++] += z_factor;
+    } else {
+      s[s_index++] += z_factor * real_part;
+      s[s_index++] += z_factor * imag_part;
+      complex_product(x12, y12, real_part, imag_part);
+    }
+  }
 }
 
-void accumulate_f12_with_5body(
-  const int n,
-  const int n_max_angular_plus_1,
-  const double d12,
-  const double* r12,
-  double fn,
-  double fnp,
-  const double* Fp,
-  const double* sum_fxyz,
-  double* f12)
-{
-  const double d12inv = 1.0 / d12;
-  // l = 1
-  fnp = fnp * d12inv - fn * d12inv * d12inv;
-  fn = fn * d12inv;
-  double s1[3] = {
-    sum_fxyz[n * NUM_OF_ABC + 0], sum_fxyz[n * NUM_OF_ABC + 1], sum_fxyz[n * NUM_OF_ABC + 2]};
-  get_f12_5body(d12, d12inv, fn, fnp, Fp[5 * n_max_angular_plus_1 + n], s1, r12, f12);
-  s1[0] *= C3B[0];
-  s1[1] *= C3B[1];
-  s1[2] *= C3B[2];
-  get_f12_1(d12inv, fn, fnp, Fp[n], s1, r12, f12);
-  // l = 2
-  fnp = fnp * d12inv - fn * d12inv * d12inv;
-  fn = fn * d12inv;
-  double s2[5] = {
-    sum_fxyz[n * NUM_OF_ABC + 3], sum_fxyz[n * NUM_OF_ABC + 4], sum_fxyz[n * NUM_OF_ABC + 5],
-    sum_fxyz[n * NUM_OF_ABC + 6], sum_fxyz[n * NUM_OF_ABC + 7]};
-  get_f12_4body(d12, d12inv, fn, fnp, Fp[4 * n_max_angular_plus_1 + n], s2, r12, f12);
-  s2[0] *= C3B[3];
-  s2[1] *= C3B[4];
-  s2[2] *= C3B[5];
-  s2[3] *= C3B[6];
-  s2[4] *= C3B[7];
-  get_f12_2(d12, d12inv, fn, fnp, Fp[n_max_angular_plus_1 + n], s2, r12, f12);
-  // l = 3
-  fnp = fnp * d12inv - fn * d12inv * d12inv;
-  fn = fn * d12inv;
-  double s3[7] = {sum_fxyz[n * NUM_OF_ABC + 8] * C3B[8],   sum_fxyz[n * NUM_OF_ABC + 9] * C3B[9],
-                  sum_fxyz[n * NUM_OF_ABC + 10] * C3B[10], sum_fxyz[n * NUM_OF_ABC + 11] * C3B[11],
-                  sum_fxyz[n * NUM_OF_ABC + 12] * C3B[12], sum_fxyz[n * NUM_OF_ABC + 13] * C3B[13],
-                  sum_fxyz[n * NUM_OF_ABC + 14] * C3B[14]};
-  get_f12_3(d12, d12inv, fn, fnp, Fp[2 * n_max_angular_plus_1 + n], s3, r12, f12);
-  // l = 4
-  fnp = fnp * d12inv - fn * d12inv * d12inv;
-  fn = fn * d12inv;
-  double s4[9] = {sum_fxyz[n * NUM_OF_ABC + 15] * C3B[15], sum_fxyz[n * NUM_OF_ABC + 16] * C3B[16],
-                  sum_fxyz[n * NUM_OF_ABC + 17] * C3B[17], sum_fxyz[n * NUM_OF_ABC + 18] * C3B[18],
-                  sum_fxyz[n * NUM_OF_ABC + 19] * C3B[19], sum_fxyz[n * NUM_OF_ABC + 20] * C3B[20],
-                  sum_fxyz[n * NUM_OF_ABC + 21] * C3B[21], sum_fxyz[n * NUM_OF_ABC + 22] * C3B[22],
-                  sum_fxyz[n * NUM_OF_ABC + 23] * C3B[23]};
-  get_f12_4(
-    r12[0], r12[1], r12[2], d12, d12inv, fn, fnp, Fp[3 * n_max_angular_plus_1 + n], s4, f12);
-}
-
-void accumulate_s(const double d12, double x12, double y12, double z12, const double fn, double* s)
+void accumulate_s(const int L_max, const double d12, double x12, double y12, double z12, const double fn, double* s)
 {
   double d12inv = 1.0 / d12;
   x12 *= d12inv;
   y12 *= d12inv;
   z12 *= d12inv;
-  double x12sq = x12 * x12;
-  double y12sq = y12 * y12;
-  double z12sq = z12 * z12;
-  double x12sq_minus_y12sq = x12sq - y12sq;
-  s[0] += z12 * fn;                                                            // Y10
-  s[1] += x12 * fn;                                                            // Y11_real
-  s[2] += y12 * fn;                                                            // Y11_imag
-  s[3] += (3.0 * z12sq - 1.0) * fn;                                            // Y20
-  s[4] += x12 * z12 * fn;                                                      // Y21_real
-  s[5] += y12 * z12 * fn;                                                      // Y21_imag
-  s[6] += x12sq_minus_y12sq * fn;                                              // Y22_real
-  s[7] += 2.0 * x12 * y12 * fn;                                                // Y22_imag
-  s[8] += (5.0 * z12sq - 3.0) * z12 * fn;                                      // Y30
-  s[9] += (5.0 * z12sq - 1.0) * x12 * fn;                                      // Y31_real
-  s[10] += (5.0 * z12sq - 1.0) * y12 * fn;                                     // Y31_imag
-  s[11] += x12sq_minus_y12sq * z12 * fn;                                       // Y32_real
-  s[12] += 2.0 * x12 * y12 * z12 * fn;                                         // Y32_imag
-  s[13] += (x12 * x12 - 3.0 * y12 * y12) * x12 * fn;                           // Y33_real
-  s[14] += (3.0 * x12 * x12 - y12 * y12) * y12 * fn;                           // Y33_imag
-  s[15] += ((35.0 * z12sq - 30.0) * z12sq + 3.0) * fn;                         // Y40
-  s[16] += (7.0 * z12sq - 3.0) * x12 * z12 * fn;                               // Y41_real
-  s[17] += (7.0 * z12sq - 3.0) * y12 * z12 * fn;                               // Y41_iamg
-  s[18] += (7.0 * z12sq - 1.0) * x12sq_minus_y12sq * fn;                       // Y42_real
-  s[19] += (7.0 * z12sq - 1.0) * x12 * y12 * 2.0 * fn;                         // Y42_imag
-  s[20] += (x12sq - 3.0 * y12sq) * x12 * z12 * fn;                             // Y43_real
-  s[21] += (3.0 * x12sq - y12sq) * y12 * z12 * fn;                             // Y43_imag
-  s[22] += (x12sq_minus_y12sq * x12sq_minus_y12sq - 4.0 * x12sq * y12sq) * fn; // Y44_real
-  s[23] += (4.0 * x12 * y12 * x12sq_minus_y12sq) * fn;                         // Y44_imag
+  if (L_max >= 1) {
+    accumulate_s_one<1>(x12, y12, z12, fn, s);
+  }
+  if (L_max >= 2) {
+    accumulate_s_one<2>(x12, y12, z12, fn, s);
+  }
+  if (L_max >= 3) {
+    accumulate_s_one<3>(x12, y12, z12, fn, s);
+  }
+  if (L_max >= 4) {
+    accumulate_s_one<4>(x12, y12, z12, fn, s);
+  }
+  if (L_max >= 5) {
+    accumulate_s_one<5>(x12, y12, z12, fn, s);
+  }
+  if (L_max >= 6) {
+    accumulate_s_one<6>(x12, y12, z12, fn, s);
+  }
+  if (L_max >= 7) {
+    accumulate_s_one<7>(x12, y12, z12, fn, s);
+  }
+  if (L_max >= 8) {
+    accumulate_s_one<8>(x12, y12, z12, fn, s);
+  }
 }
 
-void find_q(const int n_max_angular_plus_1, const int n, const double* s, double* q)
+template<int L>
+double find_q_one(const double* s)
 {
-  q[n] = C3B[0] * s[0] * s[0] + 2.0 * (C3B[1] * s[1] * s[1] + C3B[2] * s[2] * s[2]);
-  q[n_max_angular_plus_1 + n] =
-    C3B[3] * s[3] * s[3] + 2.0 * (C3B[4] * s[4] * s[4] + C3B[5] * s[5] * s[5] +
-                                  C3B[6] * s[6] * s[6] + C3B[7] * s[7] * s[7]);
-  q[2 * n_max_angular_plus_1 + n] =
-    C3B[8] * s[8] * s[8] +
-    2.0 * (C3B[9] * s[9] * s[9] + C3B[10] * s[10] * s[10] + C3B[11] * s[11] * s[11] +
-           C3B[12] * s[12] * s[12] + C3B[13] * s[13] * s[13] + C3B[14] * s[14] * s[14]);
-  q[3 * n_max_angular_plus_1 + n] =
-    C3B[15] * s[15] * s[15] +
-    2.0 * (C3B[16] * s[16] * s[16] + C3B[17] * s[17] * s[17] + C3B[18] * s[18] * s[18] +
-           C3B[19] * s[19] * s[19] + C3B[20] * s[20] * s[20] + C3B[21] * s[21] * s[21] +
-           C3B[22] * s[22] * s[22] + C3B[23] * s[23] * s[23]);
+  const int start_index = L * L-1;
+  const int num_terms = 2 * L + 1;
+  double q = 0.0;
+  for (int k = 1; k < num_terms; ++k) {
+    q += C3B[start_index + k] * s[start_index + k] * s[start_index + k];
+  }
+  q *= 2.0;
+  q += C3B[start_index] * s[start_index] * s[start_index];
+  return q;
 }
 
-void find_q_with_4body(const int n_max_angular_plus_1, const int n, const double* s, double* q)
+void find_q(
+  const int L_max, 
+  const int num_L, 
+  const int n_max_angular_plus_1, 
+  const int n, 
+  const double* s, 
+  double* q)
 {
-  find_q(n_max_angular_plus_1, n, s, q);
-  q[4 * n_max_angular_plus_1 + n] =
-    C4B[0] * s[3] * s[3] * s[3] + C4B[1] * s[3] * (s[4] * s[4] + s[5] * s[5]) +
-    C4B[2] * s[3] * (s[6] * s[6] + s[7] * s[7]) + C4B[3] * s[6] * (s[5] * s[5] - s[4] * s[4]) +
-    C4B[4] * s[4] * s[5] * s[7];
-}
-
-void find_q_with_5body(const int n_max_angular_plus_1, const int n, const double* s, double* q)
-{
-  find_q_with_4body(n_max_angular_plus_1, n, s, q);
-  double s0_sq = s[0] * s[0];
-  double s1_sq_plus_s2_sq = s[1] * s[1] + s[2] * s[2];
-  q[5 * n_max_angular_plus_1 + n] = C5B[0] * s0_sq * s0_sq + C5B[1] * s0_sq * s1_sq_plus_s2_sq +
-                                    C5B[2] * s1_sq_plus_s2_sq * s1_sq_plus_s2_sq;
+  if (L_max >= 1) {
+    q[0 * n_max_angular_plus_1 + n] = find_q_one<1>(s);
+  }
+  if (L_max >= 2) {
+    q[1 * n_max_angular_plus_1 + n] = find_q_one<2>(s);
+  }
+  if (L_max >= 3) {
+    q[2 * n_max_angular_plus_1 + n] = find_q_one<3>(s);
+  }
+  if (L_max >= 4) {
+    q[3 * n_max_angular_plus_1 + n] = find_q_one<4>(s);
+  }
+  if (L_max >= 5) {
+    q[4 * n_max_angular_plus_1 + n] = find_q_one<5>(s);
+  }
+  if (L_max >= 6) {
+    q[5 * n_max_angular_plus_1 + n] = find_q_one<6>(s);
+  }
+  if (L_max >= 7) {
+    q[6 * n_max_angular_plus_1 + n] = find_q_one<7>(s);
+  }
+  if (L_max >= 8) {
+    q[7 * n_max_angular_plus_1 + n] = find_q_one<8>(s);
+  }
+  if (num_L >= L_max + 1) {
+    q[L_max * n_max_angular_plus_1 + n] =
+      C4B[0] * s[3] * s[3] * s[3] + C4B[1] * s[3] * (s[4] * s[4] + s[5] * s[5]) +
+      C4B[2] * s[3] * (s[6] * s[6] + s[7] * s[7]) + C4B[3] * s[6] * (s[5] * s[5] - s[4] * s[4]) +
+      C4B[4] * s[4] * s[5] * s[7];
+  }
+  if (num_L >= L_max + 2) {
+    double s0_sq = s[0] * s[0];
+    double s1_sq_plus_s2_sq = s[1] * s[1] + s[2] * s[2];
+    q[(L_max + 1) * n_max_angular_plus_1 + n] = C5B[0] * s0_sq * s0_sq + 
+                                                C5B[1] * s0_sq * s1_sq_plus_s2_sq +
+                                                C5B[2] * s1_sq_plus_s2_sq * s1_sq_plus_s2_sq;
+  }
 }
 
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
@@ -933,7 +967,7 @@ void find_descriptor_small_box(
            COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
             paramb.typewise_cutoff_radial_factor,
           rc);
-        rcinv = 1.0f / rc;
+        rcinv = 1.0 / rc;
       }
       find_fc(rc, rcinv, d12, fc12);
       double fn12[MAX_NUM_N];
@@ -968,7 +1002,7 @@ void find_descriptor_small_box(
             weight_left +
           g_gn_angular[(index_right * paramb.num_types_sq + t12) * (paramb.n_max_angular + 1) + n] *
             weight_right;
-        accumulate_s(d12, r12[0], r12[1], r12[2], gn12, s);
+        accumulate_s(paramb.L_max, d12, r12[0], r12[1], r12[2], gn12, s);
 #else
         int t2 = g_type[n2];
         double fc12;
@@ -980,7 +1014,7 @@ void find_descriptor_small_box(
              COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
               paramb.typewise_cutoff_angular_factor,
             rc);
-          rcinv = 1.0f / rc;
+          rcinv = 1.0 / rc;
         }
         find_fc(rc, rcinv, d12, fc12);
         double fn12[MAX_NUM_N];
@@ -991,16 +1025,10 @@ void find_descriptor_small_box(
           c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
           gn12 += fn12[k] * annmb.c[c_index];
         }
-        accumulate_s(d12, r12[0], r12[1], r12[2], gn12, s);
+        accumulate_s(paramb.L_max, d12, r12[0], r12[1], r12[2], gn12, s);
 #endif
       }
-      if (paramb.num_L == paramb.L_max) {
-        find_q(paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
-      } else if (paramb.num_L == paramb.L_max + 1) {
-        find_q_with_4body(paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
-      } else {
-        find_q_with_5body(paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
-      }
+      find_q(paramb.L_max, paramb.num_L, paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
       for (int abc = 0; abc < NUM_OF_ABC; ++abc) {
         g_sum_fxyz[(n * NUM_OF_ABC + abc) * N + n1] = s[abc];
       }
@@ -1113,7 +1141,7 @@ void find_force_radial_small_box(
            COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
             paramb.typewise_cutoff_radial_factor,
           rc);
-        rcinv = 1.0f / rc;
+        rcinv = 1.0 / rc;
       }
       find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
       double fn12[MAX_NUM_N];
@@ -1224,15 +1252,7 @@ void find_force_angular_small_box(
           g_gn_angular[index_left_all] * weight_left + g_gn_angular[index_right_all] * weight_right;
         double gnp12 = g_gnp_angular[index_left_all] * weight_left +
                        g_gnp_angular[index_right_all] * weight_right;
-        if (paramb.num_L == paramb.L_max) {
-          accumulate_f12(n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
-        } else if (paramb.num_L == paramb.L_max + 1) {
-          accumulate_f12_with_4body(
-            n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
-        } else {
-          accumulate_f12_with_5body(
-            n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
-        }
+        accumulate_f12(paramb.L_max, paramb.num_L, n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
       }
 #else
       int t2 = g_type[n2];
@@ -1245,7 +1265,7 @@ void find_force_angular_small_box(
            COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
             paramb.typewise_cutoff_angular_factor,
           rc);
-        rcinv = 1.0f / rc;
+        rcinv = 1.0 / rc;
       }
       find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
 
@@ -1261,15 +1281,7 @@ void find_force_angular_small_box(
           gn12 += fn12[k] * annmb.c[c_index];
           gnp12 += fnp12[k] * annmb.c[c_index];
         }
-        if (paramb.num_L == paramb.L_max) {
-          accumulate_f12(n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
-        } else if (paramb.num_L == paramb.L_max + 1) {
-          accumulate_f12_with_4body(
-            n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
-        } else {
-          accumulate_f12_with_5body(
-            n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
-        }
+        accumulate_f12(paramb.L_max, paramb.num_L, n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
       }
 #endif
 
@@ -1631,7 +1643,7 @@ void find_descriptor_for_lammps(
            COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
             paramb.typewise_cutoff_radial_factor,
           rc);
-        rcinv = 1.0f / rc;
+        rcinv = 1.0 / rc;
       }
       find_fc(rc, rcinv, d12, fc12);
       double fn12[MAX_NUM_N];
@@ -1673,7 +1685,7 @@ void find_descriptor_for_lammps(
             weight_left +
           g_gn_angular[(index_right * paramb.num_types_sq + t12) * (paramb.n_max_angular + 1) + n] *
             weight_right;
-        accumulate_s(d12, r12[0], r12[1], r12[2], gn12, s);
+        accumulate_s(paramb.L_max, d12, r12[0], r12[1], r12[2], gn12, s);
 #else
         double fc12;
         double rc = paramb.rc_angular;
@@ -1684,7 +1696,7 @@ void find_descriptor_for_lammps(
              COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
               paramb.typewise_cutoff_angular_factor,
             rc);
-          rcinv = 1.0f / rc;
+          rcinv = 1.0 / rc;
         }
         find_fc(rc, rcinv, d12, fc12);
         double fn12[MAX_NUM_N];
@@ -1695,16 +1707,10 @@ void find_descriptor_for_lammps(
           c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
           gn12 += fn12[k] * annmb.c[c_index];
         }
-        accumulate_s(d12, r12[0], r12[1], r12[2], gn12, s);
+        accumulate_s(paramb.L_max, d12, r12[0], r12[1], r12[2], gn12, s);
 #endif
       }
-      if (paramb.num_L == paramb.L_max) {
-        find_q(paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
-      } else if (paramb.num_L == paramb.L_max + 1) {
-        find_q_with_4body(paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
-      } else {
-        find_q_with_5body(paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
-      }
+      find_q(paramb.L_max, paramb.num_L, paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
       for (int abc = 0; abc < NUM_OF_ABC; ++abc) {
         g_sum_fxyz[(n * NUM_OF_ABC + abc) * nlocal + n1] = s[abc];
       }
@@ -1792,7 +1798,7 @@ void find_force_radial_for_lammps(
            COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
             paramb.typewise_cutoff_radial_factor,
           rc);
-        rcinv = 1.0f / rc;
+        rcinv = 1.0 / rc;
       }
       find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
       double fn12[MAX_NUM_N];
@@ -1903,15 +1909,7 @@ void find_force_angular_for_lammps(
           g_gn_angular[index_left_all] * weight_left + g_gn_angular[index_right_all] * weight_right;
         double gnp12 = g_gnp_angular[index_left_all] * weight_left +
                        g_gnp_angular[index_right_all] * weight_right;
-        if (paramb.num_L == paramb.L_max) {
-          accumulate_f12(n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
-        } else if (paramb.num_L == paramb.L_max + 1) {
-          accumulate_f12_with_4body(
-            n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
-        } else {
-          accumulate_f12_with_5body(
-            n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
-        }
+        accumulate_f12(paramb.L_max, paramb.num_L, n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
       }
 #else
       double fc12, fcp12;
@@ -1923,7 +1921,7 @@ void find_force_angular_for_lammps(
            COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
             paramb.typewise_cutoff_angular_factor,
           rc);
-        rcinv = 1.0f / rc;
+        rcinv = 1.0 / rc;
       }
       find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
       double fn12[MAX_NUM_N];
@@ -1938,15 +1936,7 @@ void find_force_angular_for_lammps(
           gn12 += fn12[k] * annmb.c[c_index];
           gnp12 += fnp12[k] * annmb.c[c_index];
         }
-        if (paramb.num_L == paramb.L_max) {
-          accumulate_f12(n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
-        } else if (paramb.num_L == paramb.L_max + 1) {
-          accumulate_f12_with_4body(
-            n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
-        } else {
-          accumulate_f12_with_5body(
-            n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
-        }
+        accumulate_f12(paramb.L_max, paramb.num_L, n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp, sum_fxyz, f12);
       }
 #endif
 
@@ -2597,10 +2587,10 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
     paramb.typewise_cutoff_radial_factor = get_double_from_token(tokens[5], __FILE__, __LINE__);
     paramb.typewise_cutoff_angular_factor = get_double_from_token(tokens[6], __FILE__, __LINE__);
     paramb.typewise_cutoff_zbl_factor = get_double_from_token(tokens[7], __FILE__, __LINE__);
-    if (paramb.typewise_cutoff_radial_factor > 0.0f) {
+    if (paramb.typewise_cutoff_radial_factor > 0.0) {
       paramb.use_typewise_cutoff = true;
     }
-    if (paramb.typewise_cutoff_zbl_factor > 0.0f) {
+    if (paramb.typewise_cutoff_zbl_factor > 0.0) {
       paramb.use_typewise_cutoff_zbl = true;
     }
   }
@@ -2659,8 +2649,8 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   annmb.dim = (paramb.n_max_radial + 1) + paramb.dim_angular;
 
   // calculated parameters:
-  paramb.rcinv_radial = 1.0f / paramb.rc_radial;
-  paramb.rcinv_angular = 1.0f / paramb.rc_angular;
+  paramb.rcinv_radial = 1.0 / paramb.rc_radial;
+  paramb.rcinv_angular = 1.0 / paramb.rc_angular;
   paramb.num_types_sq = paramb.num_types * paramb.num_types;
   annmb.num_para =
     (annmb.dim + 2) * annmb.num_neurons1 * (paramb.version == 4 ? paramb.num_types : 1) + 1;
