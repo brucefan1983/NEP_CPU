@@ -51,7 +51,7 @@
   pair_style nep   
   pair_coeff * *  NEP_HBCN.txt C
   ```
-  Firstly, we should set `pair_stype` to `nep`, showed in the first line. Then we need set the NEP potential file and atom types by the command `pair_coeff`. Two asterisks `* *` mean every atom type will be set an element type or `NULL`. `NULL` means this potential doesn't consider the atom type. In this example, we set atom type `1` in LAMMPS data file to element `C` in NEP potential file. 
+  Firstly, we should set `pair_style` to `nep`, showed in the first line. Then we need set the NEP potential file and atom types by the command `pair_coeff`. Two asterisks `* *` mean every atom type will be set an element type or `NULL`. `NULL` means this potential doesn't consider the atom type. In this example, we set atom type `1` in LAMMPS data file to element `C` in NEP potential file. 
 * The interface also supports multi-element system and hybrid potentials. Take a NEP model `NEP_PdCuNiP.txt` as an example. In this NEP model file, the first line is `nep3 4 Pd Cu Ni P`. Then in your LAMMPS input file, the next setting is allowed:
   ```shell
   pair_style hybrid/overlay nep nep ij/cut 1.0
