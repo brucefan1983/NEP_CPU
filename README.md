@@ -41,6 +41,10 @@
   * `install.sh`
   
 * Step 2: Now you can copy the `USER-NEP/` folder into `YOUR_LAMMPS_PATH/src/` and start to compile LAMMPS in your favorite way. Good luck!
+  Reminder: If you are compiling LAMMPS using `make`, ensure that you include the NEP package before the final compilation step:
+  ```bash
+make yes-NEP
+ For cmake, please add "PKG_NEP=on" with additional -D flags.
   
 ## Use the NEP-LAMMPS interface
 
