@@ -62,7 +62,6 @@ const double C3B[NUM_OF_ABC] = {
   0.005944996653579, 0.104037441437634, 0.104037441437634, 0.762941237209318, 0.762941237209318,
   0.114441185581398, 0.114441185581398, 5.950941650232678, 5.950941650232678, 0.141689086910302,
   0.141689086910302, 4.250672607309055, 4.250672607309055, 0.265667037956816, 0.265667037956816};
-
 const double C4B[5] = {
   -0.007499480826664, -0.134990654879954, 0.067495327439977, 0.404971964639861, -0.809943929279723};
 const double C5B[3] = {0.026596810706114, 0.053193621412227, 0.026596810706114};
@@ -152,7 +151,9 @@ void apply_ann_one_layer(
   double* q,
   double& energy,
   double* energy_derivative,
-  double* latent_space)
+  double* latent_space,
+  bool need_B_projection,
+  double* B_projection)
 {
   for (int n = 0; n < num_neurons1; ++n) {
     double w0_times_q = 0.0;
@@ -160,10 +161,23 @@ void apply_ann_one_layer(
       w0_times_q += w0[n * dim + d] * q[d];
     }
     double x1 = tanh(w0_times_q - b0[n]);
+    double tan_der = 1.0 - x1 * x1;
+
+    if (need_B_projection) {
+      // calculate B_projection:
+      // dE/dw0
+      for (int d = 0; d < dim; ++d)
+        B_projection[n * (dim + 2) + d] = tan_der * q[d] * w1[n];
+      // dE/db0
+      B_projection[n * (dim + 2) + dim] = -tan_der * w1[n];
+      // dE/dw1
+      B_projection[n * (dim + 2) + dim + 1] = x1;
+    }
+
     latent_space[n] = w1[n] * x1; // also try x1
     energy += w1[n] * x1;
     for (int d = 0; d < dim; ++d) {
-      double y1 = (1.0 - x1 * x1) * w0[n * dim + d];
+      double y1 = tan_der * w0[n * dim + d];
       energy_derivative[d] += w1[n] * y1;
     }
   }
@@ -922,7 +936,9 @@ void find_descriptor_small_box(
   double* g_potential,
   double* g_descriptor,
   double* g_latent_space,
-  double* g_virial)
+  double* g_virial,
+  bool calculating_B_projection,
+  double* g_B_projection)
 {
 #if defined(_OPENMP)
 #pragma omp parallel for
@@ -1045,7 +1061,7 @@ void find_descriptor_small_box(
       if (calculating_polarizability) {
         apply_ann_one_layer(
           annmb.dim, annmb.num_neurons1, annmb.w0_pol[t1], annmb.b0_pol[t1], annmb.w1_pol[t1],
-          annmb.b1_pol, q, F, Fp, latent_space);
+          annmb.b1_pol, q, F, Fp, latent_space, false, nullptr);
         g_virial[n1] = F;
         g_virial[n1 + N * 4] = F;
         g_virial[n1 + N * 8] = F;
@@ -1065,7 +1081,8 @@ void find_descriptor_small_box(
       } else {
         apply_ann_one_layer(
           annmb.dim, annmb.num_neurons1, annmb.w0[t1], annmb.b0[t1], annmb.w1[t1], annmb.b1, q, F,
-          Fp, latent_space);
+          Fp, latent_space, calculating_B_projection,
+          g_B_projection + n1 * (annmb.num_neurons1 * (annmb.dim + 2)));
       }
 
       if (calculating_latent_space) {
@@ -1735,7 +1752,7 @@ void find_descriptor_for_lammps(
     } else {
       apply_ann_one_layer(
         annmb.dim, annmb.num_neurons1, annmb.w0[t1], annmb.b0[t1], annmb.w1[t1], annmb.b1, q, F, Fp,
-        latent_space);
+        latent_space, false, nullptr);
     }
 
     g_total_potential += F; // always calculate this
@@ -2935,7 +2952,7 @@ void NEP3::compute(
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
     gn_radial.data(), gn_angular.data(),
 #endif
-    Fp.data(), sum_fxyz.data(), potential.data(), nullptr, nullptr, nullptr);
+    Fp.data(), sum_fxyz.data(), potential.data(), nullptr, nullptr, nullptr, false, nullptr);
 
   find_force_radial_small_box(
     false, paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
@@ -3090,7 +3107,7 @@ void NEP3::find_descriptor(
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
     gn_radial.data(), gn_angular.data(),
 #endif
-    Fp.data(), sum_fxyz.data(), nullptr, descriptor.data(), nullptr, nullptr);
+    Fp.data(), sum_fxyz.data(), nullptr, descriptor.data(), nullptr, nullptr, false, nullptr);
 }
 
 void NEP3::find_latent_space(
@@ -3125,7 +3142,41 @@ void NEP3::find_latent_space(
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
     gn_radial.data(), gn_angular.data(),
 #endif
-    Fp.data(), sum_fxyz.data(), nullptr, nullptr, latent_space.data(), nullptr);
+    Fp.data(), sum_fxyz.data(), nullptr, nullptr, latent_space.data(), nullptr, false, nullptr);
+}
+
+void NEP3::find_B_projection(
+  const std::vector<int>& type,
+  const std::vector<double>& box,
+  const std::vector<double>& position,
+  std::vector<double>& B_projection)
+{
+  const int N = type.size();
+  const int size_x12 = N * MN;
+
+  if (N * 3 != position.size()) {
+    std::cout << "Type and position sizes are inconsistent.\n";
+    exit(1);
+  }
+  if (N * annmb.num_neurons1 * (annmb.dim + 2) != B_projection.size()) {
+    std::cout << "Type and B_projection sizes are inconsistent.\n";
+    exit(1);
+  }
+
+  allocate_memory(N);
+  find_neighbor_list_small_box(
+    paramb.rc_radial, paramb.rc_angular, N, box, position, num_cells, ebox, NN_radial, NL_radial,
+    NN_angular, NL_angular, r12);
+
+  find_descriptor_small_box(
+    false, false, false, false, paramb, annmb, N, NN_radial.data(), NL_radial.data(),
+    NN_angular.data(), NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12,
+    r12.data() + size_x12 * 2, r12.data() + size_x12 * 3, r12.data() + size_x12 * 4,
+    r12.data() + size_x12 * 5,
+#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
+    gn_radial.data(), gn_angular.data(),
+#endif
+    Fp.data(), sum_fxyz.data(), nullptr, nullptr, nullptr, nullptr, true, B_projection.data());
 }
 
 void NEP3::find_dipole(
@@ -3170,7 +3221,7 @@ void NEP3::find_dipole(
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
     gn_radial.data(), gn_angular.data(),
 #endif
-    Fp.data(), sum_fxyz.data(), potential.data(), nullptr, nullptr, nullptr);
+    Fp.data(), sum_fxyz.data(), potential.data(), nullptr, nullptr, nullptr, false, nullptr);
 
   find_force_radial_small_box(
     true, paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
@@ -3239,7 +3290,7 @@ void NEP3::find_polarizability(
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
     gn_radial.data(), gn_angular.data(),
 #endif
-    Fp.data(), sum_fxyz.data(), potential.data(), nullptr, nullptr, virial.data());
+    Fp.data(), sum_fxyz.data(), potential.data(), nullptr, nullptr, virial.data(), false, nullptr);
 
   find_force_radial_small_box(
     false, paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
