@@ -1051,7 +1051,9 @@ void find_descriptor_small_box(
       }
     }
 
-    if (calculating_potential || calculating_latent_space || calculating_polarizability) {
+    if (
+      calculating_potential || calculating_latent_space || calculating_polarizability ||
+      calculating_B_projection) {
       for (int d = 0; d < annmb.dim; ++d) {
         q[d] = q[d] * paramb.q_scaler[d];
       }
