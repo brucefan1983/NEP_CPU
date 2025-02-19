@@ -39,11 +39,26 @@
   * `pair_NEP.h`
   * `pair_NEP.cpp`
   * `install.sh`
-  
+
+Command:
+
+```
+cd ${software}/NEP_CPU
+cp src/* interface/lammps/USER-NEP
+```
+
 * Step 2: Now you can copy the `USER-NEP/` folder into `YOUR_LAMMPS_PATH/src/` and start to compile LAMMPS in your favorite way. Good luck!
 
-  Reminder: If you are compiling LAMMPS using `make`, ensure that you run "make yes-NEP" before the final compilation. For cmake, please add "PKG_NEP=on" to enable NEP, along with your other -D flags during the configuration step.
-  
+  Reminder: If you are compiling LAMMPS using `make`, ensure that you run "make yes-USER-NEP" before the final compilation. For cmake, please add "PKG_NEP=on" to enable NEP, along with your other -D flags during the configuration step.
+
+Command:
+
+```
+cp -r ${software}/NEP_CPU/interface/lammps/USER-NEP ${software}/lammps/src
+make yes-USER-NEP
+make machine
+```
+
 ## Use the NEP-LAMMPS interface
 
 * `atom_style` can be `atomic` and `full`
