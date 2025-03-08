@@ -29,11 +29,6 @@ const int num_repeats = 1000;
 
 namespace NEP_UTILITIES
 {
-struct Atom {
-  int N;
-  std::vector<int> type;
-  std::vector<double> box, position, potential, force, virial;
-};
 
 
 std::vector<std::string> get_atom_symbols()
