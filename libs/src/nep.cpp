@@ -37,102 +37,8 @@ heat transport, Phys. Rev. B. 104, 104309 (2021).
 #include <omp.h>
 #endif
 
-namespace
+namespace NEP_NS
 {
-const int MAX_NEURON = 200; // maximum number of neurons in the hidden layer
-const int MN = 1000;        // maximum number of neighbors for one atom
-const int NUM_OF_ABC = 80;  // 3 + 5 + 7 + 9 + 11 + 13 + 15 + 17 for L_max = 8
-const int MAX_NUM_N = 20;   // n_max+1 = 19+1
-const int MAX_DIM = MAX_NUM_N * 7;
-const int MAX_DIM_ANGULAR = MAX_NUM_N * 6;
-const double C3B[NUM_OF_ABC] = {
-  0.238732414637843, 0.119366207318922, 0.119366207318922, 0.099471839432435, 0.596831036594608,
-  0.596831036594608, 0.149207759148652, 0.149207759148652, 0.139260575205408, 0.104445431404056,
-  0.104445431404056, 1.044454314040563, 1.044454314040563, 0.174075719006761, 0.174075719006761,
-  0.011190581936149, 0.223811638722978, 0.223811638722978, 0.111905819361489, 0.111905819361489,
-  1.566681471060845, 1.566681471060845, 0.195835183882606, 0.195835183882606, 0.013677377921960,
-  0.102580334414698, 0.102580334414698, 2.872249363611549, 2.872249363611549, 0.119677056817148,
-  0.119677056817148, 2.154187022708661, 2.154187022708661, 0.215418702270866, 0.215418702270866,
-  0.004041043476943, 0.169723826031592, 0.169723826031592, 0.106077391269745, 0.106077391269745,
-  0.424309565078979, 0.424309565078979, 0.127292869523694, 0.127292869523694, 2.800443129521260,
-  2.800443129521260, 0.233370260793438, 0.233370260793438, 0.004662742473395, 0.004079899664221,
-  0.004079899664221, 0.024479397985326, 0.024479397985326, 0.012239698992663, 0.012239698992663,
-  0.538546755677165, 0.538546755677165, 0.134636688919291, 0.134636688919291, 3.500553911901575,
-  3.500553911901575, 0.250039565135827, 0.250039565135827, 0.000082569397966, 0.005944996653579,
-  0.005944996653579, 0.104037441437634, 0.104037441437634, 0.762941237209318, 0.762941237209318,
-  0.114441185581398, 0.114441185581398, 5.950941650232678, 5.950941650232678, 0.141689086910302,
-  0.141689086910302, 4.250672607309055, 4.250672607309055, 0.265667037956816, 0.265667037956816};
-const double C4B[5] = {
-  -0.007499480826664, -0.134990654879954, 0.067495327439977, 0.404971964639861, -0.809943929279723};
-const double C5B[3] = {0.026596810706114, 0.053193621412227, 0.026596810706114};
-
-const double Z_COEFFICIENT_1[2][2] = {{0.0, 1.0}, {1.0, 0.0}};
-
-const double Z_COEFFICIENT_2[3][3] = {{-1.0, 0.0, 3.0}, {0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}};
-
-const double Z_COEFFICIENT_3[4][4] = {
-  {0.0, -3.0, 0.0, 5.0}, {-1.0, 0.0, 5.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {1.0, 0.0, 0.0, 0.0}};
-
-const double Z_COEFFICIENT_4[5][5] = {
-  {3.0, 0.0, -30.0, 0.0, 35.0},
-  {0.0, -3.0, 0.0, 7.0, 0.0},
-  {-1.0, 0.0, 7.0, 0.0, 0.0},
-  {0.0, 1.0, 0.0, 0.0, 0.0},
-  {1.0, 0.0, 0.0, 0.0, 0.0}};
-
-const double Z_COEFFICIENT_5[6][6] = {
-  {0.0, 15.0, 0.0, -70.0, 0.0, 63.0}, {1.0, 0.0, -14.0, 0.0, 21.0, 0.0},
-  {0.0, -1.0, 0.0, 3.0, 0.0, 0.0},    {-1.0, 0.0, 9.0, 0.0, 0.0, 0.0},
-  {0.0, 1.0, 0.0, 0.0, 0.0, 0.0},     {1.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-
-const double Z_COEFFICIENT_6[7][7] = {
-  {-5.0, 0.0, 105.0, 0.0, -315.0, 0.0, 231.0}, {0.0, 5.0, 0.0, -30.0, 0.0, 33.0, 0.0},
-  {1.0, 0.0, -18.0, 0.0, 33.0, 0.0, 0.0},      {0.0, -3.0, 0.0, 11.0, 0.0, 0.0, 0.0},
-  {-1.0, 0.0, 11.0, 0.0, 0.0, 0.0, 0.0},       {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-  {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-
-const double Z_COEFFICIENT_7[8][8] = {{0.0, -35.0, 0.0, 315.0, 0.0, -693.0, 0.0, 429.0},
-                                      {-5.0, 0.0, 135.0, 0.0, -495.0, 0.0, 429.0, 0.0},
-                                      {0.0, 15.0, 0.0, -110.0, 0.0, 143.0, 0.0, 0.0},
-                                      {3.0, 0.0, -66.0, 0.0, 143.0, 0.0, 0.0, 0.0},
-                                      {0.0, -3.0, 0.0, 13.0, 0.0, 0.0, 0.0, 0.0},
-                                      {-1.0, 0.0, 13.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-                                      {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-                                      {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-
-const double Z_COEFFICIENT_8[9][9] = {
-  {35.0, 0.0, -1260.0, 0.0, 6930.0, 0.0, -12012.0, 0.0, 6435.0},
-  {0.0, -35.0, 0.0, 385.0, 0.0, -1001.0, 0.0, 715.0, 0.0},
-  {-1.0, 0.0, 33.0, 0.0, -143.0, 0.0, 143.0, 0.0, 0.0},
-  {0.0, 3.0, 0.0, -26.0, 0.0, 39.0, 0.0, 0.0, 0.0},
-  {1.0, 0.0, -26.0, 0.0, 65.0, 0.0, 0.0, 0.0, 0.0},
-  {0.0, -1.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-  {-1.0, 0.0, 15.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-  {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-  {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-
-const double K_C_SP = 14.399645; // 1/(4*PI*epsilon_0)
-const double PI = 3.141592653589793;
-const double PI_HALF = 1.570796326794897;
-const int NUM_ELEMENTS = 94;
-const std::string ELEMENTS[NUM_ELEMENTS] = {
-  "H",  "He", "Li", "Be", "B",  "C",  "N",  "O",  "F",  "Ne", "Na", "Mg", "Al", "Si", "P",  "S",
-  "Cl", "Ar", "K",  "Ca", "Sc", "Ti", "V",  "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn", "Ga", "Ge",
-  "As", "Se", "Br", "Kr", "Rb", "Sr", "Y",  "Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd",
-  "In", "Sn", "Sb", "Te", "I",  "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd",
-  "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "W",  "Re", "Os", "Ir", "Pt", "Au", "Hg",
-  "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th", "Pa", "U",  "Np", "Pu"};
-double COVALENT_RADIUS[NUM_ELEMENTS] = {
-  0.426667, 0.613333, 1.6,     1.25333, 1.02667, 1.0,     0.946667, 0.84,    0.853333, 0.893333,
-  1.86667,  1.66667,  1.50667, 1.38667, 1.46667, 1.36,    1.32,     1.28,    2.34667,  2.05333,
-  1.77333,  1.62667,  1.61333, 1.46667, 1.42667, 1.38667, 1.33333,  1.32,    1.34667,  1.45333,
-  1.49333,  1.45333,  1.53333, 1.46667, 1.52,    1.56,    2.52,     2.22667, 1.96,     1.85333,
-  1.76,     1.65333,  1.53333, 1.50667, 1.50667, 1.44,    1.53333,  1.64,    1.70667,  1.68,
-  1.68,     1.64,     1.76,    1.74667, 2.78667, 2.34667, 2.16,     1.96,    2.10667,  2.09333,
-  2.08,     2.06667,  2.01333, 2.02667, 2.01333, 2.0,     1.98667,  1.98667, 1.97333,  2.04,
-  1.94667,  1.82667,  1.74667, 1.64,    1.57333, 1.54667, 1.48,     1.49333, 1.50667,  1.76,
-  1.73333,  1.73333,  1.81333, 1.74667, 1.84,    1.89333, 2.68,     2.41333, 2.22667,  2.10667,
-  2.02667,  2.04,     2.05333, 2.06667};
 
 void complex_product(const double a, const double b, double& real_part, double& imag_part)
 {
@@ -913,8 +819,8 @@ void find_descriptor_small_box(
   const bool calculating_descriptor,
   const bool calculating_latent_space,
   const bool calculating_polarizability,
-  NEP3::ParaMB& paramb,
-  NEP3::ANN& annmb,
+  ParaMB& paramb,
+  ANN& annmb,
   const int N,
   const int* g_NN_radial,
   const int* g_NL_radial,
@@ -1106,8 +1012,8 @@ void find_descriptor_small_box(
 
 void find_force_radial_small_box(
   const bool is_dipole,
-  NEP3::ParaMB& paramb,
-  NEP3::ANN& annmb,
+  ParaMB& paramb,
+  ANN& annmb,
   const int N,
   const int* g_NN,
   const int* g_NL,
@@ -1218,8 +1124,8 @@ void find_force_radial_small_box(
 
 void find_force_angular_small_box(
   const bool is_dipole,
-  NEP3::ParaMB& paramb,
-  NEP3::ANN& annmb,
+  ParaMB& paramb,
+  ANN& annmb,
   const int N,
   const int* g_NN_angular,
   const int* g_NL_angular,
@@ -1346,8 +1252,8 @@ void find_force_angular_small_box(
 
 void find_force_ZBL_small_box(
   const int N,
-  NEP3::ParaMB& paramb,
-  const NEP3::ZBL& zbl,
+  ParaMB& paramb,
+  const ZBL& zbl,
   const int* g_NN,
   const int* g_NL,
   const int* g_type,
@@ -1425,7 +1331,7 @@ void find_force_ZBL_small_box(
 }
 
 void find_dftd3_coordination_number(
-  NEP3::DFTD3& dftd3,
+  DFTD3& dftd3,
   const int N,
   const int* g_NN_angular,
   const int* g_NL_angular,
@@ -1455,7 +1361,7 @@ void find_dftd3_coordination_number(
 }
 
 void add_dftd3_force(
-  NEP3::DFTD3& dftd3,
+  DFTD3& dftd3,
   const int N,
   const int* g_NN_radial,
   const int* g_NL_radial,
@@ -1560,7 +1466,7 @@ void add_dftd3_force(
 }
 
 void add_dftd3_force_extra(
-  const NEP3::DFTD3& dftd3,
+  const DFTD3& dftd3,
   const int N,
   const int* g_NN_angular,
   const int* g_NL_angular,
@@ -1608,8 +1514,8 @@ void add_dftd3_force_extra(
 }
 
 void find_descriptor_for_lammps(
-  NEP3::ParaMB& paramb,
-  NEP3::ANN& annmb,
+  ParaMB& paramb,
+  ANN& annmb,
   int nlocal,
   int N,
   int* g_ilist,
@@ -1769,8 +1675,8 @@ void find_descriptor_for_lammps(
 }
 
 void find_force_radial_for_lammps(
-  NEP3::ParaMB& paramb,
-  NEP3::ANN& annmb,
+  ParaMB& paramb,
+  ANN& annmb,
   int nlocal,
   int N,
   int* g_ilist,
@@ -1880,8 +1786,8 @@ void find_force_radial_for_lammps(
 }
 
 void find_force_angular_for_lammps(
-  NEP3::ParaMB& paramb,
-  NEP3::ANN& annmb,
+  ParaMB& paramb,
+  ANN& annmb,
   int nlocal,
   int N,
   int* g_ilist,
@@ -2005,8 +1911,8 @@ void find_force_angular_for_lammps(
 }
 
 void find_force_ZBL_for_lammps(
-  NEP3::ParaMB& paramb,
-  const NEP3::ZBL& zbl,
+  ParaMB& paramb,
+  const ZBL& zbl,
   int N,
   int* g_ilist,
   int* g_NN,
@@ -2515,7 +2421,6 @@ double get_double_from_token(const std::string& token, const char* filename, con
   return value;
 }
 
-} // namespace
 
 NEP3::NEP3() {}
 
@@ -3464,3 +3369,5 @@ void NEP3::set_dftd3_para_all(
     exit(1);
   }
 };
+
+} // namespace
