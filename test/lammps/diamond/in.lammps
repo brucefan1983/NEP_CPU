@@ -1,0 +1,17 @@
+log lammps.log
+units           metal
+boundary        p p p 
+atom_style      atomic
+
+neighbor        2.0 bin 
+neigh_modify    every 10 delay 0 check no
+
+read_data   C.data
+mass        1 12.01
+
+pair_style  nep
+pair_coeff * * nep.txt  C
+
+compute    1 all pe/atom
+dump 1 all custom 1 out.dump id type x y z fx fy fz
+run 1
