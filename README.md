@@ -49,14 +49,35 @@ cp src/* interface/lammps/USER-NEP
 
 * Step 2: Now you can copy the `USER-NEP/` folder into `YOUR_LAMMPS_PATH/src/` and start to compile LAMMPS in your favorite way. Good luck!
 
-  Reminder: If you are compiling LAMMPS using `make`, ensure that you run "make yes-USER-NEP" before the final compilation. For cmake, please add "PKG_NEP=on" to enable NEP, along with your other -D flags during the configuration step.
+  If you are compiling LAMMPS using `make`, ensure that you run "make yes-USER-NEP" before the final compilation.
+  
+  If you are using `cmake`, you need to copy `/interface/lammps/USER-NEP.cmake` to LAMMPS cmake package directory and add `USER-NEP` to `CMakeLists.txt`. Then enable NEP by add "PKG_NEP=on", along with your other -D flags during the configuration step.
 
-Command:
+Command for `make`:
 
 ```
-cp -r ${software}/NEP_CPU/interface/lammps/USER-NEP ${software}/lammps/src
+cd ${software}/NEP_CPU
+cp -r interface/lammps/USER-NEP ${software}/lammps/src
+
+cd ${software}/lammps/src
 make yes-USER-NEP
 make machine
+```
+
+Command for `cmake`:
+```
+cd ${software}/NEP_CPU
+cp -r interface/lammps/USER-NEP ${software}/lammps/src
+cp interface/lammps/USER-NEP.cmake ${software}/lammps/cmake/Modules/Packages/
+
+cd ${software}/lammps/cmake
+sed -i '/foreach(PKG_WITH_INCL / s/)/ USER-NEP)/' CMakeLists.txt
+sed -i '/set(STANDARD_PACKAGES/,/)/ s/)/  \n  USER-NEP)/' CMakeLists.txt
+
+cd ..; mkdir build; cd build
+cmake -D PKG_USER-NEP=on ../cmake
+cmake --build .
+make install
 ```
 
 ## Use the NEP-LAMMPS interface
