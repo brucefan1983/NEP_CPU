@@ -39,10 +39,10 @@ heat transport, Phys. Rev. B. 104, 104309 (2021).
 
 namespace
 {
-const int MAX_NEURON = 200; // maximum number of neurons in the hidden layer
+const int MAX_NEURON = 120; // maximum number of neurons in the hidden layer
 const int MN = 1000;        // maximum number of neighbors for one atom
-const int NUM_OF_ABC = 80;  // 3 + 5 + 7 + 9 + 11 + 13 + 15 + 17 for L_max = 8
-const int MAX_NUM_N = 20;   // n_max+1 = 19+1
+const int NUM_OF_ABC = 24;  // 3 + 5 + 7 + 9 for L_max = 4
+const int MAX_NUM_N = 17;   // n_max+1 = 16+1
 const int MAX_DIM = MAX_NUM_N * 7;
 const int MAX_DIM_ANGULAR = MAX_NUM_N * 6;
 const double C3B[NUM_OF_ABC] = {
@@ -50,18 +50,7 @@ const double C3B[NUM_OF_ABC] = {
   0.596831036594608, 0.149207759148652, 0.149207759148652, 0.139260575205408, 0.104445431404056,
   0.104445431404056, 1.044454314040563, 1.044454314040563, 0.174075719006761, 0.174075719006761,
   0.011190581936149, 0.223811638722978, 0.223811638722978, 0.111905819361489, 0.111905819361489,
-  1.566681471060845, 1.566681471060845, 0.195835183882606, 0.195835183882606, 0.013677377921960,
-  0.102580334414698, 0.102580334414698, 2.872249363611549, 2.872249363611549, 0.119677056817148,
-  0.119677056817148, 2.154187022708661, 2.154187022708661, 0.215418702270866, 0.215418702270866,
-  0.004041043476943, 0.169723826031592, 0.169723826031592, 0.106077391269745, 0.106077391269745,
-  0.424309565078979, 0.424309565078979, 0.127292869523694, 0.127292869523694, 2.800443129521260,
-  2.800443129521260, 0.233370260793438, 0.233370260793438, 0.004662742473395, 0.004079899664221,
-  0.004079899664221, 0.024479397985326, 0.024479397985326, 0.012239698992663, 0.012239698992663,
-  0.538546755677165, 0.538546755677165, 0.134636688919291, 0.134636688919291, 3.500553911901575,
-  3.500553911901575, 0.250039565135827, 0.250039565135827, 0.000082569397966, 0.005944996653579,
-  0.005944996653579, 0.104037441437634, 0.104037441437634, 0.762941237209318, 0.762941237209318,
-  0.114441185581398, 0.114441185581398, 5.950941650232678, 5.950941650232678, 0.141689086910302,
-  0.141689086910302, 4.250672607309055, 4.250672607309055, 0.265667037956816, 0.265667037956816};
+  1.566681471060845, 1.566681471060845, 0.195835183882606, 0.195835183882606};
 const double C4B[5] = {
   -0.007499480826664, -0.134990654879954, 0.067495327439977, 0.404971964639861, -0.809943929279723};
 const double C5B[3] = {0.026596810706114, 0.053193621412227, 0.026596810706114};
@@ -79,37 +68,6 @@ const double Z_COEFFICIENT_4[5][5] = {
   {-1.0, 0.0, 7.0, 0.0, 0.0},
   {0.0, 1.0, 0.0, 0.0, 0.0},
   {1.0, 0.0, 0.0, 0.0, 0.0}};
-
-const double Z_COEFFICIENT_5[6][6] = {
-  {0.0, 15.0, 0.0, -70.0, 0.0, 63.0}, {1.0, 0.0, -14.0, 0.0, 21.0, 0.0},
-  {0.0, -1.0, 0.0, 3.0, 0.0, 0.0},    {-1.0, 0.0, 9.0, 0.0, 0.0, 0.0},
-  {0.0, 1.0, 0.0, 0.0, 0.0, 0.0},     {1.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-
-const double Z_COEFFICIENT_6[7][7] = {
-  {-5.0, 0.0, 105.0, 0.0, -315.0, 0.0, 231.0}, {0.0, 5.0, 0.0, -30.0, 0.0, 33.0, 0.0},
-  {1.0, 0.0, -18.0, 0.0, 33.0, 0.0, 0.0},      {0.0, -3.0, 0.0, 11.0, 0.0, 0.0, 0.0},
-  {-1.0, 0.0, 11.0, 0.0, 0.0, 0.0, 0.0},       {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-  {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-
-const double Z_COEFFICIENT_7[8][8] = {{0.0, -35.0, 0.0, 315.0, 0.0, -693.0, 0.0, 429.0},
-                                      {-5.0, 0.0, 135.0, 0.0, -495.0, 0.0, 429.0, 0.0},
-                                      {0.0, 15.0, 0.0, -110.0, 0.0, 143.0, 0.0, 0.0},
-                                      {3.0, 0.0, -66.0, 0.0, 143.0, 0.0, 0.0, 0.0},
-                                      {0.0, -3.0, 0.0, 13.0, 0.0, 0.0, 0.0, 0.0},
-                                      {-1.0, 0.0, 13.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-                                      {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-                                      {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-
-const double Z_COEFFICIENT_8[9][9] = {
-  {35.0, 0.0, -1260.0, 0.0, 6930.0, 0.0, -12012.0, 0.0, 6435.0},
-  {0.0, -35.0, 0.0, 385.0, 0.0, -1001.0, 0.0, 715.0, 0.0},
-  {-1.0, 0.0, 33.0, 0.0, -143.0, 0.0, 143.0, 0.0, 0.0},
-  {0.0, 3.0, 0.0, -26.0, 0.0, 39.0, 0.0, 0.0, 0.0},
-  {1.0, 0.0, -26.0, 0.0, 65.0, 0.0, 0.0, 0.0, 0.0},
-  {0.0, -1.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-  {-1.0, 0.0, 15.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-  {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-  {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
 
 const double K_C_SP = 14.399645; // 1/(4*PI*epsilon_0)
 const double PI = 3.141592653589793;
@@ -571,30 +529,6 @@ void accumulate_f12_one(
           dz_factor += Z_COEFFICIENT_4[n1][n2] * n2 * z_pow[n2 - 1];
         }
       }
-      if (L == 5) {
-        z_factor += Z_COEFFICIENT_5[n1][n2] * z_pow[n2];
-        if (n2 > 0) {
-          dz_factor += Z_COEFFICIENT_5[n1][n2] * n2 * z_pow[n2 - 1];
-        }
-      }
-      if (L == 6) {
-        z_factor += Z_COEFFICIENT_6[n1][n2] * z_pow[n2];
-        if (n2 > 0) {
-          dz_factor += Z_COEFFICIENT_6[n1][n2] * n2 * z_pow[n2 - 1];
-        }
-      }
-      if (L == 7) {
-        z_factor += Z_COEFFICIENT_7[n1][n2] * z_pow[n2];
-        if (n2 > 0) {
-          dz_factor += Z_COEFFICIENT_7[n1][n2] * n2 * z_pow[n2 - 1];
-        }
-      }
-      if (L == 8) {
-        z_factor += Z_COEFFICIENT_8[n1][n2] * z_pow[n2];
-        if (n2 > 0) {
-          dz_factor += Z_COEFFICIENT_8[n1][n2] * n2 * z_pow[n2 - 1];
-        }
-      }
     }
     if (n1 == 0) {
       for (int d = 0; d < 3; ++d) {
@@ -676,30 +610,6 @@ void accumulate_f12(
     calculate_s_one<4>(n, n_max_angular_plus_1, Fp, sum_fxyz, s4);
     accumulate_f12_one<4>(d12inv, fn_original, fnp_original, s4, r12unit, f12);
   }
-
-  if (L_max >= 5) {
-    double s5[11];
-    calculate_s_one<5>(n, n_max_angular_plus_1, Fp, sum_fxyz, s5);
-    accumulate_f12_one<5>(d12inv, fn_original, fnp_original, s5, r12unit, f12);
-  }
-
-  if (L_max >= 6) {
-    double s6[13];
-    calculate_s_one<6>(n, n_max_angular_plus_1, Fp, sum_fxyz, s6);
-    accumulate_f12_one<6>(d12inv, fn_original, fnp_original, s6, r12unit, f12);
-  }
-
-  if (L_max >= 7) {
-    double s7[15];
-    calculate_s_one<7>(n, n_max_angular_plus_1, Fp, sum_fxyz, s7);
-    accumulate_f12_one<7>(d12inv, fn_original, fnp_original, s7, r12unit, f12);
-  }
-
-  if (L_max >= 8) {
-    double s8[17];
-    calculate_s_one<8>(n, n_max_angular_plus_1, Fp, sum_fxyz, s8);
-    accumulate_f12_one<8>(d12inv, fn_original, fnp_original, s8, r12unit, f12);
-  }
 }
 
 template <int L>
@@ -728,18 +638,6 @@ void accumulate_s_one(
       }
       if (L == 4) {
         z_factor += Z_COEFFICIENT_4[n1][n2] * z_pow[n2];
-      }
-      if (L == 5) {
-        z_factor += Z_COEFFICIENT_5[n1][n2] * z_pow[n2];
-      }
-      if (L == 6) {
-        z_factor += Z_COEFFICIENT_6[n1][n2] * z_pow[n2];
-      }
-      if (L == 7) {
-        z_factor += Z_COEFFICIENT_7[n1][n2] * z_pow[n2];
-      }
-      if (L == 8) {
-        z_factor += Z_COEFFICIENT_8[n1][n2] * z_pow[n2];
       }
     }
     z_factor *= fn;
@@ -771,18 +669,6 @@ void accumulate_s(
   }
   if (L_max >= 4) {
     accumulate_s_one<4>(x12, y12, z12, fn, s);
-  }
-  if (L_max >= 5) {
-    accumulate_s_one<5>(x12, y12, z12, fn, s);
-  }
-  if (L_max >= 6) {
-    accumulate_s_one<6>(x12, y12, z12, fn, s);
-  }
-  if (L_max >= 7) {
-    accumulate_s_one<7>(x12, y12, z12, fn, s);
-  }
-  if (L_max >= 8) {
-    accumulate_s_one<8>(x12, y12, z12, fn, s);
   }
 }
 
@@ -819,18 +705,6 @@ void find_q(
   }
   if (L_max >= 4) {
     q[3 * n_max_angular_plus_1 + n] = find_q_one<4>(s);
-  }
-  if (L_max >= 5) {
-    q[4 * n_max_angular_plus_1 + n] = find_q_one<5>(s);
-  }
-  if (L_max >= 6) {
-    q[5 * n_max_angular_plus_1 + n] = find_q_one<6>(s);
-  }
-  if (L_max >= 7) {
-    q[6 * n_max_angular_plus_1 + n] = find_q_one<7>(s);
-  }
-  if (L_max >= 8) {
-    q[7 * n_max_angular_plus_1 + n] = find_q_one<8>(s);
   }
   if (num_L >= L_max + 1) {
     q[L_max * n_max_angular_plus_1 + n] =
