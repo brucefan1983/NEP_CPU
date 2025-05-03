@@ -39,12 +39,12 @@ heat transport, Phys. Rev. B. 104, 104309 (2021).
 
 namespace
 {
-const int MAX_NEURON = 200; // maximum number of neurons in the hidden layer
+const int MAX_NEURON = 120; // maximum number of neurons in the hidden layer
 const int MN = 1000;        // maximum number of neighbors for one atom
 const int NUM_OF_ABC = 80;  // 3 + 5 + 7 + 9 + 11 + 13 + 15 + 17 for L_max = 8
-const int MAX_NUM_N = 20;   // n_max+1 = 19+1
-const int MAX_DIM = MAX_NUM_N * 7;
-const int MAX_DIM_ANGULAR = MAX_NUM_N * 6;
+const int MAX_NUM_N = 17;   // basis_size_radial+1 = 16+1
+const int MAX_DIM = 103;
+const int MAX_DIM_ANGULAR = 90;
 const double C3B[NUM_OF_ABC] = {
   0.238732414637843, 0.119366207318922, 0.119366207318922, 0.099471839432435, 0.596831036594608,
   0.596831036594608, 0.149207759148652, 0.149207759148652, 0.139260575205408, 0.104445431404056,
