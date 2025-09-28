@@ -32,6 +32,9 @@ heat transport, Phys. Rev. B. 104, 104309 (2021).
 #include <stdlib.h>
 #include <string>
 #include <vector>
+#include "utils.h"
+
+using namespace LAMMPS_NS;
 
 #if defined(_OPENMP)
 #include <omp.h>
@@ -2523,9 +2526,10 @@ NEP3::NEP3(const std::string& potential_filename) { init_from_file(potential_fil
 
 void NEP3::init_from_file(const std::string& potential_filename, const bool is_rank_0)
 {
-  std::ifstream input(potential_filename);
+  std::string potential_fname = utils::get_potential_file_path(potential_filename);
+  std::ifstream input(potential_fname);
   if (!input.is_open()) {
-    std::cout << "Failed to open " << potential_filename << std::endl;
+    std::cout << "Failed to open " << potential_fname << std::endl;
     exit(1);
   }
 
