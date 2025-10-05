@@ -98,7 +98,8 @@ void PairNEP::coeff(int narg, char** arg)
   }
 
   // read the potential file
-  nep_model.init_from_file(model_filename, is_rank_0);
+  std::string model_path_from_lammps = utils::get_potential_file_path(model_filename);
+  nep_model.init_from_file(model_path_from_lammps, is_rank_0);
   // update the type map to elements in potential file
   nep_model.update_type_map(atom->ntypes, type_map, elements);
 
