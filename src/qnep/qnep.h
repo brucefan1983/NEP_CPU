@@ -29,8 +29,8 @@ public:
     double typewise_cutoff_angular_factor = 2.0;
     double typewise_cutoff_zbl_factor = 0.65;
 
-    int model_type = 0; // 0=potential, 1=dipole, 2=polarizability
     int version = 4;
+    int charge_mode = 0;
     double rc_radial = 0.0;
     double rc_angular = 0.0;
     double rcinv_radial = 0.0;
@@ -115,20 +115,6 @@ public:
     const std::vector<double>& box,
     const std::vector<double>& position,
     std::vector<double>& B_projection);
-
-  void find_dipole(
-    const std::vector<int>& type,
-    const std::vector<double>& box,
-    const std::vector<double>& position,
-    std::vector<double>& dipole // 3 components, for the whole box
-  );
-
-  void find_polarizability(
-    const std::vector<int>& type,
-    const std::vector<double>& box,
-    const std::vector<double>& position,
-    std::vector<double>& polarizability // 6 components, for the whole box
-  );
 
   int num_atoms = 0;
   int num_cells[3];

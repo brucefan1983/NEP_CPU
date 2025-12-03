@@ -1855,46 +1855,29 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
     std::cout << "The first line of nep.txt should have at least 3 items." << std::endl;
     exit(1);
   }
-  if (tokens[0] == "nep3") {
-    paramb.model_type = 0;
-    paramb.version = 3;
+  if (tokens[0] == "nep4_charge1") {
     zbl.enabled = false;
-  } else if (tokens[0] == "nep3_zbl") {
-    paramb.model_type = 0;
-    paramb.version = 3;
+    paramb.charge_mode = 1;
+  } else if (tokens[0] == "nep4_zbl_charge1") {
     zbl.enabled = true;
-  } else if (tokens[0] == "nep3_dipole") {
-    paramb.model_type = 1;
-    paramb.version = 3;
+    paramb.charge_mode = 1;
+  } else if (tokens[0] == "nep4_charge2") {
     zbl.enabled = false;
-  } else if (tokens[0] == "nep3_polarizability") {
-    paramb.model_type = 2;
-    paramb.version = 3;
-    zbl.enabled = false;
-  } else if (tokens[0] == "nep4") {
-    paramb.model_type = 0;
-    paramb.version = 4;
-    zbl.enabled = false;
-  } else if (tokens[0] == "nep4_zbl") {
-    paramb.model_type = 0;
-    paramb.version = 4;
+    paramb.charge_mode = 2;
+  } else if (tokens[0] == "nep4_zbl_charge2") {
     zbl.enabled = true;
-  } else if (tokens[0] == "nep4_dipole") {
-    paramb.model_type = 1;
-    paramb.version = 4;
+    paramb.charge_mode = 2;
+  } else if (tokens[0] == "nep4_charge3") {
     zbl.enabled = false;
-  } else if (tokens[0] == "nep4_polarizability") {
-    paramb.model_type = 2;
-    paramb.version = 4;
-    zbl.enabled = false;
-  } else if (tokens[0] == "nep5") {
-    paramb.model_type = 0;
-    paramb.version = 5;
-    zbl.enabled = false;
-  } else if (tokens[0] == "nep5_zbl") {
-    paramb.model_type = 0;
-    paramb.version = 5;
+    paramb.charge_mode = 3;
+  } else if (tokens[0] == "nep4_zbl_charge3") {
     zbl.enabled = true;
+    paramb.charge_mode = 3;
+  } else {
+    std::cout << tokens[0]
+              << " is an unsupported NEP model. We only support NEP4 charge models now."
+              << std::endl;
+    exit(1);
   }
 
   paramb.num_types = get_int_from_token(tokens[1], __FILE__, __LINE__);
@@ -2021,9 +2004,6 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   } else {
     annmb.num_para_ann = ((annmb.dim + 2) * annmb.num_neurons1 + 1) * paramb.num_types + 1;
   }
-  if (paramb.model_type == 2) {
-    annmb.num_para_ann *= 2;
-  }
   int num_para_descriptor =
     paramb.num_types_sq * ((paramb.n_max_radial + 1) * (paramb.basis_size_radial + 1) +
                            (paramb.n_max_angular + 1) * (paramb.basis_size_angular + 1));
@@ -2133,23 +2113,6 @@ void NEP3::update_potential(double* parameters, ANN& ann)
 
   ann.b1 = pointer;
   pointer += 1;
-
-  if (paramb.model_type == 2) {
-    for (int t = 0; t < paramb.num_types; ++t) {
-      if (t > 0 && paramb.version == 3) { // Use the same set of NN parameters for NEP3
-        pointer -= (ann.dim + 2) * ann.num_neurons1;
-      }
-      ann.w0_pol[t] = pointer;
-      pointer += ann.num_neurons1 * ann.dim;
-      ann.b0_pol[t] = pointer;
-      pointer += ann.num_neurons1;
-      ann.w1_pol[t] = pointer;
-      pointer += ann.num_neurons1;
-    }
-    ann.b1_pol = pointer;
-    pointer += 1;
-  }
-
   ann.c = pointer;
 }
 
@@ -2194,11 +2157,6 @@ void NEP3::compute(
   std::vector<double>& force,
   std::vector<double>& virial)
 {
-  if (paramb.model_type != 0) {
-    std::cout << "Cannot compute potential using a non-potential NEP model.\n";
-    exit(1);
-  }
-
   const int N = type.size();
   const int size_x12 = N * MN;
 
@@ -2372,147 +2330,4 @@ void NEP3::find_B_projection(
     gn_radial.data(), gn_angular.data(),
 #endif
     Fp.data(), sum_fxyz.data(), nullptr, nullptr, nullptr, nullptr, true, B_projection.data());
-}
-
-void NEP3::find_dipole(
-  const std::vector<int>& type,
-  const std::vector<double>& box,
-  const std::vector<double>& position,
-  std::vector<double>& dipole)
-{
-  if (paramb.model_type != 1) {
-    std::cout << "Cannot compute dipole using a non-dipole NEP model.\n";
-    exit(1);
-  }
-
-  const int N = type.size();
-  const int size_x12 = N * MN;
-
-  if (N * 3 != position.size()) {
-    std::cout << "Type and position sizes are inconsistent.\n";
-    exit(1);
-  }
-
-  allocate_memory(N);
-  std::vector<double> potential(N);  // not used but needed for find_descriptor_small_box
-  std::vector<double> virial(N * 3); // need the 3 diagonal components only
-
-  for (int n = 0; n < potential.size(); ++n) {
-    potential[n] = 0.0;
-  }
-  for (int n = 0; n < virial.size(); ++n) {
-    virial[n] = 0.0;
-  }
-
-  find_neighbor_list_small_box(
-    paramb.rc_radial, paramb.rc_angular, N, box, position, num_cells, ebox, NN_radial, NL_radial,
-    NN_angular, NL_angular, r12);
-
-  find_descriptor_small_box(
-    true, false, false, false, paramb, annmb, N, NN_radial.data(), NL_radial.data(),
-    NN_angular.data(), NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12,
-    r12.data() + size_x12 * 2, r12.data() + size_x12 * 3, r12.data() + size_x12 * 4,
-    r12.data() + size_x12 * 5,
-#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
-    gn_radial.data(), gn_angular.data(),
-#endif
-    Fp.data(), sum_fxyz.data(), potential.data(), nullptr, nullptr, nullptr, false, nullptr);
-
-  find_force_radial_small_box(
-    true, paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
-    r12.data() + size_x12, r12.data() + size_x12 * 2, Fp.data(),
-#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
-    gnp_radial.data(),
-#endif
-    nullptr, nullptr, nullptr, virial.data());
-
-  find_force_angular_small_box(
-    true, paramb, annmb, N, NN_angular.data(), NL_angular.data(), type.data(),
-    r12.data() + size_x12 * 3, r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, Fp.data(),
-    sum_fxyz.data(),
-#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
-    gn_angular.data(), gnp_angular.data(),
-#endif
-    nullptr, nullptr, nullptr, virial.data());
-
-  for (int d = 0; d < 3; ++d) {
-    dipole[d] = 0.0;
-    for (int n = 0; n < N; ++n) {
-      dipole[d] += virial[d * N + n];
-    }
-  }
-}
-
-void NEP3::find_polarizability(
-  const std::vector<int>& type,
-  const std::vector<double>& box,
-  const std::vector<double>& position,
-  std::vector<double>& polarizability)
-{
-  if (paramb.model_type != 2) {
-    std::cout << "Cannot compute polarizability using a non-polarizability NEP model.\n";
-    exit(1);
-  }
-
-  const int N = type.size();
-  const int size_x12 = N * MN;
-
-  if (N * 3 != position.size()) {
-    std::cout << "Type and position sizes are inconsistent.\n";
-    exit(1);
-  }
-
-  allocate_memory(N);
-  std::vector<double> potential(N);  // not used but needed for find_descriptor_small_box
-  std::vector<double> virial(N * 9); // per-atom polarizability
-
-  for (int n = 0; n < potential.size(); ++n) {
-    potential[n] = 0.0;
-  }
-  for (int n = 0; n < virial.size(); ++n) {
-    virial[n] = 0.0;
-  }
-
-  find_neighbor_list_small_box(
-    paramb.rc_radial, paramb.rc_angular, N, box, position, num_cells, ebox, NN_radial, NL_radial,
-    NN_angular, NL_angular, r12);
-
-  find_descriptor_small_box(
-    true, false, false, true, paramb, annmb, N, NN_radial.data(), NL_radial.data(),
-    NN_angular.data(), NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12,
-    r12.data() + size_x12 * 2, r12.data() + size_x12 * 3, r12.data() + size_x12 * 4,
-    r12.data() + size_x12 * 5,
-#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
-    gn_radial.data(), gn_angular.data(),
-#endif
-    Fp.data(), sum_fxyz.data(), potential.data(), nullptr, nullptr, virial.data(), false, nullptr);
-
-  find_force_radial_small_box(
-    false, paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
-    r12.data() + size_x12, r12.data() + size_x12 * 2, Fp.data(),
-#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
-    gnp_radial.data(),
-#endif
-    nullptr, nullptr, nullptr, virial.data());
-
-  find_force_angular_small_box(
-    false, paramb, annmb, N, NN_angular.data(), NL_angular.data(), type.data(),
-    r12.data() + size_x12 * 3, r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, Fp.data(),
-    sum_fxyz.data(),
-#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
-    gn_angular.data(), gnp_angular.data(),
-#endif
-    nullptr, nullptr, nullptr, virial.data());
-
-  for (int d = 0; d < 6; ++d) {
-    polarizability[d] = 0.0;
-  }
-  for (int n = 0; n < N; ++n) {
-    polarizability[0] += virial[0 * N + n]; // xx
-    polarizability[1] += virial[4 * N + n]; // yy
-    polarizability[2] += virial[8 * N + n]; // zz
-    polarizability[3] += virial[1 * N + n]; // xy
-    polarizability[4] += virial[5 * N + n]; // yz
-    polarizability[5] += virial[6 * N + n]; // zx
-  }
 }
