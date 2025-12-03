@@ -29,7 +29,6 @@ public:
     double typewise_cutoff_angular_factor = 2.0;
     double typewise_cutoff_zbl_factor = 0.65;
 
-    int version = 4;
     int charge_mode = 0;
     double rc_radial = 0.0;
     double rc_angular = 0.0;
