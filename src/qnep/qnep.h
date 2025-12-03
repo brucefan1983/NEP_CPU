@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-class NEP3
+class QNEP
 {
 public:
   struct ParaMB {
@@ -72,8 +72,8 @@ public:
     double para[550];
   };
 
-  NEP3();
-  NEP3(const std::string& potential_filename);
+  QNEP();
+  QNEP(const std::string& potential_filename);
 
   void init_from_file(const std::string& potential_filename, const bool is_rank_0);
 

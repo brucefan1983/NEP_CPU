@@ -806,8 +806,8 @@ void find_q(
 void find_descriptor_small_box(
   const bool calculating_potential,
   const bool calculating_descriptor,
-  NEP3::ParaMB& paramb,
-  NEP3::ANN& annmb,
+  QNEP::ParaMB& paramb,
+  QNEP::ANN& annmb,
   const int N,
   const int* g_NN_radial,
   const int* g_NL_radial,
@@ -929,8 +929,8 @@ void find_descriptor_small_box(
 }
 
 void find_force_radial_small_box(
-  NEP3::ParaMB& paramb,
-  NEP3::ANN& annmb,
+  QNEP::ParaMB& paramb,
+  QNEP::ANN& annmb,
   const int N,
   const int* g_NN,
   const int* g_NL,
@@ -1011,8 +1011,8 @@ void find_force_radial_small_box(
 }
 
 void find_force_angular_small_box(
-  NEP3::ParaMB& paramb,
-  NEP3::ANN& annmb,
+  QNEP::ParaMB& paramb,
+  QNEP::ANN& annmb,
   const int N,
   const int* g_NN_angular,
   const int* g_NL_angular,
@@ -1107,8 +1107,8 @@ void find_force_angular_small_box(
 
 void find_force_ZBL_small_box(
   const int N,
-  NEP3::ParaMB& paramb,
-  const NEP3::ZBL& zbl,
+  QNEP::ParaMB& paramb,
+  const QNEP::ZBL& zbl,
   const int* g_NN,
   const int* g_NL,
   const int* g_type,
@@ -1598,11 +1598,11 @@ double get_double_from_token(const std::string& token, const char* filename, con
 
 } // namespace
 
-NEP3::NEP3() {}
+QNEP::QNEP() {}
 
-NEP3::NEP3(const std::string& potential_filename) { init_from_file(potential_filename, true); }
+QNEP::QNEP(const std::string& potential_filename) { init_from_file(potential_filename, true); }
 
-void NEP3::init_from_file(const std::string& potential_filename, const bool is_rank_0)
+void QNEP::init_from_file(const std::string& potential_filename, const bool is_rank_0)
 {
   std::ifstream input(potential_filename);
   if (!input.is_open()) {
@@ -1610,7 +1610,6 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
     exit(1);
   }
 
-  // nep3 1 C
   std::vector<std::string> tokens = get_tokens(input);
   if (tokens.size() < 3) {
     print_tokens(tokens);
@@ -1842,7 +1841,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   }
 }
 
-void NEP3::update_potential(double* parameters, ANN& ann)
+void QNEP::update_potential(double* parameters, ANN& ann)
 {
   double* pointer = parameters;
   for (int t = 0; t < paramb.num_types; ++t) {
@@ -1859,7 +1858,7 @@ void NEP3::update_potential(double* parameters, ANN& ann)
   ann.c = pointer;
 }
 
-void NEP3::allocate_memory(const int N)
+void QNEP::allocate_memory(const int N)
 {
   if (num_atoms < N) {
     NN_radial.resize(N);
@@ -1873,7 +1872,7 @@ void NEP3::allocate_memory(const int N)
   }
 }
 
-void NEP3::compute(
+void QNEP::compute(
   const std::vector<int>& type,
   const std::vector<double>& box,
   const std::vector<double>& position,
@@ -1943,7 +1942,7 @@ void NEP3::compute(
   }
 }
 
-void NEP3::find_descriptor(
+void QNEP::find_descriptor(
   const std::vector<int>& type,
   const std::vector<double>& box,
   const std::vector<double>& position,
