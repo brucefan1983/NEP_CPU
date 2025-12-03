@@ -101,18 +101,6 @@ public:
     const std::vector<double>& position,
     std::vector<double>& descriptor);
 
-  void find_latent_space(
-    const std::vector<int>& type,
-    const std::vector<double>& box,
-    const std::vector<double>& position,
-    std::vector<double>& latent_space);
-
-  void find_B_projection(
-    const std::vector<int>& type,
-    const std::vector<double>& box,
-    const std::vector<double>& position,
-    std::vector<double>& B_projection);
-
   int num_atoms = 0;
   int num_cells[3];
   double ebox[18];

@@ -149,10 +149,7 @@ void apply_ann_one_layer(
   const double* b1,
   double* q,
   double& energy,
-  double* energy_derivative,
-  double* latent_space,
-  bool need_B_projection,
-  double* B_projection)
+  double* energy_derivative)
 {
   for (int n = 0; n < num_neurons1; ++n) {
     double w0_times_q = 0.0;
@@ -162,18 +159,6 @@ void apply_ann_one_layer(
     double x1 = tanh(w0_times_q - b0[n]);
     double tan_der = 1.0 - x1 * x1;
 
-    if (need_B_projection) {
-      // calculate B_projection:
-      // dE/dw0
-      for (int d = 0; d < dim; ++d)
-        B_projection[n * (dim + 2) + d] = tan_der * q[d] * w1[n];
-      // dE/db0
-      B_projection[n * (dim + 2) + dim] = -tan_der * w1[n];
-      // dE/dw1
-      B_projection[n * (dim + 2) + dim + 1] = x1;
-    }
-
-    latent_space[n] = w1[n] * x1; // also try x1
     energy += w1[n] * x1;
     for (int d = 0; d < dim; ++d) {
       double y1 = tan_der * w0[n * dim + d];
@@ -181,34 +166,6 @@ void apply_ann_one_layer(
     }
   }
   energy -= b1[0];
-}
-
-void apply_ann_one_layer_nep5(
-  const int dim,
-  const int num_neurons1,
-  const double* w0,
-  const double* b0,
-  const double* w1,
-  const double* b1,
-  double* q,
-  double& energy,
-  double* energy_derivative,
-  double* latent_space)
-{
-  for (int n = 0; n < num_neurons1; ++n) {
-    double w0_times_q = 0.0;
-    for (int d = 0; d < dim; ++d) {
-      w0_times_q += w0[n * dim + d] * q[d];
-    }
-    double x1 = tanh(w0_times_q - b0[n]);
-    latent_space[n] = w1[n] * x1; // also try x1
-    energy += w1[n] * x1;
-    for (int d = 0; d < dim; ++d) {
-      double y1 = (1.0 - x1 * x1) * w0[n * dim + d];
-      energy_derivative[d] += w1[n] * y1;
-    }
-  }
-  energy -= w1[num_neurons1] + b1[0]; // typewise bias + common bias
 }
 
 void find_fc(double rc, double rcinv, double d12, double& fc)
@@ -849,8 +806,6 @@ void find_q(
 void find_descriptor_small_box(
   const bool calculating_potential,
   const bool calculating_descriptor,
-  const bool calculating_latent_space,
-  const bool calculating_polarizability,
   NEP3::ParaMB& paramb,
   NEP3::ANN& annmb,
   const int N,
@@ -868,11 +823,7 @@ void find_descriptor_small_box(
   double* g_Fp,
   double* g_sum_fxyz,
   double* g_potential,
-  double* g_descriptor,
-  double* g_latent_space,
-  double* g_virial,
-  bool calculating_B_projection,
-  double* g_B_projection)
+  double* g_descriptor)
 {
 #if defined(_OPENMP)
 #pragma omp parallel for
@@ -956,41 +907,15 @@ void find_descriptor_small_box(
       }
     }
 
-    if (
-      calculating_potential || calculating_latent_space || calculating_polarizability ||
-      calculating_B_projection) {
+    if (calculating_potential) {
       for (int d = 0; d < annmb.dim; ++d) {
         q[d] = q[d] * paramb.q_scaler[d];
       }
 
-      double F = 0.0, Fp[MAX_DIM] = {0.0}, latent_space[MAX_NEURON] = {0.0};
-
-      if (calculating_polarizability) {
-        apply_ann_one_layer(
-          annmb.dim, annmb.num_neurons1, annmb.w0_pol[t1], annmb.b0_pol[t1], annmb.w1_pol[t1],
-          annmb.b1_pol, q, F, Fp, latent_space, false, nullptr);
-        g_virial[n1] = F;
-        g_virial[n1 + N * 4] = F;
-        g_virial[n1 + N * 8] = F;
-
-        for (int d = 0; d < annmb.dim; ++d) {
-          Fp[d] = 0.0;
-        }
-        for (int d = 0; d < annmb.num_neurons1; ++d) {
-          latent_space[d] = 0.0;
-        }
-      }
+      double F = 0.0, Fp[MAX_DIM] = {0.0};
 
         apply_ann_one_layer(
-          annmb.dim, annmb.num_neurons1, annmb.w0[t1], annmb.b0[t1], annmb.w1[t1], annmb.b1, q, F,
-          Fp, latent_space, calculating_B_projection,
-          g_B_projection + n1 * (annmb.num_neurons1 * (annmb.dim + 2)));
-
-      if (calculating_latent_space) {
-        for (int n = 0; n < annmb.num_neurons1; ++n) {
-          g_latent_space[n * N + n1] = latent_space[n];
-        }
-      }
+          annmb.dim, annmb.num_neurons1, annmb.w0[t1], annmb.b0[t1], annmb.w1[t1], annmb.b1, q, F, Fp);
 
       if (calculating_potential) {
         g_potential[n1] += F;
@@ -1004,7 +929,6 @@ void find_descriptor_small_box(
 }
 
 void find_force_radial_small_box(
-  const bool is_dipole,
   NEP3::ParaMB& paramb,
   NEP3::ANN& annmb,
   const int N,
@@ -1073,28 +997,20 @@ void find_force_radial_small_box(
         g_fz[n2] -= f12[2];
       }
 
-      if (!is_dipole) {
-        g_virial[n2 + 0 * N] -= r12[0] * f12[0];
-        g_virial[n2 + 1 * N] -= r12[0] * f12[1];
-        g_virial[n2 + 2 * N] -= r12[0] * f12[2];
-        g_virial[n2 + 3 * N] -= r12[1] * f12[0];
-        g_virial[n2 + 4 * N] -= r12[1] * f12[1];
-        g_virial[n2 + 5 * N] -= r12[1] * f12[2];
-        g_virial[n2 + 6 * N] -= r12[2] * f12[0];
-        g_virial[n2 + 7 * N] -= r12[2] * f12[1];
-        g_virial[n2 + 8 * N] -= r12[2] * f12[2];
-      } else {
-        double r12_square = r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2];
-        g_virial[n2 + 0 * N] -= r12_square * f12[0];
-        g_virial[n2 + 1 * N] -= r12_square * f12[1];
-        g_virial[n2 + 2 * N] -= r12_square * f12[2];
-      }
+      g_virial[n2 + 0 * N] -= r12[0] * f12[0];
+      g_virial[n2 + 1 * N] -= r12[0] * f12[1];
+      g_virial[n2 + 2 * N] -= r12[0] * f12[2];
+      g_virial[n2 + 3 * N] -= r12[1] * f12[0];
+      g_virial[n2 + 4 * N] -= r12[1] * f12[1];
+      g_virial[n2 + 5 * N] -= r12[1] * f12[2];
+      g_virial[n2 + 6 * N] -= r12[2] * f12[0];
+      g_virial[n2 + 7 * N] -= r12[2] * f12[1];
+      g_virial[n2 + 8 * N] -= r12[2] * f12[2];
     }
   }
 }
 
 void find_force_angular_small_box(
-  const bool is_dipole,
   NEP3::ParaMB& paramb,
   NEP3::ANN& annmb,
   const int N,
@@ -1176,22 +1092,15 @@ void find_force_angular_small_box(
         g_fz[n2] -= f12[2];
       }
 
-      if (!is_dipole) {
-        g_virial[n2 + 0 * N] -= r12[0] * f12[0];
-        g_virial[n2 + 1 * N] -= r12[0] * f12[1];
-        g_virial[n2 + 2 * N] -= r12[0] * f12[2];
-        g_virial[n2 + 3 * N] -= r12[1] * f12[0];
-        g_virial[n2 + 4 * N] -= r12[1] * f12[1];
-        g_virial[n2 + 5 * N] -= r12[1] * f12[2];
-        g_virial[n2 + 6 * N] -= r12[2] * f12[0];
-        g_virial[n2 + 7 * N] -= r12[2] * f12[1];
-        g_virial[n2 + 8 * N] -= r12[2] * f12[2];
-      } else {
-        double r12_square = r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2];
-        g_virial[n2 + 0 * N] -= r12_square * f12[0];
-        g_virial[n2 + 1 * N] -= r12_square * f12[1];
-        g_virial[n2 + 2 * N] -= r12_square * f12[2];
-      }
+      g_virial[n2 + 0 * N] -= r12[0] * f12[0];
+      g_virial[n2 + 1 * N] -= r12[0] * f12[1];
+      g_virial[n2 + 2 * N] -= r12[0] * f12[2];
+      g_virial[n2 + 3 * N] -= r12[1] * f12[0];
+      g_virial[n2 + 4 * N] -= r12[1] * f12[1];
+      g_virial[n2 + 5 * N] -= r12[1] * f12[2];
+      g_virial[n2 + 6 * N] -= r12[2] * f12[0];
+      g_virial[n2 + 7 * N] -= r12[2] * f12[1];
+      g_virial[n2 + 8 * N] -= r12[2] * f12[2];
     }
   }
 }
@@ -2009,19 +1918,19 @@ void NEP3::compute(
     NN_angular, NL_angular, r12);
 
   find_descriptor_small_box(
-    true, false, false, false, paramb, annmb, N, NN_radial.data(), NL_radial.data(),
+    true, false, paramb, annmb, N, NN_radial.data(), NL_radial.data(),
     NN_angular.data(), NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12,
     r12.data() + size_x12 * 2, r12.data() + size_x12 * 3, r12.data() + size_x12 * 4,
     r12.data() + size_x12 * 5,
-    Fp.data(), sum_fxyz.data(), potential.data(), nullptr, nullptr, nullptr, false, nullptr);
+    Fp.data(), sum_fxyz.data(), potential.data(), nullptr);
 
   find_force_radial_small_box(
-    false, paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
+    paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
     r12.data() + size_x12, r12.data() + size_x12 * 2, Fp.data(),
     force.data(), force.data() + N, force.data() + N * 2, virial.data());
 
   find_force_angular_small_box(
-    false, paramb, annmb, N, NN_angular.data(), NL_angular.data(), type.data(),
+    paramb, annmb, N, NN_angular.data(), NL_angular.data(), type.data(),
     r12.data() + size_x12 * 3, r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, Fp.data(),
     sum_fxyz.data(),
     force.data(), force.data() + N, force.data() + N * 2, virial.data());
@@ -2059,72 +1968,9 @@ void NEP3::find_descriptor(
     NN_angular, NL_angular, r12);
 
   find_descriptor_small_box(
-    false, true, false, false, paramb, annmb, N, NN_radial.data(), NL_radial.data(),
+    false, true, paramb, annmb, N, NN_radial.data(), NL_radial.data(),
     NN_angular.data(), NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12,
     r12.data() + size_x12 * 2, r12.data() + size_x12 * 3, r12.data() + size_x12 * 4,
     r12.data() + size_x12 * 5,
-    Fp.data(), sum_fxyz.data(), nullptr, descriptor.data(), nullptr, nullptr, false, nullptr);
-}
-
-void NEP3::find_latent_space(
-  const std::vector<int>& type,
-  const std::vector<double>& box,
-  const std::vector<double>& position,
-  std::vector<double>& latent_space)
-{
-  const int N = type.size();
-  const int size_x12 = N * MN;
-
-  if (N * 3 != position.size()) {
-    std::cout << "Type and position sizes are inconsistent.\n";
-    exit(1);
-  }
-  if (N * annmb.num_neurons1 != latent_space.size()) {
-    std::cout << "Type and latent_space sizes are inconsistent.\n";
-    exit(1);
-  }
-
-  allocate_memory(N);
-
-  find_neighbor_list_small_box(
-    paramb.rc_radial, paramb.rc_angular, N, box, position, num_cells, ebox, NN_radial, NL_radial,
-    NN_angular, NL_angular, r12);
-
-  find_descriptor_small_box(
-    false, false, true, false, paramb, annmb, N, NN_radial.data(), NL_radial.data(),
-    NN_angular.data(), NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12,
-    r12.data() + size_x12 * 2, r12.data() + size_x12 * 3, r12.data() + size_x12 * 4,
-    r12.data() + size_x12 * 5,
-    Fp.data(), sum_fxyz.data(), nullptr, nullptr, latent_space.data(), nullptr, false, nullptr);
-}
-
-void NEP3::find_B_projection(
-  const std::vector<int>& type,
-  const std::vector<double>& box,
-  const std::vector<double>& position,
-  std::vector<double>& B_projection)
-{
-  const int N = type.size();
-  const int size_x12 = N * MN;
-
-  if (N * 3 != position.size()) {
-    std::cout << "Type and position sizes are inconsistent.\n";
-    exit(1);
-  }
-  if (N * annmb.num_neurons1 * (annmb.dim + 2) != B_projection.size()) {
-    std::cout << "Type and B_projection sizes are inconsistent.\n";
-    exit(1);
-  }
-
-  allocate_memory(N);
-  find_neighbor_list_small_box(
-    paramb.rc_radial, paramb.rc_angular, N, box, position, num_cells, ebox, NN_radial, NL_radial,
-    NN_angular, NL_angular, r12);
-
-  find_descriptor_small_box(
-    false, false, false, false, paramb, annmb, N, NN_radial.data(), NL_radial.data(),
-    NN_angular.data(), NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12,
-    r12.data() + size_x12 * 2, r12.data() + size_x12 * 3, r12.data() + size_x12 * 4,
-    r12.data() + size_x12 * 5,
-    Fp.data(), sum_fxyz.data(), nullptr, nullptr, nullptr, nullptr, true, B_projection.data());
+    Fp.data(), sum_fxyz.data(), nullptr, descriptor.data());
 }
