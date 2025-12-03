@@ -75,25 +75,10 @@ public:
     double para[550];
   };
 
-  struct DFTD3 {
-    double s6 = 0.0;
-    double s8 = 0.0;
-    double a1 = 0.0;
-    double a2 = 0.0;
-    double rc_radial = 20.0;
-    double rc_angular = 10.0;
-    int atomic_number[94]; // H to Pu
-    std::vector<double> cn;
-    std::vector<double> dc6_sum;
-    std::vector<double> dc8_sum;
-  };
-
   NEP3();
   NEP3(const std::string& potential_filename);
 
   void init_from_file(const std::string& potential_filename, const bool is_rank_0);
-
-  void update_type_map(const int ntype, int* type_map, char** elements);
 
   // type[num_atoms] should be integers 0, 1, ..., mapping to the atom types in nep.txt in order
   // box[9] is ordered as ax, bx, cx, ay, by, cy, az, bz, cz
@@ -106,28 +91,6 @@ public:
   // descriptor[num_atoms * dim] is ordered as d0[num_atoms], d1[num_atoms], ...
 
   void compute(
-    const std::vector<int>& type,
-    const std::vector<double>& box,
-    const std::vector<double>& position,
-    std::vector<double>& potential,
-    std::vector<double>& force,
-    std::vector<double>& virial);
-
-  void compute_with_dftd3(
-    const std::string& xc,
-    const double rc_potential,
-    const double rc_coordination_number,
-    const std::vector<int>& type,
-    const std::vector<double>& box,
-    const std::vector<double>& position,
-    std::vector<double>& potential,
-    std::vector<double>& force,
-    std::vector<double>& virial);
-
-  void compute_dftd3(
-    const std::string& xc,
-    const double rc_potential,
-    const double rc_coordination_number,
     const std::vector<int>& type,
     const std::vector<double>& box,
     const std::vector<double>& position,
@@ -167,29 +130,12 @@ public:
     std::vector<double>& polarizability // 6 components, for the whole box
   );
 
-  void compute_for_lammps(
-    int nlocal,              // atom->nlocal
-    int inum,                // list->inum
-    int* ilist,              // list->ilist
-    int* numneigh,           // list->numneigh
-    int** firstneigh,        // list->firstneigh
-    int* type,               // atom->type
-    int* type_map,           // map from atom type to element
-    double** x,              // atom->x
-    double& total_potential, // total potential energy for the current processor
-    double total_virial[6],  // total virial for the current processor
-    double* potential,       // eatom or nullptr
-    double** f,              // atom->f
-    double** virial          // cvatom or nullptr
-  );
-
   int num_atoms = 0;
   int num_cells[3];
   double ebox[18];
   ParaMB paramb;
   ANN annmb;
   ZBL zbl;
-  DFTD3 dftd3;
   std::vector<int> NN_radial, NL_radial, NN_angular, NL_angular;
   std::vector<double> r12;
   std::vector<double> Fp;
@@ -206,16 +152,4 @@ public:
   std::vector<double> gnp_angular; // tabulated gnp_angular functions
   void construct_table(double* parameters);
 #endif
-
-  bool set_dftd3_para_one(
-    const std::string& functional_input,
-    const std::string& functional_library,
-    const double s6,
-    const double a1,
-    const double s8,
-    const double a2);
-  void set_dftd3_para_all(
-    const std::string& functional_input,
-    const double rc_potential,
-    const double rc_coordination_number);
 };
