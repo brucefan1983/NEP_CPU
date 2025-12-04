@@ -56,6 +56,7 @@ public:
     const double* w1[94];
     const double* b1;
     const double* c;
+    const double* sqrt_epsilon_inf;
   };
 
   struct ZBL {
@@ -65,6 +66,14 @@ public:
     double rc_inner = 1.0;
     double rc_outer = 2.0;
     double para[550];
+  };
+
+  struct Charge_Para {
+    int num_kpoints_max = 1;
+    double alpha = 0.5; // 1 / (2 Angstrom)
+    double two_alpha_over_sqrt_pi = 0.564189583547756;
+    double A;
+    double B;
   };
 
   QNEP();
@@ -102,6 +111,7 @@ public:
   ParaMB paramb;
   ANN annmb;
   ZBL zbl;
+  Charge_Para charge_para;
   std::vector<int> NN_radial, NL_radial, NN_angular, NL_angular;
   std::vector<double> r12;
   std::vector<double> Fp;

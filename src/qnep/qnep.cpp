@@ -1758,7 +1758,7 @@ void QNEP::init_from_file(const std::string& potential_filename, const bool is_r
   paramb.rcinv_radial = 1.0 / paramb.rc_radial;
   paramb.rcinv_angular = 1.0 / paramb.rc_angular;
   paramb.num_types_sq = paramb.num_types * paramb.num_types;
-  annmb.num_para_ann = (annmb.dim + 2) * annmb.num_neurons1 * paramb.num_types + 1;
+  annmb.num_para_ann = (annmb.dim + 3) * annmb.num_neurons1 * paramb.num_types + 2;
 
   int num_para_descriptor =
     paramb.num_types_sq * ((paramb.n_max_radial + 1) * (paramb.basis_size_radial + 1) +
@@ -1791,14 +1791,26 @@ void QNEP::init_from_file(const std::string& potential_filename, const bool is_r
   }
   input.close();
 
+  // charge related parameters and data
+  charge_para.alpha = PI / paramb.rc_radial; // a good value
+  //ewald.initialize(charge_para.alpha);
+  charge_para.two_alpha_over_sqrt_pi = 2.0f * charge_para.alpha / sqrt(PI);
+  charge_para.A = erfc(PI) / (paramb.rc_radial * paramb.rc_radial);
+  charge_para.A += charge_para.two_alpha_over_sqrt_pi * exp(-PI * PI) / paramb.rc_radial;
+  charge_para.B = - erfc(PI) / paramb.rc_radial - charge_para.A * paramb.rc_radial;
+  //nep_data.D_real.resize(num_atoms);
+  //nep_data.charge.resize(num_atoms);
+  //nep_data.charge_derivative.resize(num_atoms * annmb.dim);
+  //nep_data.bec.resize(num_atoms * 9);
+
   // only report for rank_0
   if (is_rank_0) {
 
     if (paramb.num_types == 1) {
-      std::cout << "Use the NEP4" << " potential with " << paramb.num_types
+      std::cout << "Use the NEP4-Charge" << paramb.charge_mode << " potential with " << paramb.num_types
                 << " atom type.\n";
     } else {
-      std::cout << "Use the NEP4" << " potential with " << paramb.num_types
+      std::cout << "Use the NEP4-Charge" << paramb.charge_mode << " potential with " << paramb.num_types
                 << " atom types.\n";
     }
 
@@ -1850,9 +1862,10 @@ void QNEP::update_potential(double* parameters, ANN& ann)
     ann.b0[t] = pointer;
     pointer += ann.num_neurons1;
     ann.w1[t] = pointer;
-    pointer += ann.num_neurons1;
+    pointer += ann.num_neurons1 * 2;
   }
-
+  ann.sqrt_epsilon_inf = pointer;
+  pointer += 1;
   ann.b1 = pointer;
   pointer += 1;
   ann.c = pointer;
