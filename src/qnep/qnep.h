@@ -56,11 +56,6 @@ public:
     const double* w1[94];
     const double* b1;
     const double* c;
-    // for the scalar part of polarizability
-    const double* w0_pol[94];
-    const double* b0_pol[94];
-    const double* w1_pol[94];
-    const double* b1_pol;
   };
 
   struct ZBL {
