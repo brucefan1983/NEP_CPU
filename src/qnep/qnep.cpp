@@ -970,6 +970,8 @@ void find_force_radial_small_box(
   const double* g_y12,
   const double* g_z12,
   const double* g_Fp,
+  const double* g_charge_derivative,
+  const double* g_D_real, 
   double* g_fx,
   double* g_fy,
   double* g_fz,
@@ -1007,7 +1009,7 @@ void find_force_radial_small_box(
           c_index += t1 * paramb.num_types + t2;
           gnp12 += fnp12[k] * annmb.c[c_index];
         }
-        double tmp12 = g_Fp[n1 + n * N] * gnp12 * d12inv;
+        double tmp12 = (g_Fp[n1 + n * N] + g_charge_derivative[n1 + n * N] * g_D_real[n1]) * gnp12 * d12inv;
         for (int d = 0; d < 3; ++d) {
           f12[d] += tmp12 * r12[d];
         }
@@ -1052,6 +1054,8 @@ void find_force_angular_small_box(
   const double* g_y12,
   const double* g_z12,
   const double* g_Fp,
+  const double* g_charge_derivative,
+  const double* g_D_real, 
   const double* g_sum_fxyz,
   double* g_fx,
   double* g_fy,
@@ -1063,7 +1067,8 @@ void find_force_angular_small_box(
     double Fp[MAX_DIM_ANGULAR] = {0.0};
     double sum_fxyz[NUM_OF_ABC * MAX_NUM_N];
     for (int d = 0; d < paramb.dim_angular; ++d) {
-      Fp[d] = g_Fp[(paramb.n_max_radial + 1 + d) * N + n1];
+      Fp[d] = g_Fp[(paramb.n_max_radial + 1 + d) * N + n1] 
+        + g_charge_derivative[(paramb.n_max_radial + 1 + d) * N + n1] * g_D_real[n1];
     }
     for (int d = 0; d < (paramb.n_max_angular + 1) * NUM_OF_ABC; ++d) {
       sum_fxyz[d] = g_sum_fxyz[d * N + n1];
@@ -1968,13 +1973,6 @@ void QNEP::compute(
     r12.data() + size_x12 * 5,
     Fp.data(), sum_fxyz.data(), charge.data(), charge_derivative.data(), potential.data(), nullptr);
 
-      double potential_mean = 0.0;
-  for (int n = 0; n < N; ++n) {
-    potential_mean += potential[n];
-
-  }
-  std::cout << potential_mean/N << std::endl;
-
   zero_total_charge(N, charge.data());
 
   ewald.find_force(
@@ -1987,24 +1985,16 @@ void QNEP::compute(
     virial,
     potential);
 
-  potential_mean = 0.0;
-  for (int n = 0; n < N; ++n) {
-    potential_mean += potential[n];
-
-  }
-      std::cout << potential_mean/N << std::endl;
-
-  exit(1);
-
   find_force_radial_small_box(
     paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
     r12.data() + size_x12, r12.data() + size_x12 * 2, Fp.data(),
+    charge_derivative.data(), D_real.data(),
     force.data(), force.data() + N, force.data() + N * 2, virial.data());
 
   find_force_angular_small_box(
     paramb, annmb, N, NN_angular.data(), NL_angular.data(), type.data(),
     r12.data() + size_x12 * 3, r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, Fp.data(),
-    sum_fxyz.data(),
+    charge_derivative.data(), D_real.data(), sum_fxyz.data(),
     force.data(), force.data() + N, force.data() + N * 2, virial.data());
 
   if (zbl.enabled) {

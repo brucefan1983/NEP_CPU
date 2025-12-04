@@ -124,14 +124,14 @@ void find_force_charge_reciprocal_space(
     }
     g_pe[n] += K_C_SP * temp_energy_sum;
     g_virial[n + 0 * N] += K_C_SP * temp_virial_sum[0];
-    g_virial[n + 1 * N] += K_C_SP * temp_virial_sum[1];
-    g_virial[n + 2 * N] += K_C_SP * temp_virial_sum[2];
+    g_virial[n + 1 * N] += K_C_SP * temp_virial_sum[3];
+    g_virial[n + 2 * N] += K_C_SP * temp_virial_sum[5];
     g_virial[n + 3 * N] += K_C_SP * temp_virial_sum[3];
-    g_virial[n + 4 * N] += K_C_SP * temp_virial_sum[5];
+    g_virial[n + 4 * N] += K_C_SP * temp_virial_sum[1];
     g_virial[n + 5 * N] += K_C_SP * temp_virial_sum[4];
-    g_virial[n + 6 * N] += K_C_SP * temp_virial_sum[3];
-    g_virial[n + 7 * N] += K_C_SP * temp_virial_sum[5];
-    g_virial[n + 8 * N] += K_C_SP * temp_virial_sum[4];
+    g_virial[n + 6 * N] += K_C_SP * temp_virial_sum[5];
+    g_virial[n + 7 * N] += K_C_SP * temp_virial_sum[4];
+    g_virial[n + 8 * N] += K_C_SP * temp_virial_sum[2];
     g_D_real[n] = 2.0 * K_C_SP * temp_D_real_sum;
     const double charge_factor = K_C_SP * 2.0 * q;
     g_fx[n] += charge_factor * temp_force_sum[0];
