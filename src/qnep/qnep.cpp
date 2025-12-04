@@ -947,6 +947,18 @@ void find_descriptor_small_box(
   }
 }
 
+void zero_total_charge(const int N, double* g_charge)
+{
+  double mean_charge = 0.0;
+  for (int n = 0; n < N; ++n) {
+    mean_charge += g_charge[n];
+  }
+  mean_charge /= N;
+  for (int n = 0; n < N; ++n) {
+    g_charge[n] -= mean_charge;
+  }
+}
+
 void find_force_radial_small_box(
   QNEP::ParaMB& paramb,
   QNEP::ANN& annmb,
@@ -1955,6 +1967,8 @@ void QNEP::compute(
     r12.data() + size_x12 * 2, r12.data() + size_x12 * 3, r12.data() + size_x12 * 4,
     r12.data() + size_x12 * 5,
     Fp.data(), sum_fxyz.data(), charge.data(), charge_derivative.data(), potential.data(), nullptr);
+
+  zero_total_charge(N, charge.data());
 
   find_force_radial_small_box(
     paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
