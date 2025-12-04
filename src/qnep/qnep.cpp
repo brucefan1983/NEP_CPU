@@ -140,29 +140,32 @@ void complex_product(const double a, const double b, double& real_part, double& 
   imag_part = a * imag_part + b * real_temp;
 }
 
-void apply_ann_one_layer(
-  const int dim,
-  const int num_neurons1,
+void apply_ann_one_layer_charge(
+  const int N_des,
+  const int N_neu,
   const double* w0,
   const double* b0,
   const double* w1,
   const double* b1,
   double* q,
   double& energy,
-  double* energy_derivative)
+  double* energy_derivative,
+  double& charge,
+  double* charge_derivative)
 {
-  for (int n = 0; n < num_neurons1; ++n) {
+  for (int n = 0; n < N_neu; ++n) {
     double w0_times_q = 0.0;
-    for (int d = 0; d < dim; ++d) {
-      w0_times_q += w0[n * dim + d] * q[d];
+    for (int d = 0; d < N_des; ++d) {
+      w0_times_q += w0[n * N_des + d] * q[d];
     }
     double x1 = tanh(w0_times_q - b0[n]);
-    double tan_der = 1.0 - x1 * x1;
-
+    double tanh_der = 1.0 - x1 * x1;
     energy += w1[n] * x1;
-    for (int d = 0; d < dim; ++d) {
-      double y1 = tan_der * w0[n * dim + d];
+    charge += w1[n + N_neu] * x1;
+    for (int d = 0; d < N_des; ++d) {
+      double y1 = tanh_der * w0[n * N_des + d];
       energy_derivative[d] += w1[n] * y1;
+      charge_derivative[d] += w1[n + N_neu] * y1;
     }
   }
   energy -= b1[0];
@@ -822,6 +825,8 @@ void find_descriptor_small_box(
   const double* g_z12_angular,
   double* g_Fp,
   double* g_sum_fxyz,
+  double* g_charge,
+  double* g_charge_derivative,
   double* g_potential,
   double* g_descriptor)
 {
@@ -913,16 +918,30 @@ void find_descriptor_small_box(
       }
 
       double F = 0.0, Fp[MAX_DIM] = {0.0};
+      double charge = 0.0;
+      double charge_derivative[MAX_DIM] = {0.0};
 
-        apply_ann_one_layer(
-          annmb.dim, annmb.num_neurons1, annmb.w0[t1], annmb.b0[t1], annmb.w1[t1], annmb.b1, q, F, Fp);
+      apply_ann_one_layer_charge(
+        annmb.dim,
+        annmb.num_neurons1,
+        annmb.w0[t1],
+        annmb.b0[t1],
+        annmb.w1[t1],
+        annmb.b1,
+        q,
+        F,
+        Fp,
+        charge,
+        charge_derivative);
 
       if (calculating_potential) {
         g_potential[n1] += F;
+        g_charge[n1] = charge;
       }
 
       for (int d = 0; d < annmb.dim; ++d) {
         g_Fp[d * N + n1] = Fp[d] * paramb.q_scaler[d];
+        g_charge_derivative[d * N + n1] = charge_derivative[d] * paramb.q_scaler[d];
       }
     }
   }
@@ -1798,10 +1817,6 @@ void QNEP::init_from_file(const std::string& potential_filename, const bool is_r
   charge_para.A = erfc(PI) / (paramb.rc_radial * paramb.rc_radial);
   charge_para.A += charge_para.two_alpha_over_sqrt_pi * exp(-PI * PI) / paramb.rc_radial;
   charge_para.B = - erfc(PI) / paramb.rc_radial - charge_para.A * paramb.rc_radial;
-  //nep_data.D_real.resize(num_atoms);
-  //nep_data.charge.resize(num_atoms);
-  //nep_data.charge_derivative.resize(num_atoms * annmb.dim);
-  //nep_data.bec.resize(num_atoms * 9);
 
   // only report for rank_0
   if (is_rank_0) {
@@ -1881,6 +1896,11 @@ void QNEP::allocate_memory(const int N)
     r12.resize(N * MN * 6);
     Fp.resize(N * annmb.dim);
     sum_fxyz.resize(N * (paramb.n_max_angular + 1) * NUM_OF_ABC);
+    D_real.resize(N);
+    charge.resize(N);
+    charge_derivative.resize(N * annmb.dim);
+    bec.resize(N * 9);
+
     num_atoms = N;
   }
 }
@@ -1934,7 +1954,7 @@ void QNEP::compute(
     NN_angular.data(), NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12,
     r12.data() + size_x12 * 2, r12.data() + size_x12 * 3, r12.data() + size_x12 * 4,
     r12.data() + size_x12 * 5,
-    Fp.data(), sum_fxyz.data(), potential.data(), nullptr);
+    Fp.data(), sum_fxyz.data(), charge.data(), charge_derivative.data(), potential.data(), nullptr);
 
   find_force_radial_small_box(
     paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
@@ -1984,5 +2004,5 @@ void QNEP::find_descriptor(
     NN_angular.data(), NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12,
     r12.data() + size_x12 * 2, r12.data() + size_x12 * 3, r12.data() + size_x12 * 4,
     r12.data() + size_x12 * 5,
-    Fp.data(), sum_fxyz.data(), nullptr, descriptor.data());
+    Fp.data(), sum_fxyz.data(), nullptr, nullptr, nullptr, descriptor.data());
 }
