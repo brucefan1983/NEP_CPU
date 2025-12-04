@@ -14,36 +14,32 @@
 */
 
 #pragma once
-#include "utilities/gpu_vector.cuh"
-#include <random>
+#include <vector>
 
 class Ewald
 {
 public:
   Ewald();
   ~Ewald();
-  void initialize(const float alpha_input);
+  void initialize(const double alpha_input);
   void find_force(
     const int N,
-    const int N1,
-    const int N2,
     const double* box,
-    const GPU_Vector<float>& charge,
-    const GPU_Vector<double>& position_per_atom,
-    GPU_Vector<float>& D_real,
-    GPU_Vector<double>& force_per_atom,
-    GPU_Vector<double>& virial_per_atom,
-    GPU_Vector<double>& potential_per_atom);
+    const std::vector<double>& charge,
+    const std::vector<double>& position_per_atom,
+    std::vector<double>& D_real,
+    std::vector<double>& force_per_atom,
+    std::vector<double>& virial_per_atom,
+    std::vector<double>& potential_per_atom);
 private:
     int num_kpoints_max = 1;
-    float alpha = 0.5f; // 1 / (2 Angstrom)
-    float alpha_factor = 1.0f; // 1 / (4 * alpha * alpha)
-    GPU_Vector<float> kx;
-    GPU_Vector<float> ky;
-    GPU_Vector<float> kz;
-    GPU_Vector<float> G;
-    GPU_Vector<float> S_real;
-    GPU_Vector<float> S_imag;
-    std::mt19937 rng;
+    double alpha = 0.5; // 1 / (2 Angstrom)
+    double alpha_factor = 1.0; // 1 / (4 * alpha * alpha)
+    std::vector<double> kx;
+    std::vector<double> ky;
+    std::vector<double> kz;
+    std::vector<double> G;
+    std::vector<double> S_real;
+    std::vector<double> S_imag;
     void find_k_and_G(const double* box);
 };

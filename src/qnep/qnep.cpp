@@ -1824,7 +1824,7 @@ void QNEP::init_from_file(const std::string& potential_filename, const bool is_r
 
   // charge related parameters and data
   charge_para.alpha = PI / paramb.rc_radial; // a good value
-  //ewald.initialize(charge_para.alpha);
+  ewald.initialize(charge_para.alpha);
   charge_para.two_alpha_over_sqrt_pi = 2.0f * charge_para.alpha / sqrt(PI);
   charge_para.A = erfc(PI) / (paramb.rc_radial * paramb.rc_radial);
   charge_para.A += charge_para.two_alpha_over_sqrt_pi * exp(-PI * PI) / paramb.rc_radial;
@@ -1968,7 +1968,33 @@ void QNEP::compute(
     r12.data() + size_x12 * 5,
     Fp.data(), sum_fxyz.data(), charge.data(), charge_derivative.data(), potential.data(), nullptr);
 
+      double potential_mean = 0.0;
+  for (int n = 0; n < N; ++n) {
+    potential_mean += potential[n];
+
+  }
+  std::cout << potential_mean/N << std::endl;
+
   zero_total_charge(N, charge.data());
+
+  ewald.find_force(
+    N,
+    box.data(),
+    charge,
+    position,
+    D_real,
+    force,
+    virial,
+    potential);
+
+  potential_mean = 0.0;
+  for (int n = 0; n < N; ++n) {
+    potential_mean += potential[n];
+
+  }
+      std::cout << potential_mean/N << std::endl;
+
+  exit(1);
 
   find_force_radial_small_box(
     paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),

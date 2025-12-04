@@ -16,6 +16,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "ewald.h"
 
 class QNEP
 {
@@ -112,6 +113,7 @@ public:
   ANN annmb;
   ZBL zbl;
   Charge_Para charge_para;
+  Ewald ewald;
   std::vector<int> NN_radial, NL_radial, NN_angular, NL_angular;
   std::vector<double> r12;
   std::vector<double> Fp;
