@@ -1621,12 +1621,11 @@ void find_bec_radial_small_box(
       double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
       double d12inv = 1.0 / d12;
       double fc12, fcp12;
-      double rc = (paramb.charge_mode >= 4) ? paramb.rc_angular : paramb.rc_radial;
+      double rc = paramb.rc_radial;
       if (paramb.use_typewise_cutoff) {
         rc = std::min(
           (COVALENT_RADIUS[paramb.atomic_numbers[t1]] +
-           COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
-            ((paramb.charge_mode >= 4) ? paramb.typewise_cutoff_angular_factor : paramb.typewise_cutoff_radial_factor),
+           COVALENT_RADIUS[paramb.atomic_numbers[t2]]) * paramb.typewise_cutoff_radial_factor,
           rc);
       }
       double rcinv = 1.0 / rc;
@@ -1790,6 +1789,166 @@ void scale_bec(const int N, const double* sqrt_epsilon_inf, double* g_bec)
     for (int d = 0; d < 9; ++d) {
       g_bec[n1 + N * d] *= sqrt_epsilon_inf[0];
     }
+  }
+}
+
+void find_force_charge_real_space_only_small_box(
+  const int N,
+  const QNEP::Charge_Para charge_para,
+  const int* g_NN,
+  const int* g_NL,
+  const double* g_charge,
+  const double* g_x12,
+  const double* g_y12,
+  const double* g_z12,
+  double* g_fx,
+  double* g_fy,
+  double* g_fz,
+  double* g_virial,
+  double* g_pe,
+  double* g_D_real)
+{
+  for (int n1 = 0; n1 < N; ++n1) {
+    double s_fx = 0.0;
+    double s_fy = 0.0;
+    double s_fz = 0.0;
+    double s_sxx = 0.0;
+    double s_sxy = 0.0;
+    double s_sxz = 0.0;
+    double s_syx = 0.0;
+    double s_syy = 0.0;
+    double s_syz = 0.0;
+    double s_szx = 0.0;
+    double s_szy = 0.0;
+    double s_szz = 0.0;
+    double q1 = g_charge[n1];
+    double s_pe = 0; // no self energy
+    double D_real = 0; // no self energy
+
+    for (int i1 = 0; i1 < g_NN[n1]; ++i1) {
+      int index = i1 * N + n1;
+      int n2 = g_NL[index];
+      double q2 = g_charge[n2];
+      double qq = q1 * q2;
+      double r12[3] = {g_x12[index], g_y12[index], g_z12[index]};
+      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
+      double d12inv = 1.0 / d12;
+
+      double erfc_r = erfc(charge_para.alpha * d12) * d12inv;
+      D_real += q2 * (erfc_r + charge_para.A * d12 + charge_para.B);
+      s_pe += 0.5 * qq * (erfc_r + charge_para.A * d12 + charge_para.B);
+      double f2 = erfc_r + charge_para.two_alpha_over_sqrt_pi * exp(-charge_para.alpha * charge_para.alpha * d12 * d12);
+      f2 = -0.5 * K_C_SP * qq * (f2 * d12inv * d12inv - charge_para.A * d12inv);
+      double f12[3] = {r12[0] * f2, r12[1] * f2, r12[2] * f2};
+      double f21[3] = {-r12[0] * f2, -r12[1] * f2, -r12[2] * f2};
+
+      s_fx += f12[0] - f21[0];
+      s_fy += f12[1] - f21[1];
+      s_fz += f12[2] - f21[2];
+      s_sxx -= r12[0] * f12[0];
+      s_sxy -= r12[0] * f12[1];
+      s_sxz -= r12[0] * f12[2];
+      s_syx -= r12[1] * f12[0];
+      s_syy -= r12[1] * f12[1];
+      s_syz -= r12[1] * f12[2];
+      s_szx -= r12[2] * f12[0];
+      s_szy -= r12[2] * f12[1];
+      s_szz -= r12[2] * f12[2];
+    }
+    g_fx[n1] += s_fx;
+    g_fy[n1] += s_fy;
+    g_fz[n1] += s_fz;
+    g_virial[n1 + 0 * N] += s_sxx;
+    g_virial[n1 + 1 * N] += s_sxy;
+    g_virial[n1 + 2 * N] += s_sxz;
+    g_virial[n1 + 3 * N] += s_syx;
+    g_virial[n1 + 4 * N] += s_syy;
+    g_virial[n1 + 5 * N] += s_syz;
+    g_virial[n1 + 6 * N] += s_szx;
+    g_virial[n1 + 7 * N] += s_szy;
+    g_virial[n1 + 8 * N] += s_szz;
+    g_D_real[n1] = K_C_SP * D_real;
+    g_pe[n1] += K_C_SP * s_pe;
+  }
+}
+
+void find_force_charge_real_space_small_box(
+  const int N,
+  const QNEP::Charge_Para charge_para,
+  const int* g_NN,
+  const int* g_NL,
+  const double* g_charge,
+  const double* g_x12,
+  const double* g_y12,
+  const double* g_z12,
+  double* g_fx,
+  double* g_fy,
+  double* g_fz,
+  double* g_virial,
+  double* g_pe,
+  double* g_D_real)
+{
+  for (int n1 = 0; n1 < N; ++n1) {
+    double s_fx = 0.0;
+    double s_fy = 0.0;
+    double s_fz = 0.0;
+    double s_sxx = 0.0;
+    double s_sxy = 0.0;
+    double s_sxz = 0.0;
+    double s_syx = 0.0;
+    double s_syy = 0.0;
+    double s_syz = 0.0;
+    double s_szx = 0.0;
+    double s_szy = 0.0;
+    double s_szz = 0.0;
+    double q1 = g_charge[n1];
+    double s_pe = -charge_para.two_alpha_over_sqrt_pi * 0.5 * q1 * q1; // self energy part
+    double D_real = -q1 * charge_para.two_alpha_over_sqrt_pi; // self energy part
+
+    for (int i1 = 0; i1 < g_NN[n1]; ++i1) {
+      int index = i1 * N + n1;
+      int n2 = g_NL[index];
+      double q2 = g_charge[n2];
+      double qq = q1 * q2;
+      double r12[3] = {g_x12[index], g_y12[index], g_z12[index]};
+      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
+      double d12inv = 1.0 / d12;
+
+      double erfc_r = erfc(charge_para.alpha * d12) * d12inv;
+      D_real += q2 * erfc_r;
+      s_pe += 0.5 * qq * erfc_r;
+      double f2 = erfc_r + charge_para.two_alpha_over_sqrt_pi * exp(-charge_para.alpha * charge_para.alpha * d12 * d12);
+      f2 *= -0.5 * K_C_SP * qq * d12inv * d12inv;
+      double f12[3] = {r12[0] * f2, r12[1] * f2, r12[2] * f2};
+      double f21[3] = {-r12[0] * f2, -r12[1] * f2, -r12[2] * f2};
+
+      s_fx += f12[0] - f21[0];
+      s_fy += f12[1] - f21[1];
+      s_fz += f12[2] - f21[2];
+      s_sxx -= r12[0] * f12[0];
+      s_sxy -= r12[0] * f12[1];
+      s_sxz -= r12[0] * f12[2];
+      s_syx -= r12[1] * f12[0];
+      s_syy -= r12[1] * f12[1];
+      s_syz -= r12[1] * f12[2];
+      s_szx -= r12[2] * f12[0];
+      s_szy -= r12[2] * f12[1];
+      s_szz -= r12[2] * f12[2];
+    }
+    g_fx[n1] += s_fx;
+    g_fy[n1] += s_fy;
+    g_fz[n1] += s_fz;
+    g_virial[n1 + 0 * N] += s_sxx;
+    g_virial[n1 + 1 * N] += s_sxy;
+    g_virial[n1 + 2 * N] += s_sxz;
+    g_virial[n1 + 3 * N] += s_syx;
+    g_virial[n1 + 4 * N] += s_syy;
+    g_virial[n1 + 5 * N] += s_syz;
+    g_virial[n1 + 6 * N] += s_szx;
+    g_virial[n1 + 7 * N] += s_szy;
+    g_virial[n1 + 8 * N] += s_szz;
+    g_D_real[n1] += K_C_SP * D_real;
+    g_pe[n1] += K_C_SP * s_pe;
   }
 }
 
@@ -2159,6 +2318,14 @@ void QNEP::compute(
     std::cout << "Type and virial sizes are inconsistent.\n";
     exit(1);
   }
+  if (N != charge.size()) {
+    std::cout << "Type and charge sizes are inconsistent.\n";
+    exit(1);
+  }
+  if (N * 9 != bec.size()) {
+    std::cout << "Type and BEC sizes are inconsistent.\n";
+    exit(1);
+  }
 
   allocate_memory(N);
 
@@ -2170,6 +2337,12 @@ void QNEP::compute(
   }
   for (int n = 0; n < virial.size(); ++n) {
     virial[n] = 0.0;
+  }
+  for (int n = 0; n < charge.size(); ++n) {
+    charge[n] = 0.0;
+  }
+  for (int n = 0; n < bec.size(); ++n) {
+    bec[n] = 0.0;
   }
 
   find_neighbor_list_small_box(
@@ -2213,15 +2386,53 @@ void QNEP::compute(
     bec.data());
   scale_bec(N, annmb.sqrt_epsilon_inf, bec.data());
 
-  ewald.find_force(
-    N,
-    box.data(),
-    charge,
-    position,
-    D_real,
-    force,
-    virial,
-    potential);
+  if (paramb.charge_mode == 1 || paramb.charge_mode == 2) {
+    ewald.find_force(
+      N,
+      box.data(),
+      charge,
+      position,
+      D_real,
+      force,
+      virial,
+      potential);
+  }
+
+  if (paramb.charge_mode == 1) {
+    find_force_charge_real_space_small_box(
+      N,
+      charge_para,
+      NN_radial.data(),
+      NL_radial.data(),
+      charge.data(),
+      r12.data(),
+      r12.data() + size_x12,
+      r12.data() + size_x12 * 2,
+      force.data(),
+      force.data() + N,
+      force.data() + N * 2,
+      virial.data(),
+      potential.data(),
+      D_real.data());
+  }
+
+  if (paramb.charge_mode == 3) {
+    find_force_charge_real_space_only_small_box(
+      N,
+      charge_para,
+      NN_radial.data(),
+      NL_radial.data(),
+      charge.data(),
+      r12.data(),
+      r12.data() + size_x12,
+      r12.data() + size_x12 * 2,
+      force.data(),
+      force.data() + N,
+      force.data() + N * 2,
+      virial.data(),
+      potential.data(),
+      D_real.data());
+  }
 
   find_force_radial_small_box(
     paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
