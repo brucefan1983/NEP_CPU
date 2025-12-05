@@ -98,7 +98,9 @@ public:
     const std::vector<double>& position,
     std::vector<double>& potential,
     std::vector<double>& force,
-    std::vector<double>& virial);
+    std::vector<double>& virial,
+    std::vector<double>& charge,
+    std::vector<double>& bec);
 
   void find_descriptor(
     const std::vector<int>& type,
@@ -119,9 +121,7 @@ public:
   std::vector<double> Fp;
   std::vector<double> sum_fxyz;
   std::vector<double> D_real;
-  std::vector<double> charge;
   std::vector<double> charge_derivative;
-  std::vector<double> bec;
   std::vector<double> parameters;
   std::vector<std::string> element_list;
   void update_potential(double* parameters, ANN& ann);

@@ -2124,9 +2124,7 @@ void QNEP::allocate_memory(const int N)
     Fp.resize(N * annmb.dim);
     sum_fxyz.resize(N * (paramb.n_max_angular + 1) * NUM_OF_ABC);
     D_real.resize(N);
-    charge.resize(N);
     charge_derivative.resize(N * annmb.dim);
-    bec.resize(N * 9);
 
     num_atoms = N;
   }
@@ -2138,7 +2136,9 @@ void QNEP::compute(
   const std::vector<double>& position,
   std::vector<double>& potential,
   std::vector<double>& force,
-  std::vector<double>& virial)
+  std::vector<double>& virial,
+  std::vector<double>& charge,
+  std::vector<double>& bec)
 {
   const int N = type.size();
   const int size_x12 = N * MN;
