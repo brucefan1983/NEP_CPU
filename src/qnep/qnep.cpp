@@ -1195,7 +1195,7 @@ void find_force_ZBL_small_box(
           rc_outer = std::min(
             (COVALENT_RADIUS[zi - 1] + COVALENT_RADIUS[zj - 1]) * paramb.typewise_cutoff_zbl_factor,
             rc_outer);
-          rc_inner = rc_outer * 0.5f;
+          rc_inner = rc_outer * 0.5;
         }
         find_f_and_fp_zbl(zizj, a_inv, rc_inner, rc_outer, d12, d12inv, f, fp);
       }
@@ -1583,6 +1583,216 @@ void find_neighbor_list_small_box(
   }
 }
 
+void find_bec_diagonal(const int N, const double* g_q, double* g_bec)
+{
+  for (int n1 = 0; n1 < N; ++n1) {
+    g_bec[n1 + N * 0] = g_q[n1];
+    g_bec[n1 + N * 1] = 0.0;
+    g_bec[n1 + N * 2] = 0.0;
+    g_bec[n1 + N * 3] = 0.0;
+    g_bec[n1 + N * 4] = g_q[n1];
+    g_bec[n1 + N * 5] = 0.0;
+    g_bec[n1 + N * 6] = 0.0;
+    g_bec[n1 + N * 7] = 0.0;
+    g_bec[n1 + N * 8] = g_q[n1];
+  }
+}
+
+void find_bec_radial_small_box(
+  const QNEP::ParaMB paramb,
+  const QNEP::ANN annmb,
+  const int N,
+  const int* g_NN,
+  const int* g_NL,
+  const int* g_type,
+  const double* g_x12,
+  const double* g_y12,
+  const double* g_z12,
+  const double* g_charge_derivative,
+  double* g_bec)
+{
+  for (int n1 = 0; n1 < N; ++n1) {
+    int t1 = g_type[n1];
+    for (int i1 = 0; i1 < g_NN[n1]; ++i1) {
+      int index = i1 * N + n1;
+      int n2 = g_NL[index];
+      int t2 = g_type[n2];
+      double r12[3] = {g_x12[index], g_y12[index], g_z12[index]};
+      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
+      double d12inv = 1.0 / d12;
+      double fc12, fcp12;
+      double rc = (paramb.charge_mode >= 4) ? paramb.rc_angular : paramb.rc_radial;
+      if (paramb.use_typewise_cutoff) {
+        rc = std::min(
+          (COVALENT_RADIUS[paramb.atomic_numbers[t1]] +
+           COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
+            ((paramb.charge_mode >= 4) ? paramb.typewise_cutoff_angular_factor : paramb.typewise_cutoff_radial_factor),
+          rc);
+      }
+      double rcinv = 1.0 / rc;
+      find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
+      double fn12[MAX_NUM_N];
+      double fnp12[MAX_NUM_N];
+      double f12[3] = {0.0};
+
+      find_fn_and_fnp(paramb.basis_size_radial, rcinv, d12, fc12, fcp12, fn12, fnp12);
+      for (int n = 0; n <= paramb.n_max_radial; ++n) {
+        double gnp12 = 0.0;
+        for (int k = 0; k <= paramb.basis_size_radial; ++k) {
+          int c_index = (n * (paramb.basis_size_radial + 1) + k) * paramb.num_types_sq;
+          c_index += t1 * paramb.num_types + t2;
+          gnp12 += fnp12[k] * annmb.c[c_index];
+        }
+        const double tmp12 = g_charge_derivative[n1 + n * N] * gnp12 * d12inv;
+        for (int d = 0; d < 3; ++d) {
+          f12[d] += tmp12 * r12[d];
+        }
+      }
+
+      double bec_xx = 0.5* (r12[0] * f12[0]);
+      double bec_xy = 0.5* (r12[0] * f12[1]);
+      double bec_xz = 0.5* (r12[0] * f12[2]);
+      double bec_yx = 0.5* (r12[1] * f12[0]);
+      double bec_yy = 0.5* (r12[1] * f12[1]);
+      double bec_yz = 0.5* (r12[1] * f12[2]);
+      double bec_zx = 0.5* (r12[2] * f12[0]);
+      double bec_zy = 0.5* (r12[2] * f12[1]);
+      double bec_zz = 0.5* (r12[2] * f12[2]);
+
+      g_bec[n1] += bec_xx;
+      g_bec[n1 + N] += bec_xy;
+      g_bec[n1 + N * 2] += bec_xz;
+      g_bec[n1 + N * 3] += bec_yx;
+      g_bec[n1 + N * 4] += bec_yy;
+      g_bec[n1 + N * 5] += bec_yz;
+      g_bec[n1 + N * 6] += bec_zx;
+      g_bec[n1 + N * 7] += bec_zy;
+      g_bec[n1 + N * 8] += bec_zz;
+
+      g_bec[n2] -= bec_xx;
+      g_bec[n2 + N] -= bec_xy;
+      g_bec[n2 + N * 2] -= bec_xz;
+      g_bec[n2 + N * 3] -= bec_yx;
+      g_bec[n2 + N * 4] -= bec_yy;
+      g_bec[n2 + N * 5] -= bec_yz;
+      g_bec[n2 + N * 6] -= bec_zx;
+      g_bec[n2 + N * 7] -= bec_zy;
+      g_bec[n2 + N * 8] -= bec_zz;
+    }
+  }
+}
+
+void find_bec_angular_small_box(
+  QNEP::ParaMB paramb,
+  QNEP::ANN annmb,
+  const int N,
+  const int* g_NN_angular,
+  const int* g_NL_angular,
+  const int* g_type,
+  const double* g_x12,
+  const double* g_y12,
+  const double* g_z12,
+  const double* g_charge_derivative,
+  const double* g_sum_fxyz,
+  double* g_bec)
+{
+  for (int n1 = 0; n1 < N; ++n1) {
+    double Fp[MAX_DIM_ANGULAR] = {0.0};
+    double sum_fxyz[NUM_OF_ABC * MAX_NUM_N];
+    for (int d = 0; d < paramb.dim_angular; ++d) {
+      Fp[d] = g_charge_derivative[(paramb.n_max_radial + 1 + d) * N + n1];
+    }
+    for (int d = 0; d < (paramb.n_max_angular + 1) * NUM_OF_ABC; ++d) {
+      sum_fxyz[d] = g_sum_fxyz[d * N + n1];
+    }
+    int t1 = g_type[n1];
+    for (int i1 = 0; i1 < g_NN_angular[n1]; ++i1) {
+      int index = i1 * N + n1;
+      int n2 = g_NL_angular[index];
+      double r12[3] = {g_x12[index], g_y12[index], g_z12[index]};
+      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
+      double f12[3] = {0.0};
+      double fc12, fcp12;
+      int t2 = g_type[n2];
+      double rc = paramb.rc_angular;
+      if (paramb.use_typewise_cutoff) {
+        rc = std::min(
+          (COVALENT_RADIUS[paramb.atomic_numbers[t1]] +
+           COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
+            paramb.typewise_cutoff_angular_factor,
+          rc);
+      }
+      double rcinv = 1.0 / rc;
+      find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
+
+      double fn12[MAX_NUM_N];
+      double fnp12[MAX_NUM_N];
+      find_fn_and_fnp(paramb.basis_size_angular, rcinv, d12, fc12, fcp12, fn12, fnp12);
+      for (int n = 0; n <= paramb.n_max_angular; ++n) {
+        double gn12 = 0.0;
+        double gnp12 = 0.0;
+        for (int k = 0; k <= paramb.basis_size_angular; ++k) {
+          int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
+          c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
+          gn12 += fn12[k] * annmb.c[c_index];
+          gnp12 += fnp12[k] * annmb.c[c_index];
+        }
+        accumulate_f12(
+          paramb.L_max,
+          paramb.num_L,
+          n,
+          paramb.n_max_angular + 1,
+          d12,
+          r12,
+          gn12,
+          gnp12,
+          Fp,
+          sum_fxyz,
+          f12);
+      }
+
+      double bec_xx = 0.5* (r12[0] * f12[0]);
+      double bec_xy = 0.5* (r12[0] * f12[1]);
+      double bec_xz = 0.5* (r12[0] * f12[2]);
+      double bec_yx = 0.5* (r12[1] * f12[0]);
+      double bec_yy = 0.5* (r12[1] * f12[1]);
+      double bec_yz = 0.5* (r12[1] * f12[2]);
+      double bec_zx = 0.5* (r12[2] * f12[0]);
+      double bec_zy = 0.5* (r12[2] * f12[1]);
+      double bec_zz = 0.5* (r12[2] * f12[2]);
+
+      g_bec[n1] += bec_xx;
+      g_bec[n1 + N] += bec_xy;
+      g_bec[n1 + N * 2] += bec_xz;
+      g_bec[n1 + N * 3] += bec_yx;
+      g_bec[n1 + N * 4] += bec_yy;
+      g_bec[n1 + N * 5] += bec_yz;
+      g_bec[n1 + N * 6] += bec_zx;
+      g_bec[n1 + N * 7] += bec_zy;
+      g_bec[n1 + N * 8] += bec_zz;
+
+      g_bec[n2] -= bec_xx;
+      g_bec[n2 + N] -= bec_xy;
+      g_bec[n2 + N * 2] -= bec_xz;
+      g_bec[n2 + N * 3] -= bec_yx;
+      g_bec[n2 + N * 4] -= bec_yy;
+      g_bec[n2 + N * 5] -= bec_yz;
+      g_bec[n2 + N * 6] -= bec_zx;
+      g_bec[n2 + N * 7] -= bec_zy;
+      g_bec[n2 + N * 8] -= bec_zz;
+    }
+  }
+}
+
+void scale_bec(const int N, const double* sqrt_epsilon_inf, double* g_bec)
+{
+  for (int n1 = 0; n1 < N; ++n1) {
+    for (int d = 0; d < 9; ++d) {
+      g_bec[n1 + N * d] *= sqrt_epsilon_inf[0];
+    }
+  }
+}
+
 std::vector<std::string> get_tokens(std::ifstream& input)
 {
   std::string line;
@@ -1830,7 +2040,7 @@ void QNEP::init_from_file(const std::string& potential_filename, const bool is_r
   // charge related parameters and data
   charge_para.alpha = PI / paramb.rc_radial; // a good value
   ewald.initialize(charge_para.alpha);
-  charge_para.two_alpha_over_sqrt_pi = 2.0f * charge_para.alpha / sqrt(PI);
+  charge_para.two_alpha_over_sqrt_pi = 2.0 * charge_para.alpha / sqrt(PI);
   charge_para.A = erfc(PI) / (paramb.rc_radial * paramb.rc_radial);
   charge_para.A += charge_para.two_alpha_over_sqrt_pi * exp(-PI * PI) / paramb.rc_radial;
   charge_para.B = - erfc(PI) / paramb.rc_radial - charge_para.A * paramb.rc_radial;
@@ -1974,6 +2184,34 @@ void QNEP::compute(
     Fp.data(), sum_fxyz.data(), charge.data(), charge_derivative.data(), potential.data(), nullptr);
 
   zero_total_charge(N, charge.data());
+
+  find_bec_diagonal(N, charge.data(), bec.data());
+  find_bec_radial_small_box(
+    paramb,
+    annmb,
+    N,
+    NN_radial.data(),
+    NL_radial.data(),
+    type.data(),
+    r12.data(),
+    r12.data() + size_x12,
+    r12.data() + size_x12 * 2,
+    charge_derivative.data(),
+    bec.data());
+  find_bec_angular_small_box(
+    paramb,
+    annmb,
+    N,
+    NN_angular.data(),
+    NL_angular.data(),
+    type.data(),
+    r12.data() + size_x12 * 3,
+    r12.data() + size_x12 * 4,
+    r12.data() + size_x12 * 5,
+    charge_derivative.data(),
+    sum_fxyz.data(),
+    bec.data());
+  scale_bec(N, annmb.sqrt_epsilon_inf, bec.data());
 
   ewald.find_force(
     N,
