@@ -847,14 +847,6 @@ void find_descriptor_small_box(
       int t2 = g_type[n2];
       double rc = paramb.rc_radial;
       double rcinv = paramb.rcinv_radial;
-      if (paramb.use_typewise_cutoff) {
-        rc = std::min(
-          (COVALENT_RADIUS[paramb.atomic_numbers[t1]] +
-           COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
-            paramb.typewise_cutoff_radial_factor,
-          rc);
-        rcinv = 1.0 / rc;
-      }
       find_fc(rc, rcinv, d12, fc12);
       double fn12[MAX_NUM_N];
       find_fn(paramb.basis_size_radial, rcinv, d12, fc12, fn12);
@@ -880,14 +872,6 @@ void find_descriptor_small_box(
         double fc12;
         double rc = paramb.rc_angular;
         double rcinv = paramb.rcinv_angular;
-        if (paramb.use_typewise_cutoff) {
-          rc = std::min(
-            (COVALENT_RADIUS[paramb.atomic_numbers[t1]] +
-             COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
-              paramb.typewise_cutoff_angular_factor,
-            rc);
-          rcinv = 1.0 / rc;
-        }
         find_fc(rc, rcinv, d12, fc12);
         double fn12[MAX_NUM_N];
         find_fn(paramb.basis_size_angular, rcinv, d12, fc12, fn12);
@@ -990,14 +974,6 @@ void find_force_radial_small_box(
       double fc12, fcp12;
       double rc = paramb.rc_radial;
       double rcinv = paramb.rcinv_radial;
-      if (paramb.use_typewise_cutoff) {
-        rc = std::min(
-          (COVALENT_RADIUS[paramb.atomic_numbers[t1]] +
-           COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
-            paramb.typewise_cutoff_radial_factor,
-          rc);
-        rcinv = 1.0 / rc;
-      }
       find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
       double fn12[MAX_NUM_N];
       double fnp12[MAX_NUM_N];
@@ -1086,14 +1062,6 @@ void find_force_angular_small_box(
       double fc12, fcp12;
       double rc = paramb.rc_angular;
       double rcinv = paramb.rcinv_angular;
-      if (paramb.use_typewise_cutoff) {
-        rc = std::min(
-          (COVALENT_RADIUS[paramb.atomic_numbers[t1]] +
-           COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
-            paramb.typewise_cutoff_angular_factor,
-          rc);
-        rcinv = 1.0 / rc;
-      }
       find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
 
       double fn12[MAX_NUM_N];
@@ -1622,12 +1590,6 @@ void find_bec_radial_small_box(
       double d12inv = 1.0 / d12;
       double fc12, fcp12;
       double rc = paramb.rc_radial;
-      if (paramb.use_typewise_cutoff) {
-        rc = std::min(
-          (COVALENT_RADIUS[paramb.atomic_numbers[t1]] +
-           COVALENT_RADIUS[paramb.atomic_numbers[t2]]) * paramb.typewise_cutoff_radial_factor,
-          rc);
-      }
       double rcinv = 1.0 / rc;
       find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
       double fn12[MAX_NUM_N];
@@ -1714,13 +1676,6 @@ void find_bec_angular_small_box(
       double fc12, fcp12;
       int t2 = g_type[n2];
       double rc = paramb.rc_angular;
-      if (paramb.use_typewise_cutoff) {
-        rc = std::min(
-          (COVALENT_RADIUS[paramb.atomic_numbers[t1]] +
-           COVALENT_RADIUS[paramb.atomic_numbers[t2]]) *
-            paramb.typewise_cutoff_angular_factor,
-          rc);
-      }
       double rcinv = 1.0 / rc;
       find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
 
@@ -2095,12 +2050,7 @@ void QNEP::init_from_file(const std::string& potential_filename, const bool is_r
   int MN_radial = get_int_from_token(tokens[3], __FILE__, __LINE__);  // not used
   int MN_angular = get_int_from_token(tokens[4], __FILE__, __LINE__); // not used
   if (tokens.size() == 8) {
-    paramb.typewise_cutoff_radial_factor = get_double_from_token(tokens[5], __FILE__, __LINE__);
-    paramb.typewise_cutoff_angular_factor = get_double_from_token(tokens[6], __FILE__, __LINE__);
     paramb.typewise_cutoff_zbl_factor = get_double_from_token(tokens[7], __FILE__, __LINE__);
-    if (paramb.typewise_cutoff_radial_factor > 0.0) {
-      paramb.use_typewise_cutoff = true;
-    }
     if (paramb.typewise_cutoff_zbl_factor > 0.0) {
       paramb.use_typewise_cutoff_zbl = true;
     }
@@ -2234,12 +2184,6 @@ void QNEP::init_from_file(const std::string& potential_filename, const bool is_r
     }
     std::cout << "    radial cutoff = " << paramb.rc_radial << " A.\n";
     std::cout << "    angular cutoff = " << paramb.rc_angular << " A.\n";
-    if (paramb.use_typewise_cutoff) {
-      std::cout << "    typewise cutoff is enabled with radial factor "
-                << paramb.typewise_cutoff_radial_factor << " and angular factor "
-                << paramb.typewise_cutoff_angular_factor << ".\n";
-    }
-
     std::cout << "    n_max_radial = " << paramb.n_max_radial << ".\n";
     std::cout << "    n_max_angular = " << paramb.n_max_angular << ".\n";
     std::cout << "    basis_size_radial = " << paramb.basis_size_radial << ".\n";

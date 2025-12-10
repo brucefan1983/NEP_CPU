@@ -22,10 +22,7 @@ class QNEP
 {
 public:
   struct ParaMB {
-    bool use_typewise_cutoff = false;
     bool use_typewise_cutoff_zbl = false;
-    double typewise_cutoff_radial_factor = 2.5;
-    double typewise_cutoff_angular_factor = 2.0;
     double typewise_cutoff_zbl_factor = 0.65;
 
     int charge_mode = 0;
