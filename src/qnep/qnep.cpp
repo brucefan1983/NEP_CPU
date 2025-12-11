@@ -2022,39 +2022,37 @@ void QNEP::init_from_file(const std::string& potential_filename, const bool is_r
     paramb.atomic_numbers[n] = atomic_number;
   }
 
-  // zbl 0.7 1.4
+  // zbl
   if (zbl.enabled) {
     tokens = get_tokens(input);
-    if (tokens.size() != 3) {
+    if (tokens.size() != 3 && tokens.size() != 4) {
       print_tokens(tokens);
-      std::cout << "This line should be zbl rc_inner rc_outer." << std::endl;
+      std::cout << "This line should be zbl rc_inner rc_outer [zbl_factor]." << std::endl;
       exit(1);
     }
     zbl.rc_inner = get_double_from_token(tokens[1], __FILE__, __LINE__);
     zbl.rc_outer = get_double_from_token(tokens[2], __FILE__, __LINE__);
     if (zbl.rc_inner == 0 && zbl.rc_outer == 0) {
       zbl.flexibled = true;
+    } else {
+      if (tokens.size() == 4) {
+        paramb.typewise_cutoff_zbl_factor = get_double_from_token(tokens[3], __FILE__, __LINE__);
+        paramb.use_typewise_cutoff_zbl = true;
+      }
     }
   }
 
-  // cutoff 4.2 3.7 80 47
+  // cutoff
   tokens = get_tokens(input);
-  if (tokens.size() != 5 && tokens.size() != 8) {
+  if (tokens.size() != 5) {
     print_tokens(tokens);
-    std::cout << "This line should be cutoff rc_radial rc_angular MN_radial MN_angular "
-                 "[radial_factor] [angular_factor] [zbl_factor].\n";
+    std::cout << "This line should be cutoff rc_radial rc_angular MN_radial MN_angular.\n";
     exit(1);
   }
   paramb.rc_radial = get_double_from_token(tokens[1], __FILE__, __LINE__);
   paramb.rc_angular = get_double_from_token(tokens[2], __FILE__, __LINE__);
   int MN_radial = get_int_from_token(tokens[3], __FILE__, __LINE__);  // not used
   int MN_angular = get_int_from_token(tokens[4], __FILE__, __LINE__); // not used
-  if (tokens.size() == 8) {
-    paramb.typewise_cutoff_zbl_factor = get_double_from_token(tokens[7], __FILE__, __LINE__);
-    if (paramb.typewise_cutoff_zbl_factor > 0.0) {
-      paramb.use_typewise_cutoff_zbl = true;
-    }
-  }
 
   // n_max 10 8
   tokens = get_tokens(input);
