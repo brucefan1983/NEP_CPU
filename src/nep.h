@@ -23,18 +23,15 @@ class NEP3
 {
 public:
   struct ParaMB {
-    bool use_typewise_cutoff = false;
     bool use_typewise_cutoff_zbl = false;
-    double typewise_cutoff_radial_factor = 2.5;
-    double typewise_cutoff_angular_factor = 2.0;
     double typewise_cutoff_zbl_factor = 0.65;
 
     int model_type = 0; // 0=potential, 1=dipole, 2=polarizability
     int version = 4;
-    double rc_radial = 0.0;
-    double rc_angular = 0.0;
-    double rcinv_radial = 0.0;
-    double rcinv_angular = 0.0;
+    double rc_radial_max = 0.0;
+    double rc_angular_max = 0.0;
+    double rc_radial[94];
+    double rc_angular[94];
     int n_max_radial = 0;
     int n_max_angular = 0;
     int L_max = 0;
