@@ -2706,9 +2706,9 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
     }
 
     for (int n = 0; n < paramb.num_types; ++n) {
-      std::cout << "    type " << n << "( " << element_list[n]
+      std::cout << "    type " << n << " (" << element_list[n]
                 << " with Z = " << paramb.atomic_numbers[n] + 1 << ")"
-                << " and cutoff " << "( " << paramb.rc_radial[n] << " A, "
+                << " has cutoffs " << "(" << paramb.rc_radial[n] << " A, "
                 << paramb.rc_angular[n] << " A).\n";
     }
 
