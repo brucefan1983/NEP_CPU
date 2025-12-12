@@ -22,7 +22,7 @@
 class NEP3
 {
 public:
-  struct ParaMB {;
+  struct ParaMB {
     bool use_typewise_cutoff_zbl = false;
     double typewise_cutoff_zbl_factor = 0.65;
 
