@@ -104,7 +104,7 @@ void PairNEP::coeff(int narg, char** arg)
   nep_model.update_type_map(atom->ntypes, type_map, elements);
 
   // get cutoff from NEP model
-  cutoff = nep_model.paramb.rc_radial;
+  cutoff = nep_model.paramb.rc_radial_max;
   cutoffsq = cutoff * cutoff;
   int n = atom->ntypes;
   for (int i = 1; i <= n; i++)
