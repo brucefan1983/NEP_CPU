@@ -2,13 +2,13 @@
 
 # What does this repository contain?
 
-* A **standalone** C++ implementation (a class called `NEP3`) of the neuroevolution potential (NEP) as introduced in the GPUMD package (https://github.com/brucefan1983/GPUMD). We stress that **there is no external dependence**. Even though the class name is `NEP3`, the implementation works for all versions of NEP.
+* A **standalone** C++ implementation (a class called `NEP`) of the neuroevolution potential (NEP) as introduced in the GPUMD package (https://github.com/brucefan1983/GPUMD). We stress that **there is no external dependence**. The implementation works for all versions of NEP.
 
-* An interface of the `NEP3` class to the CPU version of LAMMPS (https://github.com/lammps/lammps). **It can be run with MPI**.
+* An interface of the `NEP` class to the CPU version of LAMMPS (https://github.com/lammps/lammps). **It can be run with MPI**.
 
 # The standalone C++ implementation of NEP
 
-* The `NEP3` C++ class is defined in the following three files:
+* The `NEP` C++ class is defined in the following three files:
   * `src/nep.h`
   * `src/nep.cpp`
   * `src/dftd3para.h`
@@ -23,7 +23,7 @@
   * `test/`
   * `test_dftd3/`
   
-* The `NEP3` C++ class is used as an engine powering the following Python packages:
+* The `NEP` C++ class is used as an engine powering the following Python packages:
   * `calorine`: https://gitlab.com/materials-modeling/calorine
   * `PyNEP`: https://github.com/bigd4/PyNEP
   * `somd`: https://github.com/initqp/somd
@@ -107,10 +107,9 @@ make install
   
 # Citation
 
-* If you directly or indirectly use the `NEP3` class here, you are suggested to cite the following paper:
+* If you directly or indirectly use the `NEP` class here, you are suggested to cite the following paper:
 
-  * Zheyong Fan, Yanzhou Wang, Penghua Ying, Keke Song, Junjie Wang, Yong Wang, Zezhu Zeng, Ke Xu, Eric Lindgren, J. Magnus Rahm, Alexander J. Gabourie, Jiahui Liu, Haikuan Dong, Jianyang Wu, Yue Chen, Zheng Zhong, Jian Sun, Paul Erhart, Yanjing Su, Tapio Ala-Nissila,
-[GPUMD: A package for constructing accurate machine-learned potentials and performing highly efficient atomistic simulations](https://doi.org/10.1063/5.0106617), The Journal of Chemical Physics **157**, 114801 (2022).
+  * Ke Xu, Hekai Bu, Shuning Pan, Eric Lindgren, Yongchao Wu, Yong Wang, Jiahui Liu, Keke Song, Bin Xu, Yifan Li, Tobias Hainer, Lucas Svensson, Julia Wiktor, Rui Zhao, Hongfu Huang, Cheng Qian, Shuo Zhang, Zezhu Zeng, Bohan Zhang, Benrui Tang, Yang Xiao, Zihan Yan, Jiuyang Shi, Zhixin Liang, Junjie Wang, Ting Liang, Shuo Cao, Yanzhou Wang, Penghua Ying, Nan Xu, Chengbing Chen, Yuwen Zhang, Zherui Chen, Xin Wu, Wenwu Jiang, Esme Berger, Yanlong Li, Shunda Chen, Alexander J. Gabourie, Haikuan Dong, Shiyun Xiong, Ning Wei, Yue Chen, Jianbin Xu, Feng Ding, Zhimei Sun, Tapio Ala-Nissila, Ari Harju, Jincheng Zheng, Pengfei Guan, Paul Erhart, Jian Sun, Wengen Ouyang, Yanjing Su, Zheyong Fan, [GPUMD 4.0: A high-performance molecular dynamics package for versatile materials simulations with machine-learned potentials]( https://doi.org/10.1002/mgea.70028), MGE Advances **3**, e70028 (2025).
 
-* If you use the LAMMPS interface of the `NEP3` class, a proper citation for LAMMPS is also suggested. 
+* If you use the LAMMPS interface of the `NEP` class, a proper citation for LAMMPS is also suggested. 
 
