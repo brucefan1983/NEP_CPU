@@ -526,6 +526,665 @@ void find_force_ZBL_small_box(
   }
 }
 
+void find_descriptor_small_box(
+  const bool calculating_potential,
+  const bool calculating_descriptor,
+  NEP3::ParaMB& paramb,
+  NEP3::ANN& annmb,
+  const int N,
+  const int* g_NN_radial,
+  const int* g_NL_radial,
+  const int* g_NN_angular,
+  const int* g_NL_angular,
+  const int* g_type,
+  const double* g_x12_radial,
+  const double* g_y12_radial,
+  const double* g_z12_radial,
+  const double* g_x12_angular,
+  const double* g_y12_angular,
+  const double* g_z12_angular,
+  double* g_Fp,
+  double* g_sum_fxyz,
+  double* g_charge,
+  double* g_charge_derivative,
+  double* g_potential,
+  double* g_descriptor)
+{
+#if defined(_OPENMP)
+#pragma omp parallel for
+#endif
+  for (int n1 = 0; n1 < N; ++n1) {
+    int t1 = g_type[n1];
+    double q[MAX_DIM] = {0.0};
+
+    for (int i1 = 0; i1 < g_NN_radial[n1]; ++i1) {
+      int index = i1 * N + n1;
+      int n2 = g_NL_radial[index];
+      double r12[3] = {g_x12_radial[index], g_y12_radial[index], g_z12_radial[index]};
+      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
+
+      double fc12;
+      int t2 = g_type[n2];
+      double rc = paramb.rc_radial_max;
+      double rcinv = 1.0 / rc;
+      find_fc(rc, rcinv, d12, fc12);
+      double fn12[MAX_NUM_N];
+      find_fn(paramb.basis_size_radial, rcinv, d12, fc12, fn12);
+      for (int n = 0; n <= paramb.n_max_radial; ++n) {
+        double gn12 = 0.0;
+        for (int k = 0; k <= paramb.basis_size_radial; ++k) {
+          int c_index = (n * (paramb.basis_size_radial + 1) + k) * paramb.num_types_sq;
+          c_index += t1 * paramb.num_types + t2;
+          gn12 += fn12[k] * annmb.c[c_index];
+        }
+        q[n] += gn12;
+      }
+    }
+
+    for (int n = 0; n <= paramb.n_max_angular; ++n) {
+      double s[NUM_OF_ABC] = {0.0};
+      for (int i1 = 0; i1 < g_NN_angular[n1]; ++i1) {
+        int index = i1 * N + n1;
+        int n2 = g_NL_angular[index];
+        double r12[3] = {g_x12_angular[index], g_y12_angular[index], g_z12_angular[index]};
+        double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
+        int t2 = g_type[n2];
+        double fc12;
+        double rc = paramb.rc_angular_max;
+        double rcinv = 1.0 / rc;
+        find_fc(rc, rcinv, d12, fc12);
+        double fn12[MAX_NUM_N];
+        find_fn(paramb.basis_size_angular, rcinv, d12, fc12, fn12);
+        double gn12 = 0.0;
+        for (int k = 0; k <= paramb.basis_size_angular; ++k) {
+          int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
+          c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
+          gn12 += fn12[k] * annmb.c[c_index];
+        }
+        accumulate_s(paramb.L_max, d12, r12[0], r12[1], r12[2], gn12, s);
+      }
+      find_q(
+        paramb.L_max, paramb.num_L, paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
+      for (int abc = 0; abc < NUM_OF_ABC; ++abc) {
+        g_sum_fxyz[(n * NUM_OF_ABC + abc) * N + n1] = s[abc];
+      }
+    }
+
+    if (calculating_descriptor) {
+      for (int d = 0; d < annmb.dim; ++d) {
+        g_descriptor[d * N + n1] = q[d] * paramb.q_scaler[d];
+      }
+    }
+
+    if (calculating_potential) {
+      for (int d = 0; d < annmb.dim; ++d) {
+        q[d] = q[d] * paramb.q_scaler[d];
+      }
+
+      double F = 0.0, Fp[MAX_DIM] = {0.0};
+      double charge = 0.0;
+      double charge_derivative[MAX_DIM] = {0.0};
+
+      apply_ann_one_layer_charge(
+        annmb.dim,
+        annmb.num_neurons1,
+        annmb.w0[t1],
+        annmb.b0[t1],
+        annmb.w1[t1],
+        annmb.b1,
+        q,
+        F,
+        Fp,
+        charge,
+        charge_derivative);
+
+      if (calculating_potential) {
+        g_potential[n1] += F;
+        g_charge[n1] = charge;
+      }
+
+      for (int d = 0; d < annmb.dim; ++d) {
+        g_Fp[d * N + n1] = Fp[d] * paramb.q_scaler[d];
+        g_charge_derivative[d * N + n1] = charge_derivative[d] * paramb.q_scaler[d];
+      }
+    }
+  }
+}
+
+void zero_total_charge(const int N, double* g_charge)
+{
+  double mean_charge = 0.0;
+  for (int n = 0; n < N; ++n) {
+    mean_charge += g_charge[n];
+  }
+  mean_charge /= N;
+  for (int n = 0; n < N; ++n) {
+    g_charge[n] -= mean_charge;
+  }
+}
+
+void find_force_radial_small_box(
+  NEP3::ParaMB& paramb,
+  NEP3::ANN& annmb,
+  const int N,
+  const int* g_NN,
+  const int* g_NL,
+  const int* g_type,
+  const double* g_x12,
+  const double* g_y12,
+  const double* g_z12,
+  const double* g_Fp,
+  const double* g_charge_derivative,
+  const double* g_D_real, 
+  double* g_fx,
+  double* g_fy,
+  double* g_fz,
+  double* g_virial)
+{
+  for (int n1 = 0; n1 < N; ++n1) {
+    int t1 = g_type[n1];
+    for (int i1 = 0; i1 < g_NN[n1]; ++i1) {
+      int index = i1 * N + n1;
+      int n2 = g_NL[index];
+      int t2 = g_type[n2];
+      double r12[3] = {g_x12[index], g_y12[index], g_z12[index]};
+      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
+      double d12inv = 1.0 / d12;
+      double f12[3] = {0.0};
+      double fc12, fcp12;
+      double rc = paramb.rc_radial_max;
+      double rcinv = 1.0 / rc;
+      find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
+      double fn12[MAX_NUM_N];
+      double fnp12[MAX_NUM_N];
+      find_fn_and_fnp(paramb.basis_size_radial, rcinv, d12, fc12, fcp12, fn12, fnp12);
+      for (int n = 0; n <= paramb.n_max_radial; ++n) {
+        double gnp12 = 0.0;
+        for (int k = 0; k <= paramb.basis_size_radial; ++k) {
+          int c_index = (n * (paramb.basis_size_radial + 1) + k) * paramb.num_types_sq;
+          c_index += t1 * paramb.num_types + t2;
+          gnp12 += fnp12[k] * annmb.c[c_index];
+        }
+        double tmp12 = (g_Fp[n1 + n * N] + g_charge_derivative[n1 + n * N] * g_D_real[n1]) * gnp12 * d12inv;
+        for (int d = 0; d < 3; ++d) {
+          f12[d] += tmp12 * r12[d];
+        }
+      }
+
+      if (g_fx) {
+        g_fx[n1] += f12[0];
+        g_fx[n2] -= f12[0];
+      }
+
+      if (g_fy) {
+        g_fy[n1] += f12[1];
+        g_fy[n2] -= f12[1];
+      }
+
+      if (g_fz) {
+        g_fz[n1] += f12[2];
+        g_fz[n2] -= f12[2];
+      }
+
+      g_virial[n2 + 0 * N] -= r12[0] * f12[0];
+      g_virial[n2 + 1 * N] -= r12[0] * f12[1];
+      g_virial[n2 + 2 * N] -= r12[0] * f12[2];
+      g_virial[n2 + 3 * N] -= r12[1] * f12[0];
+      g_virial[n2 + 4 * N] -= r12[1] * f12[1];
+      g_virial[n2 + 5 * N] -= r12[1] * f12[2];
+      g_virial[n2 + 6 * N] -= r12[2] * f12[0];
+      g_virial[n2 + 7 * N] -= r12[2] * f12[1];
+      g_virial[n2 + 8 * N] -= r12[2] * f12[2];
+    }
+  }
+}
+
+void find_force_angular_small_box(
+  NEP3::ParaMB& paramb,
+  NEP3::ANN& annmb,
+  const int N,
+  const int* g_NN_angular,
+  const int* g_NL_angular,
+  const int* g_type,
+  const double* g_x12,
+  const double* g_y12,
+  const double* g_z12,
+  const double* g_Fp,
+  const double* g_charge_derivative,
+  const double* g_D_real, 
+  const double* g_sum_fxyz,
+  double* g_fx,
+  double* g_fy,
+  double* g_fz,
+  double* g_virial)
+{
+  for (int n1 = 0; n1 < N; ++n1) {
+
+    double Fp[MAX_DIM_ANGULAR] = {0.0};
+    double sum_fxyz[NUM_OF_ABC * MAX_NUM_N];
+    for (int d = 0; d < paramb.dim_angular; ++d) {
+      Fp[d] = g_Fp[(paramb.n_max_radial + 1 + d) * N + n1] 
+        + g_charge_derivative[(paramb.n_max_radial + 1 + d) * N + n1] * g_D_real[n1];
+    }
+    for (int d = 0; d < (paramb.n_max_angular + 1) * NUM_OF_ABC; ++d) {
+      sum_fxyz[d] = g_sum_fxyz[d * N + n1];
+    }
+
+    int t1 = g_type[n1];
+
+    for (int i1 = 0; i1 < g_NN_angular[n1]; ++i1) {
+      int index = i1 * N + n1;
+      int n2 = g_NL_angular[n1 + N * i1];
+      double r12[3] = {g_x12[index], g_y12[index], g_z12[index]};
+      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
+      double f12[3] = {0.0};
+      int t2 = g_type[n2];
+      double fc12, fcp12;
+      double rc = paramb.rc_angular_max;
+      double rcinv = 1.0 / rc;
+      find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
+
+      double fn12[MAX_NUM_N];
+      double fnp12[MAX_NUM_N];
+      find_fn_and_fnp(paramb.basis_size_angular, rcinv, d12, fc12, fcp12, fn12, fnp12);
+      for (int n = 0; n <= paramb.n_max_angular; ++n) {
+        double gn12 = 0.0;
+        double gnp12 = 0.0;
+        for (int k = 0; k <= paramb.basis_size_angular; ++k) {
+          int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
+          c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
+          gn12 += fn12[k] * annmb.c[c_index];
+          gnp12 += fnp12[k] * annmb.c[c_index];
+        }
+        accumulate_f12(
+          paramb.L_max, paramb.num_L, n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp,
+          sum_fxyz, f12);
+      }
+
+      if (g_fx) {
+        g_fx[n1] += f12[0];
+        g_fx[n2] -= f12[0];
+      }
+
+      if (g_fy) {
+        g_fy[n1] += f12[1];
+        g_fy[n2] -= f12[1];
+      }
+
+      if (g_fz) {
+        g_fz[n1] += f12[2];
+        g_fz[n2] -= f12[2];
+      }
+
+      g_virial[n2 + 0 * N] -= r12[0] * f12[0];
+      g_virial[n2 + 1 * N] -= r12[0] * f12[1];
+      g_virial[n2 + 2 * N] -= r12[0] * f12[2];
+      g_virial[n2 + 3 * N] -= r12[1] * f12[0];
+      g_virial[n2 + 4 * N] -= r12[1] * f12[1];
+      g_virial[n2 + 5 * N] -= r12[1] * f12[2];
+      g_virial[n2 + 6 * N] -= r12[2] * f12[0];
+      g_virial[n2 + 7 * N] -= r12[2] * f12[1];
+      g_virial[n2 + 8 * N] -= r12[2] * f12[2];
+    }
+  }
+}
+
+void find_bec_diagonal(const int N, const double* g_q, double* g_bec)
+{
+  for (int n1 = 0; n1 < N; ++n1) {
+    g_bec[n1 + N * 0] = g_q[n1];
+    g_bec[n1 + N * 1] = 0.0;
+    g_bec[n1 + N * 2] = 0.0;
+    g_bec[n1 + N * 3] = 0.0;
+    g_bec[n1 + N * 4] = g_q[n1];
+    g_bec[n1 + N * 5] = 0.0;
+    g_bec[n1 + N * 6] = 0.0;
+    g_bec[n1 + N * 7] = 0.0;
+    g_bec[n1 + N * 8] = g_q[n1];
+  }
+}
+
+void find_bec_radial_small_box(
+  const NEP3::ParaMB paramb,
+  const NEP3::ANN annmb,
+  const int N,
+  const int* g_NN,
+  const int* g_NL,
+  const int* g_type,
+  const double* g_x12,
+  const double* g_y12,
+  const double* g_z12,
+  const double* g_charge_derivative,
+  double* g_bec)
+{
+  for (int n1 = 0; n1 < N; ++n1) {
+    int t1 = g_type[n1];
+    for (int i1 = 0; i1 < g_NN[n1]; ++i1) {
+      int index = i1 * N + n1;
+      int n2 = g_NL[index];
+      int t2 = g_type[n2];
+      double r12[3] = {g_x12[index], g_y12[index], g_z12[index]};
+      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
+      double d12inv = 1.0 / d12;
+      double fc12, fcp12;
+      double rc = paramb.rc_radial_max;
+      double rcinv = 1.0 / rc;
+      find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
+      double fn12[MAX_NUM_N];
+      double fnp12[MAX_NUM_N];
+      double f12[3] = {0.0};
+
+      find_fn_and_fnp(paramb.basis_size_radial, rcinv, d12, fc12, fcp12, fn12, fnp12);
+      for (int n = 0; n <= paramb.n_max_radial; ++n) {
+        double gnp12 = 0.0;
+        for (int k = 0; k <= paramb.basis_size_radial; ++k) {
+          int c_index = (n * (paramb.basis_size_radial + 1) + k) * paramb.num_types_sq;
+          c_index += t1 * paramb.num_types + t2;
+          gnp12 += fnp12[k] * annmb.c[c_index];
+        }
+        const double tmp12 = g_charge_derivative[n1 + n * N] * gnp12 * d12inv;
+        for (int d = 0; d < 3; ++d) {
+          f12[d] += tmp12 * r12[d];
+        }
+      }
+
+      double bec_xx = 0.5* (r12[0] * f12[0]);
+      double bec_xy = 0.5* (r12[0] * f12[1]);
+      double bec_xz = 0.5* (r12[0] * f12[2]);
+      double bec_yx = 0.5* (r12[1] * f12[0]);
+      double bec_yy = 0.5* (r12[1] * f12[1]);
+      double bec_yz = 0.5* (r12[1] * f12[2]);
+      double bec_zx = 0.5* (r12[2] * f12[0]);
+      double bec_zy = 0.5* (r12[2] * f12[1]);
+      double bec_zz = 0.5* (r12[2] * f12[2]);
+
+      g_bec[n1] += bec_xx;
+      g_bec[n1 + N] += bec_xy;
+      g_bec[n1 + N * 2] += bec_xz;
+      g_bec[n1 + N * 3] += bec_yx;
+      g_bec[n1 + N * 4] += bec_yy;
+      g_bec[n1 + N * 5] += bec_yz;
+      g_bec[n1 + N * 6] += bec_zx;
+      g_bec[n1 + N * 7] += bec_zy;
+      g_bec[n1 + N * 8] += bec_zz;
+
+      g_bec[n2] -= bec_xx;
+      g_bec[n2 + N] -= bec_xy;
+      g_bec[n2 + N * 2] -= bec_xz;
+      g_bec[n2 + N * 3] -= bec_yx;
+      g_bec[n2 + N * 4] -= bec_yy;
+      g_bec[n2 + N * 5] -= bec_yz;
+      g_bec[n2 + N * 6] -= bec_zx;
+      g_bec[n2 + N * 7] -= bec_zy;
+      g_bec[n2 + N * 8] -= bec_zz;
+    }
+  }
+}
+
+void find_bec_angular_small_box(
+  NEP3::ParaMB paramb,
+  NEP3::ANN annmb,
+  const int N,
+  const int* g_NN_angular,
+  const int* g_NL_angular,
+  const int* g_type,
+  const double* g_x12,
+  const double* g_y12,
+  const double* g_z12,
+  const double* g_charge_derivative,
+  const double* g_sum_fxyz,
+  double* g_bec)
+{
+  for (int n1 = 0; n1 < N; ++n1) {
+    double Fp[MAX_DIM_ANGULAR] = {0.0};
+    double sum_fxyz[NUM_OF_ABC * MAX_NUM_N];
+    for (int d = 0; d < paramb.dim_angular; ++d) {
+      Fp[d] = g_charge_derivative[(paramb.n_max_radial + 1 + d) * N + n1];
+    }
+    for (int d = 0; d < (paramb.n_max_angular + 1) * NUM_OF_ABC; ++d) {
+      sum_fxyz[d] = g_sum_fxyz[d * N + n1];
+    }
+    int t1 = g_type[n1];
+    for (int i1 = 0; i1 < g_NN_angular[n1]; ++i1) {
+      int index = i1 * N + n1;
+      int n2 = g_NL_angular[index];
+      double r12[3] = {g_x12[index], g_y12[index], g_z12[index]};
+      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
+      double f12[3] = {0.0};
+      double fc12, fcp12;
+      int t2 = g_type[n2];
+      double rc = paramb.rc_angular_max;
+      double rcinv = 1.0 / rc;
+      find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
+
+      double fn12[MAX_NUM_N];
+      double fnp12[MAX_NUM_N];
+      find_fn_and_fnp(paramb.basis_size_angular, rcinv, d12, fc12, fcp12, fn12, fnp12);
+      for (int n = 0; n <= paramb.n_max_angular; ++n) {
+        double gn12 = 0.0;
+        double gnp12 = 0.0;
+        for (int k = 0; k <= paramb.basis_size_angular; ++k) {
+          int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
+          c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
+          gn12 += fn12[k] * annmb.c[c_index];
+          gnp12 += fnp12[k] * annmb.c[c_index];
+        }
+        accumulate_f12(
+          paramb.L_max,
+          paramb.num_L,
+          n,
+          paramb.n_max_angular + 1,
+          d12,
+          r12,
+          gn12,
+          gnp12,
+          Fp,
+          sum_fxyz,
+          f12);
+      }
+
+      double bec_xx = 0.5* (r12[0] * f12[0]);
+      double bec_xy = 0.5* (r12[0] * f12[1]);
+      double bec_xz = 0.5* (r12[0] * f12[2]);
+      double bec_yx = 0.5* (r12[1] * f12[0]);
+      double bec_yy = 0.5* (r12[1] * f12[1]);
+      double bec_yz = 0.5* (r12[1] * f12[2]);
+      double bec_zx = 0.5* (r12[2] * f12[0]);
+      double bec_zy = 0.5* (r12[2] * f12[1]);
+      double bec_zz = 0.5* (r12[2] * f12[2]);
+
+      g_bec[n1] += bec_xx;
+      g_bec[n1 + N] += bec_xy;
+      g_bec[n1 + N * 2] += bec_xz;
+      g_bec[n1 + N * 3] += bec_yx;
+      g_bec[n1 + N * 4] += bec_yy;
+      g_bec[n1 + N * 5] += bec_yz;
+      g_bec[n1 + N * 6] += bec_zx;
+      g_bec[n1 + N * 7] += bec_zy;
+      g_bec[n1 + N * 8] += bec_zz;
+
+      g_bec[n2] -= bec_xx;
+      g_bec[n2 + N] -= bec_xy;
+      g_bec[n2 + N * 2] -= bec_xz;
+      g_bec[n2 + N * 3] -= bec_yx;
+      g_bec[n2 + N * 4] -= bec_yy;
+      g_bec[n2 + N * 5] -= bec_yz;
+      g_bec[n2 + N * 6] -= bec_zx;
+      g_bec[n2 + N * 7] -= bec_zy;
+      g_bec[n2 + N * 8] -= bec_zz;
+    }
+  }
+}
+
+void scale_bec(const int N, const double* sqrt_epsilon_inf, double* g_bec)
+{
+  for (int n1 = 0; n1 < N; ++n1) {
+    for (int d = 0; d < 9; ++d) {
+      g_bec[n1 + N * d] *= sqrt_epsilon_inf[0];
+    }
+  }
+}
+
+void find_force_charge_real_space_only_small_box(
+  const int N,
+  const NEP3::Charge_Para charge_para,
+  const int* g_NN,
+  const int* g_NL,
+  const double* g_charge,
+  const double* g_x12,
+  const double* g_y12,
+  const double* g_z12,
+  double* g_fx,
+  double* g_fy,
+  double* g_fz,
+  double* g_virial,
+  double* g_pe,
+  double* g_D_real)
+{
+  for (int n1 = 0; n1 < N; ++n1) {
+    double s_fx = 0.0;
+    double s_fy = 0.0;
+    double s_fz = 0.0;
+    double s_sxx = 0.0;
+    double s_sxy = 0.0;
+    double s_sxz = 0.0;
+    double s_syx = 0.0;
+    double s_syy = 0.0;
+    double s_syz = 0.0;
+    double s_szx = 0.0;
+    double s_szy = 0.0;
+    double s_szz = 0.0;
+    double q1 = g_charge[n1];
+    double s_pe = 0; // no self energy
+    double D_real = 0; // no self energy
+
+    for (int i1 = 0; i1 < g_NN[n1]; ++i1) {
+      int index = i1 * N + n1;
+      int n2 = g_NL[index];
+      double q2 = g_charge[n2];
+      double qq = q1 * q2;
+      double r12[3] = {g_x12[index], g_y12[index], g_z12[index]};
+      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
+      double d12inv = 1.0 / d12;
+
+      double erfc_r = erfc(charge_para.alpha * d12) * d12inv;
+      D_real += q2 * (erfc_r + charge_para.A * d12 + charge_para.B);
+      s_pe += 0.5 * qq * (erfc_r + charge_para.A * d12 + charge_para.B);
+      double f2 = erfc_r + charge_para.two_alpha_over_sqrt_pi * exp(-charge_para.alpha * charge_para.alpha * d12 * d12);
+      f2 = -0.5 * K_C_SP * qq * (f2 * d12inv * d12inv - charge_para.A * d12inv);
+      double f12[3] = {r12[0] * f2, r12[1] * f2, r12[2] * f2};
+      double f21[3] = {-r12[0] * f2, -r12[1] * f2, -r12[2] * f2};
+
+      s_fx += f12[0] - f21[0];
+      s_fy += f12[1] - f21[1];
+      s_fz += f12[2] - f21[2];
+      s_sxx -= r12[0] * f12[0];
+      s_sxy -= r12[0] * f12[1];
+      s_sxz -= r12[0] * f12[2];
+      s_syx -= r12[1] * f12[0];
+      s_syy -= r12[1] * f12[1];
+      s_syz -= r12[1] * f12[2];
+      s_szx -= r12[2] * f12[0];
+      s_szy -= r12[2] * f12[1];
+      s_szz -= r12[2] * f12[2];
+    }
+    g_fx[n1] += s_fx;
+    g_fy[n1] += s_fy;
+    g_fz[n1] += s_fz;
+    g_virial[n1 + 0 * N] += s_sxx;
+    g_virial[n1 + 1 * N] += s_sxy;
+    g_virial[n1 + 2 * N] += s_sxz;
+    g_virial[n1 + 3 * N] += s_syx;
+    g_virial[n1 + 4 * N] += s_syy;
+    g_virial[n1 + 5 * N] += s_syz;
+    g_virial[n1 + 6 * N] += s_szx;
+    g_virial[n1 + 7 * N] += s_szy;
+    g_virial[n1 + 8 * N] += s_szz;
+    g_D_real[n1] = K_C_SP * D_real;
+    g_pe[n1] += K_C_SP * s_pe;
+  }
+}
+
+void find_force_charge_real_space_small_box(
+  const int N,
+  const NEP3::Charge_Para charge_para,
+  const int* g_NN,
+  const int* g_NL,
+  const double* g_charge,
+  const double* g_x12,
+  const double* g_y12,
+  const double* g_z12,
+  double* g_fx,
+  double* g_fy,
+  double* g_fz,
+  double* g_virial,
+  double* g_pe,
+  double* g_D_real)
+{
+  for (int n1 = 0; n1 < N; ++n1) {
+    double s_fx = 0.0;
+    double s_fy = 0.0;
+    double s_fz = 0.0;
+    double s_sxx = 0.0;
+    double s_sxy = 0.0;
+    double s_sxz = 0.0;
+    double s_syx = 0.0;
+    double s_syy = 0.0;
+    double s_syz = 0.0;
+    double s_szx = 0.0;
+    double s_szy = 0.0;
+    double s_szz = 0.0;
+    double q1 = g_charge[n1];
+    double s_pe = -charge_para.two_alpha_over_sqrt_pi * 0.5 * q1 * q1; // self energy part
+    double D_real = -q1 * charge_para.two_alpha_over_sqrt_pi; // self energy part
+
+    for (int i1 = 0; i1 < g_NN[n1]; ++i1) {
+      int index = i1 * N + n1;
+      int n2 = g_NL[index];
+      double q2 = g_charge[n2];
+      double qq = q1 * q2;
+      double r12[3] = {g_x12[index], g_y12[index], g_z12[index]};
+      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
+      double d12inv = 1.0 / d12;
+
+      double erfc_r = erfc(charge_para.alpha * d12) * d12inv;
+      D_real += q2 * erfc_r;
+      s_pe += 0.5 * qq * erfc_r;
+      double f2 = erfc_r + charge_para.two_alpha_over_sqrt_pi * exp(-charge_para.alpha * charge_para.alpha * d12 * d12);
+      f2 *= -0.5 * K_C_SP * qq * d12inv * d12inv;
+      double f12[3] = {r12[0] * f2, r12[1] * f2, r12[2] * f2};
+      double f21[3] = {-r12[0] * f2, -r12[1] * f2, -r12[2] * f2};
+
+      s_fx += f12[0] - f21[0];
+      s_fy += f12[1] - f21[1];
+      s_fz += f12[2] - f21[2];
+      s_sxx -= r12[0] * f12[0];
+      s_sxy -= r12[0] * f12[1];
+      s_sxz -= r12[0] * f12[2];
+      s_syx -= r12[1] * f12[0];
+      s_syy -= r12[1] * f12[1];
+      s_syz -= r12[1] * f12[2];
+      s_szx -= r12[2] * f12[0];
+      s_szy -= r12[2] * f12[1];
+      s_szz -= r12[2] * f12[2];
+    }
+    g_fx[n1] += s_fx;
+    g_fy[n1] += s_fy;
+    g_fz[n1] += s_fz;
+    g_virial[n1 + 0 * N] += s_sxx;
+    g_virial[n1 + 1 * N] += s_sxy;
+    g_virial[n1 + 2 * N] += s_sxz;
+    g_virial[n1 + 3 * N] += s_syx;
+    g_virial[n1 + 4 * N] += s_syy;
+    g_virial[n1 + 5 * N] += s_syz;
+    g_virial[n1 + 6 * N] += s_szx;
+    g_virial[n1 + 7 * N] += s_szy;
+    g_virial[n1 + 8 * N] += s_szz;
+    g_D_real[n1] += K_C_SP * D_real;
+    g_pe[n1] += K_C_SP * s_pe;
+  }
+}
+
 void find_dftd3_coordination_number(
   NEP3::DFTD3& dftd3,
   const int N,

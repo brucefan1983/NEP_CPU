@@ -171,6 +171,37 @@ void apply_ann_one_layer(
   energy -= b1[0];
 }
 
+void apply_ann_one_layer_charge(
+  const int N_des,
+  const int N_neu,
+  const double* w0,
+  const double* b0,
+  const double* w1,
+  const double* b1,
+  double* q,
+  double& energy,
+  double* energy_derivative,
+  double& charge,
+  double* charge_derivative)
+{
+  for (int n = 0; n < N_neu; ++n) {
+    double w0_times_q = 0.0;
+    for (int d = 0; d < N_des; ++d) {
+      w0_times_q += w0[n * N_des + d] * q[d];
+    }
+    double x1 = tanh(w0_times_q - b0[n]);
+    double tanh_der = 1.0 - x1 * x1;
+    energy += w1[n] * x1;
+    charge += w1[n + N_neu] * x1;
+    for (int d = 0; d < N_des; ++d) {
+      double y1 = tanh_der * w0[n * N_des + d];
+      energy_derivative[d] += w1[n] * y1;
+      charge_derivative[d] += w1[n + N_neu] * y1;
+    }
+  }
+  energy -= b1[0];
+}
+
 void apply_ann_one_layer_nep5(
   const int dim,
   const int num_neurons1,
