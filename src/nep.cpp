@@ -2208,10 +2208,20 @@ void NEP3::update_potential(double* parameters, ANN& ann)
     ann.b0[t] = pointer;
     pointer += ann.num_neurons1;
     ann.w1[t] = pointer;
-    pointer += ann.num_neurons1;
+    if (paramb.charge_mode > 0) {
+      pointer += ann.num_neurons1 * 2;
+    } else {
+      pointer += ann.num_neurons1;
+    }
+    
     if (paramb.version == 5) {
       pointer += 1; // one extra bias for NEP5 stored in ann.w1[t]
     }
+  }
+
+  if (paramb.charge_mode > 0) {
+    ann.sqrt_epsilon_inf = pointer;
+    pointer += 1;
   }
 
   ann.b1 = pointer;
@@ -2265,6 +2275,10 @@ void NEP3::allocate_memory(const int N)
     r12.resize(N * MN * 6);
     Fp.resize(N * annmb.dim);
     sum_fxyz.resize(N * (paramb.n_max_angular + 1) * NUM_OF_ABC);
+    if (paramb.charge_mode > 0) {
+      D_real.resize(N);
+      charge_derivative.resize(N * annmb.dim);
+    }
     dftd3.cn.resize(N);
     dftd3.dc6_sum.resize(N);
     dftd3.dc8_sum.resize(N);
@@ -2346,6 +2360,171 @@ void NEP3::compute(
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
     gn_angular.data(), gnp_angular.data(),
 #endif
+    force.data(), force.data() + N, force.data() + N * 2, virial.data());
+
+  if (zbl.enabled) {
+    find_force_ZBL_small_box(
+      N, paramb, zbl, NN_angular.data(), NL_angular.data(), type.data(), r12.data() + size_x12 * 3,
+      r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, force.data(), force.data() + N,
+      force.data() + N * 2, virial.data(), potential.data());
+  }
+}
+
+void NEP3::compute(
+  const std::vector<int>& type,
+  const std::vector<double>& box,
+  const std::vector<double>& position,
+  std::vector<double>& potential,
+  std::vector<double>& force,
+  std::vector<double>& virial,
+  std::vector<double>& charge,
+  std::vector<double>& bec)
+{
+  const int N = type.size();
+  const int size_x12 = N * MN;
+
+  if (N * 3 != position.size()) {
+    std::cout << "Type and position sizes are inconsistent.\n";
+    exit(1);
+  }
+  if (N != potential.size()) {
+    std::cout << "Type and potential sizes are inconsistent.\n";
+    exit(1);
+  }
+  if (N * 3 != force.size()) {
+    std::cout << "Type and force sizes are inconsistent.\n";
+    exit(1);
+  }
+  if (N * 9 != virial.size()) {
+    std::cout << "Type and virial sizes are inconsistent.\n";
+    exit(1);
+  }
+  if (N != charge.size()) {
+    std::cout << "Type and charge sizes are inconsistent.\n";
+    exit(1);
+  }
+  if (N * 9 != bec.size()) {
+    std::cout << "Type and BEC sizes are inconsistent.\n";
+    exit(1);
+  }
+
+  allocate_memory(N);
+
+  for (int n = 0; n < potential.size(); ++n) {
+    potential[n] = 0.0;
+  }
+  for (int n = 0; n < force.size(); ++n) {
+    force[n] = 0.0;
+  }
+  for (int n = 0; n < virial.size(); ++n) {
+    virial[n] = 0.0;
+  }
+  for (int n = 0; n < charge.size(); ++n) {
+    charge[n] = 0.0;
+  }
+  for (int n = 0; n < bec.size(); ++n) {
+    bec[n] = 0.0;
+  }
+
+  find_neighbor_list_small_box(
+    paramb.rc_radial_max, paramb.rc_angular_max, N, MN, box, position, num_cells, ebox, NN_radial, NL_radial,
+    NN_angular, NL_angular, r12);
+
+  find_descriptor_small_box(
+    true, false, paramb, annmb, N, NN_radial.data(), NL_radial.data(),
+    NN_angular.data(), NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12,
+    r12.data() + size_x12 * 2, r12.data() + size_x12 * 3, r12.data() + size_x12 * 4,
+    r12.data() + size_x12 * 5,
+    Fp.data(), sum_fxyz.data(), charge.data(), charge_derivative.data(), potential.data(), nullptr);
+
+  zero_total_charge(N, charge.data());
+
+  find_bec_diagonal(N, charge.data(), bec.data());
+  find_bec_radial_small_box(
+    paramb,
+    annmb,
+    N,
+    NN_radial.data(),
+    NL_radial.data(),
+    type.data(),
+    r12.data(),
+    r12.data() + size_x12,
+    r12.data() + size_x12 * 2,
+    charge_derivative.data(),
+    bec.data());
+  find_bec_angular_small_box(
+    paramb,
+    annmb,
+    N,
+    NN_angular.data(),
+    NL_angular.data(),
+    type.data(),
+    r12.data() + size_x12 * 3,
+    r12.data() + size_x12 * 4,
+    r12.data() + size_x12 * 5,
+    charge_derivative.data(),
+    sum_fxyz.data(),
+    bec.data());
+  scale_bec(N, annmb.sqrt_epsilon_inf, bec.data());
+
+  if (paramb.charge_mode == 1 || paramb.charge_mode == 2) {
+    ewald.find_force(
+      N,
+      box.data(),
+      charge,
+      position,
+      D_real,
+      force,
+      virial,
+      potential);
+  }
+
+  if (paramb.charge_mode == 1) {
+    find_force_charge_real_space_small_box(
+      N,
+      charge_para,
+      NN_radial.data(),
+      NL_radial.data(),
+      charge.data(),
+      r12.data(),
+      r12.data() + size_x12,
+      r12.data() + size_x12 * 2,
+      force.data(),
+      force.data() + N,
+      force.data() + N * 2,
+      virial.data(),
+      potential.data(),
+      D_real.data());
+  }
+
+  if (paramb.charge_mode == 3) {
+    find_force_charge_real_space_only_small_box(
+      N,
+      charge_para,
+      NN_radial.data(),
+      NL_radial.data(),
+      charge.data(),
+      r12.data(),
+      r12.data() + size_x12,
+      r12.data() + size_x12 * 2,
+      force.data(),
+      force.data() + N,
+      force.data() + N * 2,
+      virial.data(),
+      potential.data(),
+      D_real.data());
+  }
+
+  find_force_radial_small_box(
+    paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
+    r12.data() + size_x12, r12.data() + size_x12 * 2, Fp.data(),
+    charge_derivative.data(), D_real.data(),
+    force.data(), force.data() + N, force.data() + N * 2, virial.data());
+
+  find_force_angular_small_box(
+    paramb, annmb, N, NN_angular.data(), NL_angular.data(), type.data(),
+    r12.data() + size_x12 * 3, r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, Fp.data(),
+    charge_derivative.data(), D_real.data(), sum_fxyz.data(),
     force.data(), force.data() + N, force.data() + N * 2, virial.data());
 
   if (zbl.enabled) {
@@ -2476,15 +2655,24 @@ void NEP3::find_descriptor(
     paramb.rc_radial_max, paramb.rc_angular_max, N, MN, box, position, num_cells, ebox, NN_radial, NL_radial,
     NN_angular, NL_angular, r12);
 
-  find_descriptor_small_box(
-    false, true, false, false, paramb, annmb, N, NN_radial.data(), NL_radial.data(),
-    NN_angular.data(), NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12,
-    r12.data() + size_x12 * 2, r12.data() + size_x12 * 3, r12.data() + size_x12 * 4,
-    r12.data() + size_x12 * 5,
+  if (paramb.charge_mode > 0) {
+    find_descriptor_small_box(
+      false, true, paramb, annmb, N, NN_radial.data(), NL_radial.data(),
+      NN_angular.data(), NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12,
+      r12.data() + size_x12 * 2, r12.data() + size_x12 * 3, r12.data() + size_x12 * 4,
+      r12.data() + size_x12 * 5,
+      Fp.data(), sum_fxyz.data(), nullptr, nullptr, nullptr, descriptor.data());
+  } else {
+    find_descriptor_small_box(
+      false, true, false, false, paramb, annmb, N, NN_radial.data(), NL_radial.data(),
+      NN_angular.data(), NL_angular.data(), type.data(), r12.data(), r12.data() + size_x12,
+      r12.data() + size_x12 * 2, r12.data() + size_x12 * 3, r12.data() + size_x12 * 4,
+      r12.data() + size_x12 * 5,
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
-    gn_radial.data(), gn_angular.data(),
+      gn_radial.data(), gn_angular.data(),
 #endif
-    Fp.data(), sum_fxyz.data(), nullptr, descriptor.data(), nullptr, nullptr, false, nullptr);
+      Fp.data(), sum_fxyz.data(), nullptr, descriptor.data(), nullptr, nullptr, false, nullptr);
+  }
 }
 
 void NEP3::find_latent_space(
