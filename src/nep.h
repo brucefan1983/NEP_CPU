@@ -41,9 +41,9 @@ public:
     int num_L;
     int basis_size_radial = 8;
     int basis_size_angular = 8;
-    int num_types_sq = 0;
-    int num_c_radial = 0;
-    int num_types = 0;
+    std::size_t num_types_sq = 0;
+    std::size_t num_c_radial = 0;
+    std::size_t num_types = 0;
     double q_scaler[140];
     int atomic_numbers[94];
   };

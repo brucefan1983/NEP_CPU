@@ -1988,7 +1988,7 @@ void NEP::init_from_file(const std::string& potential_filename, const bool is_ra
   }
 
   element_list.resize(paramb.num_types);
-  for (int n = 0; n < paramb.num_types; ++n) {
+  for (std::size_t n = 0; n < paramb.num_types; ++n) {
     int atomic_number = 0;
     element_list[n] = tokens[2 + n];
     for (int m = 0; m < NUM_ELEMENTS; ++m) {
@@ -2031,17 +2031,17 @@ void NEP::init_from_file(const std::string& potential_filename, const bool is_ra
   if (tokens.size() == 5) {
     paramb.rc_radial[0] = get_double_from_token(tokens[1], __FILE__, __LINE__);
     paramb.rc_angular[0] = get_double_from_token(tokens[2], __FILE__, __LINE__);
-    for (int n = 0; n < paramb.num_types; ++n) {
+    for (std::size_t n = 0; n < paramb.num_types; ++n) {
       paramb.rc_radial[n] = paramb.rc_radial[0];
       paramb.rc_angular[n] = paramb.rc_angular[0];
     }
   } else {
-    for (int n = 0; n < paramb.num_types; ++n) {
+    for (std::size_t n = 0; n < paramb.num_types; ++n) {
       paramb.rc_radial[n] = get_double_from_token(tokens[1 + n * 2], __FILE__, __LINE__);
       paramb.rc_angular[n] = get_double_from_token(tokens[2 + n * 2], __FILE__, __LINE__);
     }
   }
-  for (int n = 0; n < paramb.num_types; ++n) {
+  for (std::size_t n = 0; n < paramb.num_types; ++n) {
     if (paramb.rc_radial[n] > paramb.rc_radial_max) {
       paramb.rc_radial_max = paramb.rc_radial[n];
     }
@@ -2192,7 +2192,7 @@ void NEP::init_from_file(const std::string& potential_filename, const bool is_ra
       }
     }
 
-    for (int n = 0; n < paramb.num_types; ++n) {
+    for (std::size_t n = 0; n < paramb.num_types; ++n) {
       std::cout << "    type " << n << " (" << element_list[n]
                 << " with Z = " << paramb.atomic_numbers[n] + 1 << ")"
                 << " has cutoffs " << "(" << paramb.rc_radial[n] << " A, "
@@ -2228,7 +2228,7 @@ void NEP::init_from_file(const std::string& potential_filename, const bool is_ra
 
 void NEP::update_type_map(const int ntype, int* type_map, char** elements)
 {
-  int n = 0;
+  std::size_t n = 0;
   for (int itype = 0; itype < ntype + 1; ++itype) {
     // check if set NULL in lammps input file
     if (type_map[itype] == -1) {
@@ -2255,7 +2255,7 @@ void NEP::update_type_map(const int ntype, int* type_map, char** elements)
 void NEP::update_potential(double* parameters, ANN& ann)
 {
   double* pointer = parameters;
-  for (int t = 0; t < paramb.num_types; ++t) {
+  for (std::size_t t = 0; t < paramb.num_types; ++t) {
     if (t > 0 && paramb.version == 3) { // Use the same set of NN parameters for NEP3
       pointer -= (ann.dim + 2) * ann.num_neurons1;
     }
@@ -2284,7 +2284,7 @@ void NEP::update_potential(double* parameters, ANN& ann)
   pointer += 1;
 
   if (paramb.model_type == 2) {
-    for (int t = 0; t < paramb.num_types; ++t) {
+    for (std::size_t t = 0; t < paramb.num_types; ++t) {
       if (t > 0 && paramb.version == 3) { // Use the same set of NN parameters for NEP3
         pointer -= (ann.dim + 2) * ann.num_neurons1;
       }
@@ -2360,7 +2360,7 @@ void NEP::compute(
     exit(1);
   }
 
-  const int N = type.size();
+  const std::size_t N = type.size();
   const int size_x12 = N * MN;
 
   if (N * 3 != position.size()) {
@@ -2382,13 +2382,13 @@ void NEP::compute(
 
   allocate_memory(N);
 
-  for (int n = 0; n < potential.size(); ++n) {
+  for (std::size_t n = 0; n < potential.size(); ++n) {
     potential[n] = 0.0;
   }
-  for (int n = 0; n < force.size(); ++n) {
+  for (std::size_t n = 0; n < force.size(); ++n) {
     force[n] = 0.0;
   }
-  for (int n = 0; n < virial.size(); ++n) {
+  for (std::size_t n = 0; n < virial.size(); ++n) {
     virial[n] = 0.0;
   }
 
@@ -2446,8 +2446,8 @@ void NEP::compute(
     exit(1);
   }
 
-  const int N = type.size();
-  const int size_x12 = N * MN;
+  const std::size_t N = type.size();
+  const std::size_t size_x12 = N * MN;
 
   if (N * 3 != position.size()) {
     std::cout << "Type and position sizes are inconsistent.\n";
@@ -2476,19 +2476,19 @@ void NEP::compute(
 
   allocate_memory(N);
 
-  for (int n = 0; n < potential.size(); ++n) {
+  for (std::size_t n = 0; n < potential.size(); ++n) {
     potential[n] = 0.0;
   }
-  for (int n = 0; n < force.size(); ++n) {
+  for (std::size_t n = 0; n < force.size(); ++n) {
     force[n] = 0.0;
   }
-  for (int n = 0; n < virial.size(); ++n) {
+  for (std::size_t n = 0; n < virial.size(); ++n) {
     virial[n] = 0.0;
   }
-  for (int n = 0; n < charge.size(); ++n) {
+  for (std::size_t n = 0; n < charge.size(); ++n) {
     charge[n] = 0.0;
   }
-  for (int n = 0; n < bec.size(); ++n) {
+  for (std::size_t n = 0; n < bec.size(); ++n) {
     bec[n] = 0.0;
   }
 
@@ -2613,8 +2613,8 @@ void NEP::compute_with_dftd3(
   std::vector<double>& virial)
 {
   compute(type, box, position, potential, force, virial);
-  const int N = type.size();
-  const int size_x12 = N * MN;
+  const std::size_t N = type.size();
+  const std::size_t size_x12 = N * MN;
   set_dftd3_para_all(xc, rc_potential, rc_coordination_number);
 
   find_neighbor_list_small_box(
@@ -2648,8 +2648,8 @@ void NEP::compute_dftd3(
     exit(1);
   }
 
-  const int N = type.size();
-  const int size_x12 = N * MN;
+  const std::size_t N = type.size();
+  const std::size_t size_x12 = N * MN;
 
   if (N * 3 != position.size()) {
     std::cout << "Type and position sizes are inconsistent.\n";
@@ -2670,13 +2670,13 @@ void NEP::compute_dftd3(
 
   allocate_memory(N);
 
-  for (int n = 0; n < potential.size(); ++n) {
+  for (std::size_t n = 0; n < potential.size(); ++n) {
     potential[n] = 0.0;
   }
-  for (int n = 0; n < force.size(); ++n) {
+  for (std::size_t n = 0; n < force.size(); ++n) {
     force[n] = 0.0;
   }
-  for (int n = 0; n < virial.size(); ++n) {
+  for (std::size_t n = 0; n < virial.size(); ++n) {
     virial[n] = 0.0;
   }
 
@@ -2703,8 +2703,8 @@ void NEP::find_descriptor(
   const std::vector<double>& position,
   std::vector<double>& descriptor)
 {
-  const int N = type.size();
-  const int size_x12 = N * MN;
+  const std::size_t N = type.size();
+  const std::size_t size_x12 = N * MN;
 
   if (N * 3 != position.size()) {
     std::cout << "Type and position sizes are inconsistent.\n";
@@ -2747,8 +2747,8 @@ void NEP::find_latent_space(
   const std::vector<double>& position,
   std::vector<double>& latent_space)
 {
-  const int N = type.size();
-  const int size_x12 = N * MN;
+  const std::size_t N = type.size();
+  const std::size_t size_x12 = N * MN;
 
   if (N * 3 != position.size()) {
     std::cout << "Type and position sizes are inconsistent.\n";
@@ -2782,8 +2782,8 @@ void NEP::find_B_projection(
   const std::vector<double>& position,
   std::vector<double>& B_projection)
 {
-  const int N = type.size();
-  const int size_x12 = N * MN;
+  const std::size_t N = type.size();
+  const std::size_t size_x12 = N * MN;
 
   if (N * 3 != position.size()) {
     std::cout << "Type and position sizes are inconsistent.\n";
@@ -2821,8 +2821,8 @@ void NEP::find_dipole(
     exit(1);
   }
 
-  const int N = type.size();
-  const int size_x12 = N * MN;
+  const std::size_t N = type.size();
+  const std::size_t size_x12 = N * MN;
 
   if (N * 3 != position.size()) {
     std::cout << "Type and position sizes are inconsistent.\n";
@@ -2833,10 +2833,10 @@ void NEP::find_dipole(
   std::vector<double> potential(N);  // not used but needed for find_descriptor_small_box
   std::vector<double> virial(N * 3); // need the 3 diagonal components only
 
-  for (int n = 0; n < potential.size(); ++n) {
+  for (std::size_t n = 0; n < potential.size(); ++n) {
     potential[n] = 0.0;
   }
-  for (int n = 0; n < virial.size(); ++n) {
+  for (std::size_t n = 0; n < virial.size(); ++n) {
     virial[n] = 0.0;
   }
 
@@ -2873,7 +2873,7 @@ void NEP::find_dipole(
 
   for (int d = 0; d < 3; ++d) {
     dipole[d] = 0.0;
-    for (int n = 0; n < N; ++n) {
+    for (std::size_t n = 0; n < N; ++n) {
       dipole[d] += virial[d * N + n];
     }
   }
@@ -2890,8 +2890,8 @@ void NEP::find_polarizability(
     exit(1);
   }
 
-  const int N = type.size();
-  const int size_x12 = N * MN;
+  const std::size_t N = type.size();
+  const std::size_t size_x12 = N * MN;
 
   if (N * 3 != position.size()) {
     std::cout << "Type and position sizes are inconsistent.\n";
@@ -2902,10 +2902,10 @@ void NEP::find_polarizability(
   std::vector<double> potential(N);  // not used but needed for find_descriptor_small_box
   std::vector<double> virial(N * 9); // per-atom polarizability
 
-  for (int n = 0; n < potential.size(); ++n) {
+  for (std::size_t n = 0; n < potential.size(); ++n) {
     potential[n] = 0.0;
   }
-  for (int n = 0; n < virial.size(); ++n) {
+  for (std::size_t n = 0; n < virial.size(); ++n) {
     virial[n] = 0.0;
   }
 
@@ -2943,7 +2943,7 @@ void NEP::find_polarizability(
   for (int d = 0; d < 6; ++d) {
     polarizability[d] = 0.0;
   }
-  for (int n = 0; n < N; ++n) {
+  for (std::size_t n = 0; n < N; ++n) {
     polarizability[0] += virial[0 * N + n]; // xx
     polarizability[1] += virial[4 * N + n]; // yy
     polarizability[2] += virial[8 * N + n]; // zz
