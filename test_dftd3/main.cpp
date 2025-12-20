@@ -1,8 +1,10 @@
 /*-----------------------------------------------------------------------------------------------100
 Usage:
     Compile:
-        g++ -O3 main.cpp ../src/nep.cpp # Without openMP support
-        g++ -O3 -fopenmp main.cpp ../src/nep.cpp # With openMP support
+        # Without openMP support
+        g++ -O3 main.cpp ../src/nep.cpp ../src/ewald.cpp ../src/neighbor.cpp
+        # With openMP support
+        g++ -O3 -fopenmp main.cpp ../src/nep.cpp ../src/ewald.cpp ../src/neighbor.cpp
     run:
         export OMP_NUM_THREADS=6 # 6 is the number of the threads to be used
         ./a.out
@@ -434,7 +436,7 @@ static std::vector<std::string> get_atom_symbols(std::string& nep_file)
 }
 
 static void calculate_one_structure(
-  NEP3& nep3,
+  NEP& nep,
   std::vector<std::string>& atom_symbols,
   Structure& structure,
   int mode,
@@ -474,12 +476,12 @@ static void calculate_one_structure(
   }
 
   if (mode == 0) {
-    nep3.compute(type, box, position, potential, force, virial);
+    nep.compute(type, box, position, potential, force, virial);
   } else if (mode == 1 || mode == 3 || mode == 4) {
-    nep3.compute_dftd3(
+    nep.compute_dftd3(
       functional, D3_cutoff, D3_cutoff_cn, type, box, position, potential, force, virial);
   } else if (mode == 2) {
-    nep3.compute_with_dftd3(
+    nep.compute_with_dftd3(
       functional, D3_cutoff, D3_cutoff_cn, type, box, position, potential, force, virial);
   }
 
@@ -521,11 +523,11 @@ static void calculate(
   double D3_cutoff,
   double D3_cutoff_cn)
 {
-  NEP3 nep3(nep_file);
+  NEP nep(nep_file);
   std::vector<std::string> atom_symbols = get_atom_symbols(nep_file);
   for (int nc = 0; nc < structures.size(); ++nc) {
     calculate_one_structure(
-      nep3, atom_symbols, structures[nc], mode, functional, D3_cutoff, D3_cutoff_cn);
+      nep, atom_symbols, structures[nc], mode, functional, D3_cutoff, D3_cutoff_cn);
   }
 }
 

@@ -16,8 +16,10 @@
 /*----------------------------------------------------------------------------80
 Usage:
     Compile:
-        g++ -O3 main.cpp ../src/nep.cpp # Without openMP support
-        g++ -O3 -fopenmp main.cpp ../src/nep.cpp # With openMP support
+        # Without openMP support
+        g++ -O3 main.cpp ../src/nep.cpp ../src/ewald.cpp ../src/neighbor.cpp
+        # With openMP support
+        g++ -O3 -fopenmp main.cpp ../src/nep.cpp ../src/ewald.cpp ../src/neighbor.cpp
     run:
         export OMP_NUM_THREADS=6 # 6 is the number of the threads to be used
         ./a.out
@@ -38,19 +40,19 @@ struct Atom {
   std::vector<double> box, position, potential, force, virial;
 };
 void readXYZ(Atom& atom);
-void timing(Atom& atom, NEP3& nep3);
-void compare_analytical_and_finite_difference(Atom& atom, NEP3& nep3);
-void get_descriptor(Atom& atom, NEP3& nep3);
+void timing(Atom& atom, NEP& nep);
+void compare_analytical_and_finite_difference(Atom& atom, NEP& nep);
+void get_descriptor(Atom& atom, NEP& nep);
 
 int main(int argc, char* argv[])
 {
   Atom atom;
   readXYZ(atom);
-  NEP3 nep3("nep.txt");
+  NEP nep("nep.txt");
 
-  timing(atom, nep3);
-  compare_analytical_and_finite_difference(atom, nep3);
-  get_descriptor(atom, nep3);
+  timing(atom, nep);
+  compare_analytical_and_finite_difference(atom, nep);
+  get_descriptor(atom, nep);
 
   return 0;
 }
@@ -135,14 +137,14 @@ void readXYZ(Atom& atom)
   }
 }
 
-void timing(Atom& atom, NEP3& nep3)
+void timing(Atom& atom, NEP& nep)
 {
   std::cout << "Started timing.\n";
 
   clock_t time_begin = clock();
 
   for (int n = 0; n < num_repeats; ++n) {
-    nep3.compute(atom.type, atom.box, atom.position, atom.potential, atom.force, atom.virial);
+    nep.compute(atom.type, atom.box, atom.position, atom.potential, atom.force, atom.virial);
   }
 
   clock_t time_finish = clock();
@@ -157,7 +159,7 @@ void timing(Atom& atom, NEP3& nep3)
   std::cout << "    Computational cost = " << cost << " mini-second/atom-step.\n";
 }
 
-void compare_analytical_and_finite_difference(Atom& atom, NEP3& nep3)
+void compare_analytical_and_finite_difference(Atom& atom, NEP& nep)
 {
   std::cout << "Started validating force.\n";
 
@@ -173,7 +175,7 @@ void compare_analytical_and_finite_difference(Atom& atom, NEP3& nep3)
     for (int d = 0; d < 3; ++d) {
       atom.position[n + d * atom.N] = position_copy[n + d * atom.N] - delta; // negative shift
 
-      nep3.compute(atom.type, atom.box, atom.position, atom.potential, atom.force, atom.virial);
+      nep.compute(atom.type, atom.box, atom.position, atom.potential, atom.force, atom.virial);
 
       double energy_negative_shift = 0.0;
       for (int n = 0; n < atom.N; ++n) {
@@ -182,7 +184,7 @@ void compare_analytical_and_finite_difference(Atom& atom, NEP3& nep3)
 
       atom.position[n + d * atom.N] = position_copy[n + d * atom.N] + delta; // positive shift
 
-      nep3.compute(atom.type, atom.box, atom.position, atom.potential, atom.force, atom.virial);
+      nep.compute(atom.type, atom.box, atom.position, atom.potential, atom.force, atom.virial);
 
       double energy_positive_shift = 0.0;
       for (int n = 0; n < atom.N; ++n) {
@@ -196,7 +198,7 @@ void compare_analytical_and_finite_difference(Atom& atom, NEP3& nep3)
     }
   }
 
-  nep3.compute(atom.type, atom.box, atom.position, atom.potential, atom.force, atom.virial);
+  nep.compute(atom.type, atom.box, atom.position, atom.potential, atom.force, atom.virial);
 
   std::ofstream output_file("force_analytical.out");
 
@@ -245,13 +247,13 @@ void compare_analytical_and_finite_difference(Atom& atom, NEP3& nep3)
   std::cout << "    virials are written into virial.out.\n";
 }
 
-void get_descriptor(Atom& atom, NEP3& nep3)
+void get_descriptor(Atom& atom, NEP& nep)
 {
   std::cout << "Getting descriptor.\n";
 
-  std::vector<double> descriptor(atom.N * nep3.annmb.dim);
+  std::vector<double> descriptor(atom.N * nep.annmb.dim);
 
-  nep3.find_descriptor(atom.type, atom.box, atom.position, descriptor);
+  nep.find_descriptor(atom.type, atom.box, atom.position, descriptor);
 
   std::ofstream output_file("descriptor.out");
 
@@ -263,7 +265,7 @@ void get_descriptor(Atom& atom, NEP3& nep3)
   output_file << std::setprecision(15);
 
   for (int n = 0; n < atom.N; ++n) {
-    for (int d = 0; d < nep3.annmb.dim; ++d) {
+    for (int d = 0; d < nep.annmb.dim; ++d) {
       output_file << descriptor[d * atom.N + n] << " ";
     }
     output_file << "\n";
