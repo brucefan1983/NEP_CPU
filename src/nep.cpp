@@ -1945,6 +1945,39 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
     paramb.model_type = 0;
     paramb.version = 5;
     zbl.enabled = true;
+  } else if (tokens[0] == "nep4_charge1") {
+    paramb.model_type = 0;
+    paramb.version = 4;
+    zbl.enabled = false;
+    paramb.charge_mode = 1;
+  } else if (tokens[0] == "nep4_zbl_charge1") {
+    paramb.model_type = 0;
+    paramb.version = 4;
+    zbl.enabled = true;
+    paramb.charge_mode = 1;
+  } else if (tokens[0] == "nep4_charge2") {
+    paramb.model_type = 0;
+    paramb.version = 4;
+    zbl.enabled = false;
+    paramb.charge_mode = 2;
+  } else if (tokens[0] == "nep4_zbl_charge2") {
+    paramb.model_type = 0;
+    paramb.version = 4;
+    zbl.enabled = true;
+    paramb.charge_mode = 2;
+  } else if (tokens[0] == "nep4_charge3") {
+    paramb.model_type = 0;
+    paramb.version = 4;
+    zbl.enabled = false;
+    paramb.charge_mode = 3;
+  } else if (tokens[0] == "nep4_zbl_charge3") {
+    paramb.model_type = 0;
+    paramb.version = 4;
+    zbl.enabled = true;
+    paramb.charge_mode = 3;
+  } else {
+    std::cout << tokens[0] << " is an unsupported NEP model." << std::endl;
+    exit(1);
   }
 
   paramb.num_types = get_int_from_token(tokens[1], __FILE__, __LINE__);
@@ -2086,6 +2119,9 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   if (paramb.model_type == 2) {
     annmb.num_para_ann *= 2;
   }
+  if (paramb.charge_mode > 0) {
+    annmb.num_para_ann += annmb.num_neurons1 * paramb.num_types + 1;
+  }
   int num_para_descriptor =
     paramb.num_types_sq * ((paramb.n_max_radial + 1) * (paramb.basis_size_radial + 1) +
                            (paramb.n_max_angular + 1) * (paramb.basis_size_angular + 1));
@@ -2117,6 +2153,17 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   }
   input.close();
 
+
+  // charge related parameters and data
+  if (paramb.charge_mode > 0) {
+    charge_para.alpha = PI / paramb.rc_radial_max; // a good value
+    ewald.initialize(charge_para.alpha);
+    charge_para.two_alpha_over_sqrt_pi = 2.0 * charge_para.alpha / sqrt(PI);
+    charge_para.A = erfc(PI) / (paramb.rc_radial_max * paramb.rc_radial_max);
+    charge_para.A += charge_para.two_alpha_over_sqrt_pi * exp(-PI * PI) / paramb.rc_radial_max;
+    charge_para.B = - erfc(PI) / paramb.rc_radial_max - charge_para.A * paramb.rc_radial_max;
+  }
+
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
   if (paramb.use_typewise_cutoff) {
     std::cout << "Cannot use tabulated radial functions with typewise cutoff." << std::endl;
@@ -2128,12 +2175,22 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   // only report for rank_0
   if (is_rank_0) {
 
-    if (paramb.num_types == 1) {
-      std::cout << "Use the NEP" << paramb.version << " potential with " << paramb.num_types
-                << " atom type.\n";
+    if (paramb.charge_mode > 0) {
+      if (paramb.num_types == 1) {
+        std::cout << "Use the NEP4-Charge" << paramb.charge_mode << " potential with " << paramb.num_types
+                  << " atom type.\n";
+      } else {
+        std::cout << "Use the NEP4-Charge" << paramb.charge_mode << " potential with " << paramb.num_types
+                  << " atom types.\n";
+      }
     } else {
-      std::cout << "Use the NEP" << paramb.version << " potential with " << paramb.num_types
-                << " atom types.\n";
+      if (paramb.num_types == 1) {
+        std::cout << "Use the NEP" << paramb.version << " potential with " << paramb.num_types
+                  << " atom type.\n";
+      } else {
+        std::cout << "Use the NEP" << paramb.version << " potential with " << paramb.num_types
+                  << " atom types.\n";
+      }
     }
 
     for (int n = 0; n < paramb.num_types; ++n) {
