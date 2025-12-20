@@ -1,0 +1,277 @@
+/*
+    Copyright 2022 Zheyong Fan, Junjie Wang, Eric Lindgren
+    This file is part of NEP_CPU.
+    NEP_CPU is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+    NEP_CPU is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+    You should have received a copy of the GNU General Public License
+    along with NEP_CPU.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*----------------------------------------------------------------------------80
+Usage:
+    Compile:
+        # Without openMP support
+        g++ -O3 main.cpp ../src/nep.cpp ../src/ewald.cpp ../src/neighbor.cpp
+        # With openMP support
+        g++ -O3 -fopenmp main.cpp ../src/nep.cpp ../src/ewald.cpp ../src/neighbor.cpp
+    run:
+        export OMP_NUM_THREADS=6 # 6 is the number of the threads to be used
+        ./a.out
+------------------------------------------------------------------------------*/
+
+#include "../src/nep.h"
+#include <cmath>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <time.h>
+
+const int num_repeats = 1000;
+
+struct Atom {
+  int N;
+  std::vector<int> type;
+  std::vector<double> box, position, potential, force, virial, charge, bec;
+};
+void readXYZ(Atom& atom);
+void timing(Atom& atom, NEP3& nep3);
+void compare_analytical_and_finite_difference(Atom& atom, NEP3& nep3);
+void get_descriptor(Atom& atom, NEP3& nep3);
+
+int main(int argc, char* argv[])
+{
+  Atom atom;
+  readXYZ(atom);
+  NEP3 nep3("nep.txt");
+
+  timing(atom, nep3);
+  compare_analytical_and_finite_difference(atom, nep3);
+  get_descriptor(atom, nep3);
+
+  return 0;
+}
+
+static std::vector<std::string> get_atom_symbols()
+{
+  std::ifstream input_potential("nep.txt");
+  if (!input_potential.is_open()) {
+    std::cout << "Error: cannot open nep.txt.\n";
+    exit(1);
+  }
+
+  std::string potential_name;
+  input_potential >> potential_name;
+  int number_of_types;
+  input_potential >> number_of_types;
+  std::vector<std::string> atom_symbols(number_of_types);
+  for (int n = 0; n < number_of_types; ++n) {
+    input_potential >> atom_symbols[n];
+  }
+
+  input_potential.close();
+  return atom_symbols;
+}
+
+void readXYZ(Atom& atom)
+{
+  std::cout << "Reading xyz.in.\n";
+
+  std::ifstream input_file("xyz.in");
+
+  if (!input_file) {
+    std::cout << "Cannot open xyz.in\n";
+    exit(1);
+  }
+
+  input_file >> atom.N;
+  std::cout << "    Number of atoms is " << atom.N << ".\n";
+
+  atom.box.resize(9);
+  input_file >> atom.box[0];
+  input_file >> atom.box[3];
+  input_file >> atom.box[6];
+  input_file >> atom.box[1];
+  input_file >> atom.box[4];
+  input_file >> atom.box[7];
+  input_file >> atom.box[2];
+  input_file >> atom.box[5];
+  input_file >> atom.box[8];
+
+  std::cout << "    Box matrix h = [a, b, c] is\n";
+  for (int d1 = 0; d1 < 3; ++d1) {
+    for (int d2 = 0; d2 < 3; ++d2) {
+      std::cout << "\t" << atom.box[d1 * 3 + d2];
+    }
+    std::cout << "\n";
+  }
+
+  std::vector<std::string> atom_symbols = get_atom_symbols();
+
+  atom.type.resize(atom.N);
+  atom.position.resize(atom.N * 3);
+  atom.potential.resize(atom.N);
+  atom.force.resize(atom.N * 3);
+  atom.virial.resize(atom.N * 9);
+  atom.charge.resize(atom.N);
+  atom.bec.resize(atom.N * 9);
+
+  for (int n = 0; n < atom.N; n++) {
+    std::string atom_symbol_tmp;
+    input_file >> atom_symbol_tmp >> atom.position[n] >> atom.position[n + atom.N] >>
+      atom.position[n + atom.N * 2];
+    bool is_allowed_element = false;
+    for (int t = 0; t < atom_symbols.size(); ++t) {
+      if (atom_symbol_tmp == atom_symbols[t]) {
+        atom.type[n] = t;
+        is_allowed_element = true;
+      }
+    }
+    if (!is_allowed_element) {
+      std::cout << "There is atom in xyz.in that is not allowed in the used NEP potential.\n";
+      exit(1);
+    }
+  }
+}
+
+void timing(Atom& atom, NEP3& nep3)
+{
+  std::cout << "Started timing.\n";
+
+  clock_t time_begin = clock();
+
+  for (int n = 0; n < num_repeats; ++n) {
+    nep3.compute(atom.type, atom.box, atom.position, atom.potential, atom.force, atom.virial, atom.charge, atom.bec);
+  }
+
+  clock_t time_finish = clock();
+  double time_used = (time_finish - time_begin) / double(CLOCKS_PER_SEC);
+  std::cout << "    Number of atoms = " << atom.N << ".\n";
+  std::cout << "    Number of steps = " << num_repeats << ".\n";
+  std::cout << "    Time used = " << time_used << " s.\n";
+
+  double speed = atom.N * num_repeats / time_used;
+  double cost = 1000 / speed;
+  std::cout << "    Computational speed = " << speed << " atom-step/second.\n";
+  std::cout << "    Computational cost = " << cost << " mini-second/atom-step.\n";
+}
+
+void compare_analytical_and_finite_difference(Atom& atom, NEP3& nep3)
+{
+  std::cout << "Started validating force.\n";
+
+  std::vector<double> force_finite_difference(atom.force.size());
+  std::vector<double> position_copy(atom.position.size());
+  for (int n = 0; n < atom.position.size(); ++n) {
+    position_copy[n] = atom.position[n];
+  }
+
+  const double delta = 2.0e-4;
+
+  for (int n = 0; n < atom.N; ++n) {
+    for (int d = 0; d < 3; ++d) {
+      atom.position[n + d * atom.N] = position_copy[n + d * atom.N] - delta; // negative shift
+
+      nep3.compute(atom.type, atom.box, atom.position, atom.potential, atom.force, atom.virial, atom.charge, atom.bec);
+
+      double energy_negative_shift = 0.0;
+      for (int n = 0; n < atom.N; ++n) {
+        energy_negative_shift += atom.potential[n];
+      }
+
+      atom.position[n + d * atom.N] = position_copy[n + d * atom.N] + delta; // positive shift
+
+      nep3.compute(atom.type, atom.box, atom.position, atom.potential, atom.force, atom.virial, atom.charge, atom.bec);
+
+      double energy_positive_shift = 0.0;
+      for (int n = 0; n < atom.N; ++n) {
+        energy_positive_shift += atom.potential[n];
+      }
+
+      force_finite_difference[n + d * atom.N] =
+        (energy_negative_shift - energy_positive_shift) / (2.0 * delta);
+
+      atom.position[n + d * atom.N] = position_copy[n + d * atom.N]; // back to original position
+    }
+  }
+
+  nep3.compute(atom.type, atom.box, atom.position, atom.potential, atom.force, atom.virial, atom.charge, atom.bec);
+
+  std::ofstream output_file("force_analytical.out");
+
+  if (!output_file.is_open()) {
+    std::cout << "Cannot open force_analytical.out\n";
+    exit(1);
+  }
+  output_file << std::setprecision(15);
+  for (int n = 0; n < atom.N; ++n) {
+    output_file << atom.force[n] << " " << atom.force[n + atom.N] << " "
+                << atom.force[n + atom.N * 2] << "\n";
+  }
+  output_file.close();
+  std::cout << "    analytical forces are written into force_analytical.out.\n";
+
+  std::ofstream output_finite_difference("force_finite_difference.out");
+
+  if (!output_finite_difference.is_open()) {
+    std::cout << "Cannot open force_finite_difference.out\n";
+    exit(1);
+  }
+  output_finite_difference << std::setprecision(15);
+  for (int n = 0; n < atom.N; ++n) {
+    output_finite_difference << force_finite_difference[n] << " "
+                             << force_finite_difference[n + atom.N] << " "
+                             << force_finite_difference[n + atom.N * 2] << "\n";
+  }
+  output_finite_difference.close();
+  std::cout << "    finite-difference forces are written into force_finite_difference.out.\n";
+
+  std::ofstream output_file_virial("virial.out");
+
+  if (!output_file_virial.is_open()) {
+    std::cout << "Cannot open virial.out\n";
+    exit(1);
+  }
+  output_file_virial << std::setprecision(15);
+  for (int n = 0; n < atom.N; ++n) {
+    output_file_virial << atom.virial[n + atom.N * 0] << " " << atom.virial[n + atom.N * 1] << " "
+                       << atom.virial[n + atom.N * 2] << " " << atom.virial[n + atom.N * 3] << " "
+                       << atom.virial[n + atom.N * 4] << " " << atom.virial[n + atom.N * 5] << " "
+                       << atom.virial[n + atom.N * 6] << " " << atom.virial[n + atom.N * 7] << " "
+                       << atom.virial[n + atom.N * 8] << "\n";
+  }
+  output_file_virial.close();
+  std::cout << "    virials are written into virial.out.\n";
+}
+
+void get_descriptor(Atom& atom, NEP3& nep3)
+{
+  std::cout << "Getting descriptor.\n";
+
+  std::vector<double> descriptor(atom.N * nep3.annmb.dim);
+
+  nep3.find_descriptor(atom.type, atom.box, atom.position, descriptor);
+
+  std::ofstream output_file("descriptor.out");
+
+  if (!output_file.is_open()) {
+    std::cout << "Cannot open descriptor.out\n";
+    exit(1);
+  }
+
+  output_file << std::setprecision(15);
+
+  for (int n = 0; n < atom.N; ++n) {
+    for (int d = 0; d < nep3.annmb.dim; ++d) {
+      output_file << descriptor[d * atom.N + n] << " ";
+    }
+    output_file << "\n";
+  }
+  output_file.close();
+  std::cout << "    descriptors are written into descriptor.out.\n";
+}
