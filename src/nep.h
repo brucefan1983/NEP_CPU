@@ -16,6 +16,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "ewald.h"
 
 // #define USE_TABLE_FOR_RADIAL_FUNCTIONS
 
@@ -26,6 +27,7 @@ public:
     bool use_typewise_cutoff_zbl = false;
     double typewise_cutoff_zbl_factor = 0.65;
 
+    int charge_mode = 0;
     int model_type = 0; // 0=potential, 1=dipole, 2=polarizability
     int version = 4;
     double rc_radial_max = 0.0;
@@ -56,6 +58,7 @@ public:
     const double* w1[94];
     const double* b1;
     const double* c;
+    const double* sqrt_epsilon_inf;
     // for the scalar part of polarizability
     const double* w0_pol[94];
     const double* b0_pol[94];
@@ -70,6 +73,14 @@ public:
     double rc_inner = 1.0;
     double rc_outer = 2.0;
     double para[550];
+  };
+
+  struct Charge_Para {
+    int num_kpoints_max = 1;
+    double alpha = 0.5; // 1 / (2 Angstrom)
+    double two_alpha_over_sqrt_pi = 0.564189583547756;
+    double A;
+    double B;
   };
 
   struct DFTD3 {
@@ -109,6 +120,16 @@ public:
     std::vector<double>& potential,
     std::vector<double>& force,
     std::vector<double>& virial);
+
+  void compute(
+    const std::vector<int>& type,
+    const std::vector<double>& box,
+    const std::vector<double>& position,
+    std::vector<double>& potential,
+    std::vector<double>& force,
+    std::vector<double>& virial,
+    std::vector<double>& charge,
+    std::vector<double>& bec);
 
   void compute_with_dftd3(
     const std::string& xc,
@@ -186,11 +207,15 @@ public:
   ParaMB paramb;
   ANN annmb;
   ZBL zbl;
+  Charge_Para charge_para;
+  Ewald ewald;
   DFTD3 dftd3;
   std::vector<int> NN_radial, NL_radial, NN_angular, NL_angular;
   std::vector<double> r12;
   std::vector<double> Fp;
   std::vector<double> sum_fxyz;
+  std::vector<double> D_real;
+  std::vector<double> charge_derivative;
   std::vector<double> parameters;
   std::vector<std::string> element_list;
   void update_potential(double* parameters, ANN& ann);
