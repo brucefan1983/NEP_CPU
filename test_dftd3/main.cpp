@@ -1,8 +1,10 @@
 /*-----------------------------------------------------------------------------------------------100
 Usage:
     Compile:
-        g++ -O3 main.cpp ../src/nep.cpp # Without openMP support
-        g++ -O3 -fopenmp main.cpp ../src/nep.cpp # With openMP support
+        # Without openMP support
+        g++ -O3 main.cpp ../src/nep.cpp ../src/ewald.cpp ../src/neighbor.cpp
+        # With openMP support
+        g++ -O3 -fopenmp main.cpp ../src/nep.cpp ../src/ewald.cpp ../src/neighbor.cpp
     run:
         export OMP_NUM_THREADS=6 # 6 is the number of the threads to be used
         ./a.out
