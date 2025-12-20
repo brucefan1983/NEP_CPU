@@ -1,4 +1,10 @@
 #include "nep_common.h"
+#include <cmath>
+#include <fstream>
+#include <iostream>
+#include <iterator>
+#include <sstream>
+#include <string>
 
 namespace nep_common
 {
@@ -698,53 +704,6 @@ double find_q_one(const double* s)
   q *= 2.0;
   q += C3B[start_index] * s[start_index] * s[start_index];
   return q;
-}
-
-void find_q(
-  const int L_max,
-  const int num_L,
-  const int n_max_angular_plus_1,
-  const int n,
-  const double* s,
-  double* q)
-{
-  if (L_max >= 1) {
-    q[0 * n_max_angular_plus_1 + n] = find_q_one<1>(s);
-  }
-  if (L_max >= 2) {
-    q[1 * n_max_angular_plus_1 + n] = find_q_one<2>(s);
-  }
-  if (L_max >= 3) {
-    q[2 * n_max_angular_plus_1 + n] = find_q_one<3>(s);
-  }
-  if (L_max >= 4) {
-    q[3 * n_max_angular_plus_1 + n] = find_q_one<4>(s);
-  }
-  if (L_max >= 5) {
-    q[4 * n_max_angular_plus_1 + n] = find_q_one<5>(s);
-  }
-  if (L_max >= 6) {
-    q[5 * n_max_angular_plus_1 + n] = find_q_one<6>(s);
-  }
-  if (L_max >= 7) {
-    q[6 * n_max_angular_plus_1 + n] = find_q_one<7>(s);
-  }
-  if (L_max >= 8) {
-    q[7 * n_max_angular_plus_1 + n] = find_q_one<8>(s);
-  }
-  if (num_L >= L_max + 1) {
-    q[L_max * n_max_angular_plus_1 + n] =
-      C4B[0] * s[3] * s[3] * s[3] + C4B[1] * s[3] * (s[4] * s[4] + s[5] * s[5]) +
-      C4B[2] * s[3] * (s[6] * s[6] + s[7] * s[7]) + C4B[3] * s[6] * (s[5] * s[5] - s[4] * s[4]) +
-      C4B[4] * s[4] * s[5] * s[7];
-  }
-  if (num_L >= L_max + 2) {
-    double s0_sq = s[0] * s[0];
-    double s1_sq_plus_s2_sq = s[1] * s[1] + s[2] * s[2];
-    q[(L_max + 1) * n_max_angular_plus_1 + n] = C5B[0] * s0_sq * s0_sq +
-                                                C5B[1] * s0_sq * s1_sq_plus_s2_sq +
-                                                C5B[2] * s1_sq_plus_s2_sq * s1_sq_plus_s2_sq;
-  }
 }
 
 void find_q(
