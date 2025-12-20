@@ -47,8 +47,8 @@ void find_descriptor_small_box(
   const bool calculating_descriptor,
   const bool calculating_latent_space,
   const bool calculating_polarizability,
-  NEP3::ParaMB& paramb,
-  NEP3::ANN& annmb,
+  NEP::ParaMB& paramb,
+  NEP::ANN& annmb,
   const int N,
   const int* g_NN_radial,
   const int* g_NL_radial,
@@ -224,8 +224,8 @@ void find_descriptor_small_box(
 
 void find_force_radial_small_box(
   const bool is_dipole,
-  NEP3::ParaMB& paramb,
-  NEP3::ANN& annmb,
+  NEP::ParaMB& paramb,
+  NEP::ANN& annmb,
   const int N,
   const int* g_NN,
   const int* g_NL,
@@ -328,8 +328,8 @@ void find_force_radial_small_box(
 
 void find_force_angular_small_box(
   const bool is_dipole,
-  NEP3::ParaMB& paramb,
-  NEP3::ANN& annmb,
+  NEP::ParaMB& paramb,
+  NEP::ANN& annmb,
   const int N,
   const int* g_NN_angular,
   const int* g_NL_angular,
@@ -448,8 +448,8 @@ void find_force_angular_small_box(
 
 void find_force_ZBL_small_box(
   const int N,
-  NEP3::ParaMB& paramb,
-  const NEP3::ZBL& zbl,
+  NEP::ParaMB& paramb,
+  const NEP::ZBL& zbl,
   const int* g_NN,
   const int* g_NL,
   const int* g_type,
@@ -529,8 +529,8 @@ void find_force_ZBL_small_box(
 void find_descriptor_small_box(
   const bool calculating_potential,
   const bool calculating_descriptor,
-  NEP3::ParaMB& paramb,
-  NEP3::ANN& annmb,
+  NEP::ParaMB& paramb,
+  NEP::ANN& annmb,
   const int N,
   const int* g_NN_radial,
   const int* g_NL_radial,
@@ -664,8 +664,8 @@ void zero_total_charge(const int N, double* g_charge)
 }
 
 void find_force_radial_small_box(
-  NEP3::ParaMB& paramb,
-  NEP3::ANN& annmb,
+  NEP::ParaMB& paramb,
+  NEP::ANN& annmb,
   const int N,
   const int* g_NN,
   const int* g_NL,
@@ -740,8 +740,8 @@ void find_force_radial_small_box(
 }
 
 void find_force_angular_small_box(
-  NEP3::ParaMB& paramb,
-  NEP3::ANN& annmb,
+  NEP::ParaMB& paramb,
+  NEP::ANN& annmb,
   const int N,
   const int* g_NN_angular,
   const int* g_NL_angular,
@@ -845,8 +845,8 @@ void find_bec_diagonal(const int N, const double* g_q, double* g_bec)
 }
 
 void find_bec_radial_small_box(
-  const NEP3::ParaMB paramb,
-  const NEP3::ANN annmb,
+  const NEP::ParaMB paramb,
+  const NEP::ANN annmb,
   const int N,
   const int* g_NN,
   const int* g_NL,
@@ -922,8 +922,8 @@ void find_bec_radial_small_box(
 }
 
 void find_bec_angular_small_box(
-  NEP3::ParaMB paramb,
-  NEP3::ANN annmb,
+  NEP::ParaMB paramb,
+  NEP::ANN annmb,
   const int N,
   const int* g_NN_angular,
   const int* g_NL_angular,
@@ -1027,7 +1027,7 @@ void scale_bec(const int N, const double* sqrt_epsilon_inf, double* g_bec)
 
 void find_force_charge_real_space_only_small_box(
   const int N,
-  const NEP3::Charge_Para charge_para,
+  const NEP::Charge_Para charge_para,
   const int* g_NN,
   const int* g_NL,
   const double* g_charge,
@@ -1107,7 +1107,7 @@ void find_force_charge_real_space_only_small_box(
 
 void find_force_charge_real_space_small_box(
   const int N,
-  const NEP3::Charge_Para charge_para,
+  const NEP::Charge_Para charge_para,
   const int* g_NN,
   const int* g_NL,
   const double* g_charge,
@@ -1186,7 +1186,7 @@ void find_force_charge_real_space_small_box(
 }
 
 void find_dftd3_coordination_number(
-  NEP3::DFTD3& dftd3,
+  NEP::DFTD3& dftd3,
   const int N,
   const int* g_NN_angular,
   const int* g_NL_angular,
@@ -1216,7 +1216,7 @@ void find_dftd3_coordination_number(
 }
 
 void add_dftd3_force(
-  NEP3::DFTD3& dftd3,
+  NEP::DFTD3& dftd3,
   const int N,
   const int* g_NN_radial,
   const int* g_NL_radial,
@@ -1321,7 +1321,7 @@ void add_dftd3_force(
 }
 
 void add_dftd3_force_extra(
-  const NEP3::DFTD3& dftd3,
+  const NEP::DFTD3& dftd3,
   const int N,
   const int* g_NN_angular,
   const int* g_NL_angular,
@@ -1369,8 +1369,8 @@ void add_dftd3_force_extra(
 }
 
 void find_descriptor_for_lammps(
-  NEP3::ParaMB& paramb,
-  NEP3::ANN& annmb,
+  NEP::ParaMB& paramb,
+  NEP::ANN& annmb,
   int nlocal,
   int N,
   int* g_ilist,
@@ -1516,8 +1516,8 @@ void find_descriptor_for_lammps(
 }
 
 void find_force_radial_for_lammps(
-  NEP3::ParaMB& paramb,
-  NEP3::ANN& annmb,
+  NEP::ParaMB& paramb,
+  NEP::ANN& annmb,
   int nlocal,
   int N,
   int* g_ilist,
@@ -1619,8 +1619,8 @@ void find_force_radial_for_lammps(
 }
 
 void find_force_angular_for_lammps(
-  NEP3::ParaMB& paramb,
-  NEP3::ANN& annmb,
+  NEP::ParaMB& paramb,
+  NEP::ANN& annmb,
   int nlocal,
   int N,
   int* g_ilist,
@@ -1736,8 +1736,8 @@ void find_force_angular_for_lammps(
 }
 
 void find_force_ZBL_for_lammps(
-  NEP3::ParaMB& paramb,
-  const NEP3::ZBL& zbl,
+  NEP::ParaMB& paramb,
+  const NEP::ZBL& zbl,
   int N,
   int* g_ilist,
   int* g_NN,
@@ -1886,11 +1886,11 @@ double get_double_from_token(const std::string& token, const char* filename, con
 
 } // namespace
 
-NEP3::NEP3() {}
+NEP::NEP() {}
 
-NEP3::NEP3(const std::string& potential_filename) { init_from_file(potential_filename, true); }
+NEP::NEP(const std::string& potential_filename) { init_from_file(potential_filename, true); }
 
-void NEP3::init_from_file(const std::string& potential_filename, const bool is_rank_0)
+void NEP::init_from_file(const std::string& potential_filename, const bool is_rank_0)
 {
   std::ifstream input(potential_filename);
   if (!input.is_open()) {
@@ -1898,7 +1898,6 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
     exit(1);
   }
 
-  // nep3 1 C
   std::vector<std::string> tokens = get_tokens(input);
   if (tokens.size() < 3) {
     print_tokens(tokens);
@@ -2227,7 +2226,7 @@ void NEP3::init_from_file(const std::string& potential_filename, const bool is_r
   }
 }
 
-void NEP3::update_type_map(const int ntype, int* type_map, char** elements)
+void NEP::update_type_map(const int ntype, int* type_map, char** elements)
 {
   int n = 0;
   for (int itype = 0; itype < ntype + 1; ++itype) {
@@ -2253,7 +2252,7 @@ void NEP3::update_type_map(const int ntype, int* type_map, char** elements)
   }
 }
 
-void NEP3::update_potential(double* parameters, ANN& ann)
+void NEP::update_potential(double* parameters, ANN& ann)
 {
   double* pointer = parameters;
   for (int t = 0; t < paramb.num_types; ++t) {
@@ -2304,7 +2303,7 @@ void NEP3::update_potential(double* parameters, ANN& ann)
 }
 
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
-void NEP3::construct_table(double* parameters)
+void NEP::construct_table(double* parameters)
 {
   gn_radial.resize(table_length * paramb.num_types_sq * (paramb.n_max_radial + 1));
   gnp_radial.resize(table_length * paramb.num_types_sq * (paramb.n_max_radial + 1));
@@ -2322,7 +2321,7 @@ void NEP3::construct_table(double* parameters)
 }
 #endif
 
-void NEP3::allocate_memory(const int N)
+void NEP::allocate_memory(const int N)
 {
   if (num_atoms < N) {
     NN_radial.resize(N);
@@ -2343,7 +2342,7 @@ void NEP3::allocate_memory(const int N)
   }
 }
 
-void NEP3::compute(
+void NEP::compute(
   const std::vector<int>& type,
   const std::vector<double>& box,
   const std::vector<double>& position,
@@ -2432,7 +2431,7 @@ void NEP3::compute(
   }
 }
 
-void NEP3::compute(
+void NEP::compute(
   const std::vector<int>& type,
   const std::vector<double>& box,
   const std::vector<double>& position,
@@ -2602,7 +2601,7 @@ void NEP3::compute(
   }
 }
 
-void NEP3::compute_with_dftd3(
+void NEP::compute_with_dftd3(
   const std::string& xc,
   const double rc_potential,
   const double rc_coordination_number,
@@ -2633,7 +2632,7 @@ void NEP3::compute_with_dftd3(
     r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, force.data(), virial.data());
 }
 
-void NEP3::compute_dftd3(
+void NEP::compute_dftd3(
   const std::string& xc,
   const double rc_potential,
   const double rc_coordination_number,
@@ -2698,7 +2697,7 @@ void NEP3::compute_dftd3(
     r12.data() + size_x12 * 4, r12.data() + size_x12 * 5, force.data(), virial.data());
 }
 
-void NEP3::find_descriptor(
+void NEP::find_descriptor(
   const std::vector<int>& type,
   const std::vector<double>& box,
   const std::vector<double>& position,
@@ -2742,7 +2741,7 @@ void NEP3::find_descriptor(
   }
 }
 
-void NEP3::find_latent_space(
+void NEP::find_latent_space(
   const std::vector<int>& type,
   const std::vector<double>& box,
   const std::vector<double>& position,
@@ -2777,7 +2776,7 @@ void NEP3::find_latent_space(
     Fp.data(), sum_fxyz.data(), nullptr, nullptr, latent_space.data(), nullptr, false, nullptr);
 }
 
-void NEP3::find_B_projection(
+void NEP::find_B_projection(
   const std::vector<int>& type,
   const std::vector<double>& box,
   const std::vector<double>& position,
@@ -2811,7 +2810,7 @@ void NEP3::find_B_projection(
     Fp.data(), sum_fxyz.data(), nullptr, nullptr, nullptr, nullptr, true, B_projection.data());
 }
 
-void NEP3::find_dipole(
+void NEP::find_dipole(
   const std::vector<int>& type,
   const std::vector<double>& box,
   const std::vector<double>& position,
@@ -2880,7 +2879,7 @@ void NEP3::find_dipole(
   }
 }
 
-void NEP3::find_polarizability(
+void NEP::find_polarizability(
   const std::vector<int>& type,
   const std::vector<double>& box,
   const std::vector<double>& position,
@@ -2954,7 +2953,7 @@ void NEP3::find_polarizability(
   }
 }
 
-void NEP3::compute_for_lammps(
+void NEP::compute_for_lammps(
   int nlocal,
   int N,
   int* ilist,
@@ -2999,7 +2998,7 @@ void NEP3::compute_for_lammps(
   }
 }
 
-bool NEP3::set_dftd3_para_one(
+bool NEP::set_dftd3_para_one(
   const std::string& functional_input,
   const std::string& functional_library,
   const double s6,
@@ -3017,7 +3016,7 @@ bool NEP3::set_dftd3_para_one(
   return false;
 }
 
-void NEP3::set_dftd3_para_all(
+void NEP::set_dftd3_para_all(
   const std::string& functional_input,
   const double rc_potential,
   const double rc_coordination_number)

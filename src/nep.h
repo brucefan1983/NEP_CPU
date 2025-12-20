@@ -20,7 +20,7 @@
 
 // #define USE_TABLE_FOR_RADIAL_FUNCTIONS
 
-class NEP3
+class NEP
 {
 public:
   struct ParaMB {
@@ -96,8 +96,8 @@ public:
     std::vector<double> dc8_sum;
   };
 
-  NEP3();
-  NEP3(const std::string& potential_filename);
+  NEP();
+  NEP(const std::string& potential_filename);
 
   void init_from_file(const std::string& potential_filename, const bool is_rank_0);
 
