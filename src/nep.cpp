@@ -2356,6 +2356,11 @@ void NEP3::compute(
     exit(1);
   }
 
+  if (paramb.charge_mode != 0) {
+    std::cout << "Cannot use this compute for a qNEP model.\n";
+    exit(1);
+  }
+
   const int N = type.size();
   const int size_x12 = N * MN;
 
@@ -2437,6 +2442,11 @@ void NEP3::compute(
   std::vector<double>& charge,
   std::vector<double>& bec)
 {
+  if (paramb.charge_mode == 0) {
+    std::cout << "Can only use this compute for a qNEP model.\n";
+    exit(1);
+  }
+
   const int N = type.size();
   const int size_x12 = N * MN;
 
