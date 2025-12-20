@@ -20,25 +20,22 @@
 ```
   
 * The following folders contain some testing code and results:
-  * `test/`
+  * `test/lammps/`
+  * `test_nep/`
+  * `test_qnep/`
   * `test_dftd3/`
   
 * The `NEP` C++ class is used as an engine powering the following Python packages:
   * `calorine`: https://gitlab.com/materials-modeling/calorine
   * `PyNEP`: https://github.com/bigd4/PyNEP
   * `somd`: https://github.com/initqp/somd
+  * `NepTrainKit`: https://github.com/aboys-cb/NepTrainKit
   
 # The NEP-LAMMPS interface
 
 ## Build the NEP-LAMMPS interface
 
-* step 1: Copy the files in `src/` into `interface/lammps/USER-NEP/` such that you have the following files in `interface/lammps/USER-NEP/`:
-  * `nep.h`
-  * `nep.cpp`
-  * `dftd3para.h`
-  * `pair_NEP.h`
-  * `pair_NEP.cpp`
-  * `install.sh`
+* step 1: Copy the files in `src/` into `interface/lammps/USER-NEP/`.
 
 Command:
 
