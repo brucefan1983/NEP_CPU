@@ -8,12 +8,9 @@
 
 # The standalone C++ implementation of NEP
 
-* The `NEP` C++ class is defined in the following three files:
-  * `src/nep.h`
-  * `src/nep.cpp`
-  * `src/dftd3para.h`
+* The `NEP` C++ class and the interfaces are defined in `src/nep.h`.
   
-* There is an option to use tables to speed up the calculations for the radial functions in NEP. To enable it, one can change line 20 of `src/nep.h`:
+* There is an option to use tables to speed up the calculations for the radial functions in NEP. To enable it, one can change line 21 of `src/nep.h`:
 
 ```
 // #define USE_TABLE_FOR_RADIAL_FUNCTIONS
@@ -44,14 +41,10 @@ cd ${software}/NEP_CPU
 cp src/* interface/lammps/USER-NEP
 ```
 
-* Step 2: Now you can copy the `USER-NEP/` folder into `YOUR_LAMMPS_PATH/src/` and start to compile LAMMPS in your favorite way. Good luck!
+* Step 2: Now you can copy the `USER-NEP/` folder into `YOUR_LAMMPS_PATH/src/` and start to compile LAMMPS in your favorite way.
 
   If you are compiling LAMMPS using `make`, ensure that you run "make yes-USER-NEP" before the final compilation.
   
-  If you are using `cmake`, you need to copy `/interface/lammps/USER-NEP.cmake` to LAMMPS cmake package directory and add `USER-NEP` to `CMakeLists.txt`. Then enable NEP by add "PKG_NEP=on", along with your other -D flags during the configuration step.
-
-Command for `make`:
-
 ```
 cd ${software}/NEP_CPU
 cp -r interface/lammps/USER-NEP ${software}/lammps/src
@@ -61,7 +54,8 @@ make yes-USER-NEP
 make machine
 ```
 
-Command for `cmake`:
+  If you are using `cmake`, you need to copy `/interface/lammps/USER-NEP.cmake` to LAMMPS cmake package directory and add `USER-NEP` to `CMakeLists.txt`. Then enable NEP by add "PKG_NEP=on", along with your other -D flags during the configuration step.
+
 ```
 cd ${software}/NEP_CPU
 cp -r interface/lammps/USER-NEP ${software}/lammps/src
