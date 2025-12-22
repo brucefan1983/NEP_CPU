@@ -23,6 +23,7 @@
 #include "neigh_list.h"
 #include "neigh_request.h"
 #include "neighbor.h"
+#include "neighbor_nep.h"
 #include <fstream>
 #include <math.h>
 #include <stdio.h>

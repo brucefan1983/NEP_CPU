@@ -23,7 +23,7 @@ heat transport, Phys. Rev. B. 104, 104309 (2021).
 #include "nep.h"
 #include "dftd3para.h"
 #include "nep_utilities.h"
-#include "neighbor.h"
+#include "neighbor_nep.h"
 #include <algorithm>
 #include <cmath>
 #include <fstream>
