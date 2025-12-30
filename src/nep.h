@@ -16,7 +16,7 @@
 #pragma once
 #include <string>
 #include <vector>
-#include "ewald.h"
+#include "ewald_nep.h"
 
 // #define USE_TABLE_FOR_RADIAL_FUNCTIONS
 
@@ -208,7 +208,7 @@ public:
   ANN annmb;
   ZBL zbl;
   Charge_Para charge_para;
-  Ewald ewald;
+  EwaldNep ewald;
   DFTD3 dftd3;
   std::vector<int> NN_radial, NL_radial, NN_angular, NL_angular;
   std::vector<double> r12;
