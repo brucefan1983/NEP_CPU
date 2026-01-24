@@ -10,12 +10,6 @@
 
 * The `NEP` C++ class and the interfaces are defined in `src/nep.h`.
   
-* There is an option to use tables to speed up the calculations for the radial functions in NEP. To enable it, one can change line 21 of `src/nep.h`:
-
-```
-// #define USE_TABLE_FOR_RADIAL_FUNCTIONS
-```
-  
 * The following folders contain some testing code and results:
   * `test/lammps/`
   * `test_nep/`
