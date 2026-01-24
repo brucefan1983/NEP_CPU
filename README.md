@@ -24,6 +24,8 @@
   
 # The NEP-LAMMPS interface
 
+Note: qNEP is not supported in the NEP-LAMMPS interface.
+
 ## Build the NEP-LAMMPS interface
 
 * step 1: Copy the files in `src/` into `interface/lammps/USER-NEP/`.
