@@ -226,7 +226,7 @@ void EwaldNep::find_k_and_G(const double* box)
     }
   }
 
-  int num_kpoints = int(G.size());
+  num_kpoints = int(G.size());
 
   if (num_kpoints > num_kpoints_max) {
     num_kpoints_max = num_kpoints;
