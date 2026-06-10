@@ -157,7 +157,8 @@ void find_descriptor_small_box(
 #endif
       }
       find_q(
-        paramb.L_max, paramb.num_L, paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
+        paramb.L_max, paramb.has_q_222, paramb.has_q_1111, paramb.has_q_112, paramb.has_q_123,
+        paramb.has_q_233, paramb.has_q_134, paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
       for (int abc = 0; abc < NUM_OF_ABC; ++abc) {
         g_sum_fxyz[(n * NUM_OF_ABC + abc) * N + n1] = s[abc];
       }
@@ -383,8 +384,9 @@ void find_force_angular_small_box(
         double gnp12 = g_gnp_angular[index_left_all] * weight_left +
                        g_gnp_angular[index_right_all] * weight_right;
         accumulate_f12(
-          paramb.L_max, paramb.num_L, n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp,
-          sum_fxyz, f12);
+          paramb.L_max, paramb.has_q_222, paramb.has_q_1111, paramb.has_q_112, paramb.has_q_123,
+          paramb.has_q_233, paramb.has_q_134, paramb.num_L, n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12,
+          Fp, sum_fxyz, f12);
       }
 #else
       int t2 = g_type[n2];
@@ -406,8 +408,9 @@ void find_force_angular_small_box(
           gnp12 += fnp12[k] * annmb.c[c_index];
         }
         accumulate_f12(
-          paramb.L_max, paramb.num_L, n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp,
-          sum_fxyz, f12);
+          paramb.L_max, paramb.has_q_222, paramb.has_q_1111, paramb.has_q_112, paramb.has_q_123,
+          paramb.has_q_233, paramb.has_q_134, paramb.num_L, n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12,
+          Fp, sum_fxyz, f12);
       }
 #endif
 
@@ -604,7 +607,8 @@ void find_descriptor_small_box(
         accumulate_s(paramb.L_max, d12, r12[0], r12[1], r12[2], gn12, s);
       }
       find_q(
-        paramb.L_max, paramb.num_L, paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
+        paramb.L_max, paramb.has_q_222, paramb.has_q_1111, paramb.has_q_112, paramb.has_q_123,
+        paramb.has_q_233, paramb.has_q_134, paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
       for (int abc = 0; abc < NUM_OF_ABC; ++abc) {
         g_sum_fxyz[(n * NUM_OF_ABC + abc) * N + n1] = s[abc];
       }
@@ -797,8 +801,9 @@ void find_force_angular_small_box(
           gnp12 += fnp12[k] * annmb.c[c_index];
         }
         accumulate_f12(
-          paramb.L_max, paramb.num_L, n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp,
-          sum_fxyz, f12);
+          paramb.L_max, paramb.has_q_222, paramb.has_q_1111, paramb.has_q_112, paramb.has_q_123,
+          paramb.has_q_233, paramb.has_q_134, paramb.num_L, n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12,
+          Fp, sum_fxyz, f12);
       }
 
       if (g_fx) {
@@ -1482,7 +1487,8 @@ void find_descriptor_for_lammps(
 #endif
       }
       find_q(
-        paramb.L_max, paramb.num_L, paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
+        paramb.L_max, paramb.has_q_222, paramb.has_q_1111, paramb.has_q_112, paramb.has_q_123,
+        paramb.has_q_233, paramb.has_q_134, paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
       for (int abc = 0; abc < NUM_OF_ABC; ++abc) {
         g_sum_fxyz[(n * NUM_OF_ABC + abc) * nlocal + n1] = s[abc];
       }
@@ -1683,8 +1689,9 @@ void find_force_angular_for_lammps(
         double gnp12 = g_gnp_angular[index_left_all] * weight_left +
                        g_gnp_angular[index_right_all] * weight_right;
         accumulate_f12(
-          paramb.L_max, paramb.num_L, n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp,
-          sum_fxyz, f12);
+          paramb.L_max, paramb.has_q_222, paramb.has_q_1111, paramb.has_q_112, paramb.has_q_123,
+          paramb.has_q_233, paramb.has_q_134, paramb.num_L, n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12,
+          Fp, sum_fxyz, f12);
       }
 #else
       double fc12, fcp12;
@@ -1702,8 +1709,9 @@ void find_force_angular_for_lammps(
           gnp12 += fnp12[k] * annmb.c[c_index];
         }
         accumulate_f12(
-          paramb.L_max, paramb.num_L, n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12, Fp,
-          sum_fxyz, f12);
+          paramb.L_max, paramb.has_q_222, paramb.has_q_1111, paramb.has_q_112, paramb.has_q_123,
+          paramb.has_q_233, paramb.has_q_134, paramb.num_L, n, paramb.n_max_angular + 1, d12, r12, gn12, gnp12,
+          Fp, sum_fxyz, f12);
       }
 #endif
 
@@ -2076,22 +2084,41 @@ void NEP::init_from_file(const std::string& potential_filename, const bool is_ra
 
   // l_max
   tokens = get_tokens(input);
-  if (tokens.size() != 4) {
+  if (tokens.size() < 4) {
     print_tokens(tokens);
-    std::cout << "This line should be l_max l_max_3body l_max_4body l_max_5body." << std::endl;
+    std::cout << "l_max line should have 3 to 6 values." << std::endl;
     exit(1);
   }
 
   paramb.L_max = get_int_from_token(tokens[1], __FILE__, __LINE__);
   paramb.num_L = paramb.L_max;
 
-  int L_max_4body = get_int_from_token(tokens[2], __FILE__, __LINE__);
-  int L_max_5body = get_int_from_token(tokens[3], __FILE__, __LINE__);
-  if (L_max_4body == 2) {
-    paramb.num_L += 1;
-  }
-  if (L_max_5body == 1) {
-    paramb.num_L += 1;
+  int tok2 = get_int_from_token(tokens[2], __FILE__, __LINE__);
+  if (tok2 > 1) {
+    // old format: has_q_222 encoded as 0 or 2, tokens[3] = has_q_1111 (0 or 1)
+    int L_max_5body = get_int_from_token(tokens[3], __FILE__, __LINE__);
+    if (tok2 == 2) {
+      paramb.has_q_222 = 1;
+      paramb.num_L += 1;
+    }
+    if (L_max_5body == 1) {
+      paramb.has_q_1111 = 1;
+      paramb.num_L += 1;
+    }
+  } else {
+    // new format: explicit 0/1 boolean flags
+    paramb.has_q_222 = tok2;
+    paramb.has_q_1111 = get_int_from_token(tokens[3], __FILE__, __LINE__);
+    if (tokens.size() >= 5)
+      paramb.has_q_112 = get_int_from_token(tokens[4], __FILE__, __LINE__);
+    if (tokens.size() >= 6)
+      paramb.has_q_123 = get_int_from_token(tokens[5], __FILE__, __LINE__);
+    if (tokens.size() >= 7)
+      paramb.has_q_233 = get_int_from_token(tokens[6], __FILE__, __LINE__);
+    if (tokens.size() >= 8)
+      paramb.has_q_134 = get_int_from_token(tokens[7], __FILE__, __LINE__);
+    paramb.num_L += paramb.has_q_222 + paramb.has_q_1111 + paramb.has_q_112
+                  + paramb.has_q_123 + paramb.has_q_233 + paramb.has_q_134;
   }
 
   paramb.dim_angular = (paramb.n_max_angular + 1) * paramb.num_L;
@@ -2217,8 +2244,11 @@ void NEP::init_from_file(const std::string& potential_filename, const bool is_ra
     std::cout << "    basis_size_radial = " << paramb.basis_size_radial << ".\n";
     std::cout << "    basis_size_angular = " << paramb.basis_size_angular << ".\n";
     std::cout << "    l_max_3body = " << paramb.L_max << ".\n";
-    std::cout << "    l_max_4body = " << (paramb.num_L >= 5 ? 2 : 0) << ".\n";
-    std::cout << "    l_max_5body = " << (paramb.num_L >= 6 ? 1 : 0) << ".\n";
+    std::cout << "    has_q_222 = " << paramb.has_q_222 << ".\n";
+    std::cout << "    has_q_1111 = " << paramb.has_q_1111 << ".\n";
+    std::cout << "    has_q_112 = " << paramb.has_q_112 << ".\n";
+    std::cout << "    has_q_123 = " << paramb.has_q_123 << ".\n";
+    std::cout << "    has_q_233 = " << paramb.has_q_233 << ".\n";
     std::cout << "    ANN = " << annmb.dim << "-" << annmb.num_neurons1 << "-1.\n";
     std::cout << "    number of neural network parameters = " << annmb.num_para_ann << ".\n";
     std::cout << "    number of descriptor parameters = " << num_para_descriptor << ".\n";
