@@ -39,3 +39,7 @@ interface/lammps/USER-NEP/nep.*
 # Executables
 *.exe
 *.app
+
+# Temporary files
+*.out
+.ipynb_checkpoints
