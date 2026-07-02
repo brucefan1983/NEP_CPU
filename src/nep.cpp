@@ -667,6 +667,21 @@ void zero_total_charge(const int N, double* g_charge)
   }
 }
 
+// zero_total_charge() shifts the predicted charges by -mean(charge), so D_real
+// (dE_coulomb/dQ) must be shifted by -mean(D_real) for the chain rule through that
+// shift to be consistent when assembling forces.
+void zero_mean_D_real(const int N, double* g_D_real)
+{
+  double mean_D_real = 0.0;
+  for (int n = 0; n < N; ++n) {
+    mean_D_real += g_D_real[n];
+  }
+  mean_D_real /= N;
+  for (int n = 0; n < N; ++n) {
+    g_D_real[n] -= mean_D_real;
+  }
+}
+
 void find_force_radial_small_box(
   NEP::ParaMB& paramb,
   NEP::ANN& annmb,
@@ -2591,6 +2606,10 @@ void NEP::compute(
       virial.data(),
       potential.data(),
       D_real.data());
+  }
+
+  if (paramb.charge_mode == 1 || paramb.charge_mode == 2) {
+    zero_mean_D_real(N, D_real.data());
   }
 
   if (paramb.charge_mode == 3) {
