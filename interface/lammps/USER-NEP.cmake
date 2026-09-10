@@ -2,6 +2,8 @@ if(PKG_USER-NEP)
   set(USER-NEP_SOURCES
     ${LAMMPS_SOURCE_DIR}/USER-NEP/pair_NEP.cpp
     ${LAMMPS_SOURCE_DIR}/USER-NEP/nep.cpp
+    ${LAMMPS_SOURCE_DIR}/USER-NEP/neighbor_nep.cpp
+    ${LAMMPS_SOURCE_DIR}/USER-NEP/ewald_nep.cpp
   )
 
   set(USER-NEP_HEADERS
