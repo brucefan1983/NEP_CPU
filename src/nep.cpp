@@ -2101,40 +2101,30 @@ void NEP::init_from_file(const std::string& potential_filename, const bool is_ra
   tokens = get_tokens(input);
   if (tokens.size() < 4) {
     print_tokens(tokens);
-    std::cout << "l_max line should have 3 to 6 values." << std::endl;
+    std::cout << "l_max line should have 3 to 7 values." << std::endl;
     exit(1);
   }
 
   paramb.L_max = get_int_from_token(tokens[1], __FILE__, __LINE__);
   paramb.num_L = paramb.L_max;
 
-  int tok2 = get_int_from_token(tokens[2], __FILE__, __LINE__);
-  if (tok2 > 1) {
-    // old format: has_q_222 encoded as 0 or 2, tokens[3] = has_q_1111 (0 or 1)
-    int L_max_5body = get_int_from_token(tokens[3], __FILE__, __LINE__);
-    if (tok2 == 2) {
-      paramb.has_q_222 = 1;
-      paramb.num_L += 1;
-    }
-    if (L_max_5body == 1) {
-      paramb.has_q_1111 = 1;
-      paramb.num_L += 1;
-    }
-  } else {
-    // new format: explicit 0/1 boolean flags
-    paramb.has_q_222 = tok2;
-    paramb.has_q_1111 = get_int_from_token(tokens[3], __FILE__, __LINE__);
-    if (tokens.size() >= 5)
-      paramb.has_q_112 = get_int_from_token(tokens[4], __FILE__, __LINE__);
-    if (tokens.size() >= 6)
-      paramb.has_q_123 = get_int_from_token(tokens[5], __FILE__, __LINE__);
-    if (tokens.size() >= 7)
-      paramb.has_q_233 = get_int_from_token(tokens[6], __FILE__, __LINE__);
-    if (tokens.size() >= 8)
-      paramb.has_q_134 = get_int_from_token(tokens[7], __FILE__, __LINE__);
-    paramb.num_L += paramb.has_q_222 + paramb.has_q_1111 + paramb.has_q_112
-                  + paramb.has_q_123 + paramb.has_q_233 + paramb.has_q_134;
+  // Both 1 and 2 indicate that q_222 is enabled.
+  paramb.has_q_222 = get_int_from_token(tokens[2], __FILE__, __LINE__) != 0;
+  paramb.has_q_1111 = get_int_from_token(tokens[3], __FILE__, __LINE__);
+  if (tokens.size() >= 5) {
+    paramb.has_q_112 = get_int_from_token(tokens[4], __FILE__, __LINE__);
   }
+  if (tokens.size() >= 6) {
+    paramb.has_q_123 = get_int_from_token(tokens[5], __FILE__, __LINE__);
+  }
+  if (tokens.size() >= 7) {
+    paramb.has_q_233 = get_int_from_token(tokens[6], __FILE__, __LINE__);
+  }
+  if (tokens.size() >= 8) {
+    paramb.has_q_134 = get_int_from_token(tokens[7], __FILE__, __LINE__);
+  }
+  paramb.num_L += paramb.has_q_222 + paramb.has_q_1111 + paramb.has_q_112 +
+                  paramb.has_q_123 + paramb.has_q_233 + paramb.has_q_134;
 
   paramb.dim_angular = (paramb.n_max_angular + 1) * paramb.num_L;
 
