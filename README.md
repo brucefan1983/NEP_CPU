@@ -11,9 +11,8 @@
 * The `NEP` C++ class and the interfaces are defined in `src/nep.h`.
   
 * The following folders contain some testing code and results:
+  * `test/api/`
   * `test/lammps/`
-  * `test_nep/`
-  * `test_qnep/`
   * `test_dftd3/`
   
 * The `NEP` C++ class is used as an engine powering the following Python packages:
