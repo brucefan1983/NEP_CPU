@@ -83,8 +83,6 @@ public:
     int num_kpoints_max = 1;
     double alpha = 0.5; // 1 / (2 Angstrom)
     double two_alpha_over_sqrt_pi = 0.564189583547756;
-    double A;
-    double B;
   };
 
   struct DFTD3 {

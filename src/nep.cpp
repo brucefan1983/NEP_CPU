@@ -1074,86 +1074,6 @@ void scale_bec(const int N, const double* sqrt_epsilon_inf, double* g_bec)
   }
 }
 
-void find_force_charge_real_space_only_small_box(
-  const int N,
-  const NEP::Charge_Para charge_para,
-  const int* g_NN,
-  const int* g_NL,
-  const double* g_charge,
-  const double* g_x12,
-  const double* g_y12,
-  const double* g_z12,
-  double* g_fx,
-  double* g_fy,
-  double* g_fz,
-  double* g_virial,
-  double* g_pe,
-  double* g_D_real)
-{
-  for (int n1 = 0; n1 < N; ++n1) {
-    double s_fx = 0.0;
-    double s_fy = 0.0;
-    double s_fz = 0.0;
-    double s_sxx = 0.0;
-    double s_sxy = 0.0;
-    double s_sxz = 0.0;
-    double s_syx = 0.0;
-    double s_syy = 0.0;
-    double s_syz = 0.0;
-    double s_szx = 0.0;
-    double s_szy = 0.0;
-    double s_szz = 0.0;
-    double q1 = g_charge[n1];
-    double s_pe = 0; // no self energy
-    double D_real = 0; // no self energy
-
-    for (int i1 = 0; i1 < g_NN[n1]; ++i1) {
-      int index = i1 * N + n1;
-      int n2 = g_NL[index];
-      double q2 = g_charge[n2];
-      double qq = q1 * q2;
-      double r12[3] = {g_x12[index], g_y12[index], g_z12[index]};
-      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
-      double d12inv = 1.0 / d12;
-
-      double erfc_r = erfc(charge_para.alpha * d12) * d12inv;
-      D_real += q2 * (erfc_r + charge_para.A * d12 + charge_para.B);
-      s_pe += 0.5 * qq * (erfc_r + charge_para.A * d12 + charge_para.B);
-      double f2 = erfc_r + charge_para.two_alpha_over_sqrt_pi * exp(-charge_para.alpha * charge_para.alpha * d12 * d12);
-      f2 = -0.5 * K_C_SP * qq * (f2 * d12inv * d12inv - charge_para.A * d12inv);
-      double f12[3] = {r12[0] * f2, r12[1] * f2, r12[2] * f2};
-      double f21[3] = {-r12[0] * f2, -r12[1] * f2, -r12[2] * f2};
-
-      s_fx += f12[0] - f21[0];
-      s_fy += f12[1] - f21[1];
-      s_fz += f12[2] - f21[2];
-      s_sxx -= r12[0] * f12[0];
-      s_sxy -= r12[0] * f12[1];
-      s_sxz -= r12[0] * f12[2];
-      s_syx -= r12[1] * f12[0];
-      s_syy -= r12[1] * f12[1];
-      s_syz -= r12[1] * f12[2];
-      s_szx -= r12[2] * f12[0];
-      s_szy -= r12[2] * f12[1];
-      s_szz -= r12[2] * f12[2];
-    }
-    g_fx[n1] += s_fx;
-    g_fy[n1] += s_fy;
-    g_fz[n1] += s_fz;
-    g_virial[n1 + 0 * N] += s_sxx;
-    g_virial[n1 + 1 * N] += s_sxy;
-    g_virial[n1 + 2 * N] += s_sxz;
-    g_virial[n1 + 3 * N] += s_syx;
-    g_virial[n1 + 4 * N] += s_syy;
-    g_virial[n1 + 5 * N] += s_syz;
-    g_virial[n1 + 6 * N] += s_szx;
-    g_virial[n1 + 7 * N] += s_szy;
-    g_virial[n1 + 8 * N] += s_szz;
-    g_D_real[n1] = K_C_SP * D_real;
-    g_pe[n1] += K_C_SP * s_pe;
-  }
-}
-
 void find_force_charge_real_space_small_box(
   const int N,
   const NEP::Charge_Para charge_para,
@@ -2022,16 +1942,6 @@ void NEP::init_from_file(const std::string& potential_filename, const bool is_ra
     paramb.version = 4;
     zbl.enabled = true;
     paramb.charge_mode = 2;
-  } else if (tokens[0] == "nep4_charge3") {
-    paramb.model_type = 0;
-    paramb.version = 4;
-    zbl.enabled = false;
-    paramb.charge_mode = 3;
-  } else if (tokens[0] == "nep4_zbl_charge3") {
-    paramb.model_type = 0;
-    paramb.version = 4;
-    zbl.enabled = true;
-    paramb.charge_mode = 3;
   } else {
     std::cout << tokens[0] << " is an unsupported NEP model." << std::endl;
     exit(1);
@@ -2230,9 +2140,6 @@ void NEP::init_from_file(const std::string& potential_filename, const bool is_ra
     charge_para.alpha = PI / paramb.rc_radial_max; // a good value
     ewald.initialize(charge_para.alpha);
     charge_para.two_alpha_over_sqrt_pi = 2.0 * charge_para.alpha / sqrt(PI);
-    charge_para.A = erfc(PI) / (paramb.rc_radial_max * paramb.rc_radial_max);
-    charge_para.A += charge_para.two_alpha_over_sqrt_pi * exp(-PI * PI) / paramb.rc_radial_max;
-    charge_para.B = - erfc(PI) / paramb.rc_radial_max - charge_para.A * paramb.rc_radial_max;
   }
 
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
@@ -2603,17 +2510,15 @@ void NEP::compute(
     bec.data());
   scale_bec(N, annmb.sqrt_epsilon_inf, bec.data());
 
-  if (paramb.charge_mode == 1 || paramb.charge_mode == 2) {
-    ewald.find_force(
-      N,
-      box.data(),
-      charge,
-      position,
-      D_real,
-      force,
-      virial,
-      potential);
-  }
+  ewald.find_force(
+    N,
+    box.data(),
+    charge,
+    position,
+    D_real,
+    force,
+    virial,
+    potential);
 
   if (paramb.charge_mode == 1) {
     find_force_charge_real_space_small_box(
@@ -2633,27 +2538,7 @@ void NEP::compute(
       D_real.data());
   }
 
-  if (paramb.charge_mode == 1 || paramb.charge_mode == 2) {
-    zero_mean_D_real(N, D_real.data());
-  }
-
-  if (paramb.charge_mode == 3) {
-    find_force_charge_real_space_only_small_box(
-      N,
-      charge_para,
-      NN_radial.data(),
-      NL_radial.data(),
-      charge.data(),
-      r12.data(),
-      r12.data() + size_x12,
-      r12.data() + size_x12 * 2,
-      force.data(),
-      force.data() + N,
-      force.data() + N * 2,
-      virial.data(),
-      potential.data(),
-      D_real.data());
-  }
+  zero_mean_D_real(N, D_real.data());
 
   find_force_radial_small_box(
     paramb, annmb, N, NN_radial.data(), NL_radial.data(), type.data(), r12.data(),
