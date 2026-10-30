@@ -88,11 +88,17 @@ void find_descriptor_small_box(
       double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
 
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
+      int t2 = g_type[n2];
+      double rc = (paramb.rc_radial[t1] + paramb.rc_radial[t2]) * 0.5;
+      if (d12 >= rc) {
+        continue;
+      }
+      double rcinv = 1.0 / rc;
       int index_left, index_right;
       double weight_left, weight_right;
       find_index_and_weight(
-        d12 * paramb.rcinv_radial, index_left, index_right, weight_left, weight_right);
-      int t12 = t1 * paramb.num_types + g_type[n2];
+        d12 * rcinv, index_left, index_right, weight_left, weight_right);
+      int t12 = t1 * paramb.num_types + t2;
       for (int n = 0; n <= paramb.n_max_radial; ++n) {
         q[n] +=
           g_gn_radial[(index_left * paramb.num_types_sq + t12) * (paramb.n_max_radial + 1) + n] *
@@ -128,11 +134,17 @@ void find_descriptor_small_box(
         double r12[3] = {g_x12_angular[index], g_y12_angular[index], g_z12_angular[index]};
         double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
+        int t2 = g_type[n2];
+        double rc = (paramb.rc_angular[t1] + paramb.rc_angular[t2]) * 0.5;
+        if (d12 >= rc) {
+          continue;
+        }
+        double rcinv = 1.0 / rc;
         int index_left, index_right;
         double weight_left, weight_right;
         find_index_and_weight(
-          d12 * paramb.rcinv_angular, index_left, index_right, weight_left, weight_right);
-        int t12 = t1 * paramb.num_types + g_type[n2];
+          d12 * rcinv, index_left, index_right, weight_left, weight_right);
+        int t12 = t1 * paramb.num_types + t2;
         double gn12 =
           g_gn_angular[(index_left * paramb.num_types_sq + t12) * (paramb.n_max_angular + 1) + n] *
             weight_left +
@@ -254,10 +266,15 @@ void find_force_radial_small_box(
       double d12inv = 1.0 / d12;
       double f12[3] = {0.0};
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
+      double rc = (paramb.rc_radial[t1] + paramb.rc_radial[t2]) * 0.5;
+      if (d12 >= rc) {
+        continue;
+      }
+      double rcinv = 1.0 / rc;
       int index_left, index_right;
       double weight_left, weight_right;
       find_index_and_weight(
-        d12 * paramb.rcinv_radial, index_left, index_right, weight_left, weight_right);
+        d12 * rcinv, index_left, index_right, weight_left, weight_right);
       int t12 = t1 * paramb.num_types + t2;
       for (int n = 0; n <= paramb.n_max_radial; ++n) {
         double gnp12 =
@@ -369,11 +386,17 @@ void find_force_angular_small_box(
       double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
       double f12[3] = {0.0};
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
+      int t2 = g_type[n2];
+      double rc = (paramb.rc_angular[t1] + paramb.rc_angular[t2]) * 0.5;
+      if (d12 >= rc) {
+        continue;
+      }
+      double rcinv = 1.0 / rc;
       int index_left, index_right;
       double weight_left, weight_right;
       find_index_and_weight(
-        d12 * paramb.rcinv_angular, index_left, index_right, weight_left, weight_right);
-      int t12 = t1 * paramb.num_types + g_type[n2];
+        d12 * rcinv, index_left, index_right, weight_left, weight_right);
+      int t12 = t1 * paramb.num_types + t2;
       for (int n = 0; n <= paramb.n_max_angular; ++n) {
         int index_left_all =
           (index_left * paramb.num_types_sq + t12) * (paramb.n_max_angular + 1) + n;
@@ -1437,7 +1460,7 @@ void find_descriptor_for_lammps(
       int index_left, index_right;
       double weight_left, weight_right;
       find_index_and_weight(
-        d12 * paramb.rcinv_radial, index_left, index_right, weight_left, weight_right);
+        d12 * rcinv, index_left, index_right, weight_left, weight_right);
       int t12 = t1 * paramb.num_types + t2;
       for (int n = 0; n <= paramb.n_max_radial; ++n) {
         q[n] +=
@@ -1485,7 +1508,7 @@ void find_descriptor_for_lammps(
         int index_left, index_right;
         double weight_left, weight_right;
         find_index_and_weight(
-          d12 * paramb.rcinv_angular, index_left, index_right, weight_left, weight_right);
+          d12 * rcinv, index_left, index_right, weight_left, weight_right);
         int t12 = t1 * paramb.num_types + t2;
         double gn12 =
           g_gn_angular[(index_left * paramb.num_types_sq + t12) * (paramb.n_max_angular + 1) + n] *
@@ -1583,7 +1606,7 @@ void find_force_radial_for_lammps(
       int index_left, index_right;
       double weight_left, weight_right;
       find_index_and_weight(
-        d12 * paramb.rcinv_radial, index_left, index_right, weight_left, weight_right);
+        d12 * rcinv, index_left, index_right, weight_left, weight_right);
       int t12 = t1 * paramb.num_types + t2;
       for (int n = 0; n <= paramb.n_max_radial; ++n) {
         double gnp12 =
@@ -1698,7 +1721,7 @@ void find_force_angular_for_lammps(
       int index_left, index_right;
       double weight_left, weight_right;
       find_index_and_weight(
-        d12 * paramb.rcinv_angular, index_left, index_right, weight_left, weight_right);
+        d12 * rcinv, index_left, index_right, weight_left, weight_right);
       int t12 = t1 * paramb.num_types + t2;
       for (int n = 0; n <= paramb.n_max_angular; ++n) {
         int index_left_all =
@@ -2213,10 +2236,6 @@ void NEP::init_from_file(const std::string& potential_filename, const bool is_ra
   }
 
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
-  if (paramb.use_typewise_cutoff) {
-    std::cout << "Cannot use tabulated radial functions with typewise cutoff." << std::endl;
-    exit(1);
-  }
   construct_table(parameters.data());
 #endif
 
@@ -2364,12 +2383,11 @@ void NEP::construct_table(double* parameters)
   double* c_pointer = parameters + annmb.num_para_ann;
   construct_table_radial_or_angular(
     paramb.version, paramb.num_types, paramb.num_types_sq, paramb.n_max_radial,
-    paramb.basis_size_radial, paramb.rc_radial, paramb.rcinv_radial, c_pointer, gn_radial.data(),
-    gnp_radial.data());
+    paramb.basis_size_radial, paramb.rc_radial, c_pointer, gn_radial.data(), gnp_radial.data());
   construct_table_radial_or_angular(
     paramb.version, paramb.num_types, paramb.num_types_sq, paramb.n_max_angular,
-    paramb.basis_size_angular, paramb.rc_angular, paramb.rcinv_angular,
-    c_pointer + paramb.num_c_radial, gn_angular.data(), gnp_angular.data());
+    paramb.basis_size_angular, paramb.rc_angular, c_pointer + paramb.num_c_radial,
+    gn_angular.data(), gnp_angular.data());
 }
 #endif
 
