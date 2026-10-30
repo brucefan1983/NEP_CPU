@@ -24,11 +24,11 @@
   
 # The NEP-LAMMPS interface
 
-Note: qNEP is not supported in the NEP-LAMMPS interface.
+The NEP-LAMMPS interface supports NEP potential models, including their ZBL variants, with one hidden layer. qNEP, dipole, and polarizability models are not supported.
 
 ## Build the NEP-LAMMPS interface
 
-* step 1: Copy the files in `src/` into `interface/lammps/USER-NEP/`.
+* Step 1: Copy the files in `src/` into `interface/lammps/USER-NEP/`.
 
 Command:
 
@@ -39,7 +39,7 @@ cp src/* interface/lammps/USER-NEP
 
 * Step 2: Now you can copy the `USER-NEP/` folder into `YOUR_LAMMPS_PATH/src/` and start to compile LAMMPS in your favorite way.
 
-  If you are compiling LAMMPS using `make`, ensure that you run "make yes-USER-NEP" before the final compilation.
+  If you are compiling LAMMPS using `make`, run `make yes-USER-NEP` before the final compilation. Replace `machine` below with the desired LAMMPS build target.
   
 ```
 cd ${software}/NEP_CPU
@@ -50,7 +50,7 @@ make yes-USER-NEP
 make machine
 ```
 
-  If you are using `cmake`, you need to copy `/interface/lammps/USER-NEP.cmake` to LAMMPS cmake package directory and add `USER-NEP` to `CMakeLists.txt`. Then enable NEP by add "PKG_NEP=on", along with your other -D flags during the configuration step.
+  If you are using `cmake`, copy `interface/lammps/USER-NEP.cmake` to the LAMMPS CMake package directory and add `USER-NEP` to `CMakeLists.txt`. Then enable the package with `-D PKG_USER-NEP=on`, along with any other CMake options.
 
 ```
 cd ${software}/NEP_CPU
@@ -71,26 +71,23 @@ make install
 
 * `atom_style` can be `atomic` and `full`
 * `units` must be `metal`
-* Specify the `pair_style` in the same way as other potentials in LAMMPS (the first 2 arguments must be * * so as to span all atom types). For example, if you have a NEP model `NEP_HBCN.txt`, and your data file just have element carbon, you can set
+* Set `pair_style` to `nep`. The first two arguments of `pair_coeff` must be `* *`, followed by the model file and one element mapping for each LAMMPS atom type. For example, if you have a NEP model `NEP_HBCN.txt` and your data file contains only carbon, use:
   ```shell
   pair_style nep   
   pair_coeff * *  NEP_HBCN.txt C
   ```
-  Firstly, we should set `pair_style` to `nep`, showed in the first line. Then we need set the NEP potential file and atom types by the command `pair_coeff`. Two asterisks `* *` mean every atom type will be set an element type or `NULL`. `NULL` means this potential doesn't consider the atom type. In this example, we set atom type `1` in LAMMPS data file to element `C` in NEP potential file. 
-* The interface also supports multi-element system and hybrid potentials. Take a NEP model `NEP_PdCuNiP.txt` as an example. In this NEP model file, the first line is `nep3 4 Pd Cu Ni P`. Then in your LAMMPS input file, the next setting is allowed:
+  List the element symbols in LAMMPS atom-type order. Use `NULL` for types handled by other sub-styles in a hybrid setup. In this example, LAMMPS atom type `1` maps to element `C` in the NEP model.
+* The interface also supports multi-element systems and hybrid potentials. For a model `NEP_PdCuNiP.txt` containing Pd, Cu, Ni, and P, an example is:
   ```shell
   pair_style hybrid/overlay nep nep lj/cut 1.0
   pair_coeff * * nep 1 NEP_PdCuNiP.txt Cu   Ni   NULL
   pair_coeff * * nep 2 NEP_PdCuNiP.txt NULL NULL Pd
-  pair_ceoff 1*2 3 lj/cut 1.0 1.0
+  pair_coeff 1*2 3 lj/cut 1.0 1.0
   ```
-  The `pair_style` should be set `hybrid/overly` or other hybrid methods in LAMMPS. The hybrid potentials should be set after hybrid method. Then, in command `pair_coeff` we need set potential name again to identify which potential is setting for and the number of the potential if more than one. 
-  Here, we set two NEP potentials. The first one just computes the NEP potential between atom type `1` `Cu` and `2` `Ni`, and of themselves. The second computes NEP potential of atom type `3` `Pd` itself.
+  List the sub-styles after `hybrid/overlay`. In each `pair_coeff` command, specify the sub-style name and its instance number if that sub-style appears more than once.
+  Here, the first NEP instance describes the subsystem of Cu and Ni atoms (types `1` and `2`), and the second describes the Pd atoms (type `3`). The `lj/cut` term describes interactions between these two subsystems.
 
-* If you want to calculate the heat current correctly, use the following command to get the 9-component per-atom virial:
-  ```shell
-  compute 1 all centroid/stress/atom NULL
-  ```
+* To calculate the potential (virial) contribution to the heat current, use the 9-component per-atom virial from `compute centroid/stress/atom`.
   
 # Citation
 
