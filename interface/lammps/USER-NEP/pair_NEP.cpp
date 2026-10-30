@@ -101,6 +101,9 @@ void PairNEP::coeff(int narg, char** arg)
   // read the potential file
   std::string model_path_from_lammps = utils::get_potential_file_path(model_filename);
   nep_model.init_from_file(model_path_from_lammps, is_rank_0);
+  if (nep_model.paramb.model_type != 0 || nep_model.paramb.charge_mode != 0) {
+    error->all(FLERR, "The LAMMPS interface only supports non-charge NEP potential models");
+  }
   // update the type map to elements in potential file
   nep_model.update_type_map(atom->ntypes, type_map, elements);
 
