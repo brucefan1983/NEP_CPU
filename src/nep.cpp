@@ -2148,6 +2148,11 @@ void NEP::init_from_file(const std::string& potential_filename, const bool is_ra
     exit(1);
   }
   annmb.num_neurons1 = get_int_from_token(tokens[1], __FILE__, __LINE__);
+  if (get_int_from_token(tokens[2], __FILE__, __LINE__) != 0) {
+    print_tokens(tokens);
+    std::cout << "Only NEP models with one hidden layer are supported." << std::endl;
+    exit(1);
+  }
   annmb.dim = (paramb.n_max_radial + 1) + paramb.dim_angular;
 
   // calculated parameters:
@@ -3019,6 +3024,11 @@ void NEP::compute_for_lammps(
   double** force,
   double** virial)
 {
+  if (paramb.model_type != 0 || paramb.charge_mode != 0) {
+    std::cout << "The LAMMPS interface only supports non-charge NEP potential models.\n";
+    exit(1);
+  }
+
   if (num_atoms < nlocal) {
     Fp.resize(nlocal * annmb.dim);
     sum_fxyz.resize(nlocal * (paramb.n_max_angular + 1) * NUM_OF_ABC);
