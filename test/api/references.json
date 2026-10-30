@@ -1,21 +1,21 @@
 {
   "source_commit": "9bc09df9fb96dc0bf3facad6b34ce02deeaf1ffa",
-  "description": "Captured from unmodified main; historical analytic references remain in test_nep and test_qnep.",
+  "description": "Captured from unmodified main; historical analytic references are in test/api/data/nep and test/api/data/qnep.",
   "input_sha256": {
-    "test_nep/nep.txt": "c24436a2af57ec28ad6268055fae7f9b7dab34f8d7f1b85321f9e4bf91f5067d",
-    "test_nep/xyz.in": "47695bbb8aa2a6e94f4a96c1bed8fc9c4b4f40f782218e9fa7fcb377b08b7673",
-    "test_nep/force_analytical_ref.out": "9afc1c01bf49fb95d297034514cd5234b6b159f2bd0a1e55c457b432a17a6032",
-    "test_nep/force_finite_difference_ref.out": "7787ffc428e61f55ee6e9f12b9e91cbea9b9428d0c8025d7ca2d180f4f57f8e1",
-    "test_nep/virial_ref.out": "6643c0975109ec39766101cddb4e0d35223929d93a81645279b17f42f28d9d99",
-    "test_nep/descriptor_ref.out": "41f3fad6a1d69ffa0e6e9fbd399e2618a80aa427fee5227772b214e350720189",
-    "test_nep/force_gpu.out": "8d8bcff09c80c5b1ae008b497fc799018aa27301bb9b453edc1940b381ddf5e9",
-    "test_qnep/nep.txt": "3fd9a6a6fe9553fa2f2b5bb2768c7960e54b9ae3958f0bf2b26c08c4d941ed69",
-    "test_qnep/xyz.in": "47695bbb8aa2a6e94f4a96c1bed8fc9c4b4f40f782218e9fa7fcb377b08b7673",
-    "test_qnep/force_analytical_ref.out": "219b74053cbbf01f1b1628ab4737ae5400fa4c022e3acb37a3a82d9ea7d0557f",
-    "test_qnep/force_finite_difference_ref.out": "d63ddd38edac2a72989fab28f5c8ff03f8b19a7687cd9b09868b63d8129e8723",
-    "test_qnep/virial_ref.out": "4992992c02788b5d05062f9c1ae7a28c48d3b51fdd2693fb905a23d707a22e63",
-    "test_qnep/descriptor_ref.out": "6ebf9e99c789eee7df5ac8bce618e464a18cc4e1717b9d57955ef34b7157735f",
-    "test_qnep/force_gpu.out": "765f57e40e2a63a807dba97b923be6d3ad85b8e0cd9dc793bb0f2e2ae06acbf0",
+    "test/api/data/nep/nep.txt": "c24436a2af57ec28ad6268055fae7f9b7dab34f8d7f1b85321f9e4bf91f5067d",
+    "test/api/data/nep/xyz.in": "47695bbb8aa2a6e94f4a96c1bed8fc9c4b4f40f782218e9fa7fcb377b08b7673",
+    "test/api/data/nep/force_analytical_ref.out": "9afc1c01bf49fb95d297034514cd5234b6b159f2bd0a1e55c457b432a17a6032",
+    "test/api/data/nep/force_finite_difference_ref.out": "7787ffc428e61f55ee6e9f12b9e91cbea9b9428d0c8025d7ca2d180f4f57f8e1",
+    "test/api/data/nep/virial_ref.out": "6643c0975109ec39766101cddb4e0d35223929d93a81645279b17f42f28d9d99",
+    "test/api/data/nep/descriptor_ref.out": "41f3fad6a1d69ffa0e6e9fbd399e2618a80aa427fee5227772b214e350720189",
+    "test/api/data/nep/force_gpu.out": "8d8bcff09c80c5b1ae008b497fc799018aa27301bb9b453edc1940b381ddf5e9",
+    "test/api/data/qnep/nep.txt": "3fd9a6a6fe9553fa2f2b5bb2768c7960e54b9ae3958f0bf2b26c08c4d941ed69",
+    "test/api/data/qnep/xyz.in": "47695bbb8aa2a6e94f4a96c1bed8fc9c4b4f40f782218e9fa7fcb377b08b7673",
+    "test/api/data/qnep/force_analytical_ref.out": "219b74053cbbf01f1b1628ab4737ae5400fa4c022e3acb37a3a82d9ea7d0557f",
+    "test/api/data/qnep/force_finite_difference_ref.out": "d63ddd38edac2a72989fab28f5c8ff03f8b19a7687cd9b09868b63d8129e8723",
+    "test/api/data/qnep/virial_ref.out": "4992992c02788b5d05062f9c1ae7a28c48d3b51fdd2693fb905a23d707a22e63",
+    "test/api/data/qnep/descriptor_ref.out": "6ebf9e99c789eee7df5ac8bce618e464a18cc4e1717b9d57955ef34b7157735f",
+    "test/api/data/qnep/force_gpu.out": "765f57e40e2a63a807dba97b923be6d3ad85b8e0cd9dc793bb0f2e2ae06acbf0",
     "test_dftd3/C_2022_NEP4.txt": "92a40310a8ae668a54322daeb596fc1696f8ae8b01dfb7152d4470200755a60b"
   },
   "synthetic_sha256": {
@@ -32,7 +32,7 @@
     "zbl_charge2": "02fef49df97ef23fd0e9a0d1e1ee6b988b02306e42e58a461a19462b170a52d9"
   },
   "analytic": {
-    "test_nep": {
+    "nep": {
       "energy": [
         [-3.819993043980444],
         [-3.797530384472186],
@@ -286,7 +286,7 @@
         [-3.7258996703064]
       ]
     },
-    "test_qnep": {
+    "qnep": {
       "energy": [
         [-5.356262316504957],
         [-5.3240066505366865],
@@ -1547,7 +1547,7 @@
     }
   },
   "table": {
-    "test_nep": {
+    "nep": {
       "total_energy": -932.8289658745003,
       "energy": [
         [-3.8199907335094467],
@@ -2558,7 +2558,7 @@
         [0.6618732670295591, 1.6482250842263388, -1.6661482638692688, -1.0433477005473064, 1.0420005249525124, 0.02996369863475075, 0.04079003318049853, 0.0028505974611839698, 0.0005899110367592858, 0.03145532900475718, 0.02171469123128905, 0.02841315462942223, 0.002231935221956313, 0.00040631138867273415, 0.028988004275305904, 0.012549908936897688, 0.016024025627347654, 0.00120172884239908, 0.00023604403288023765, 0.015814893548365728, 0.10249188143597839, 0.05820082389719742, 0.00670663316856235, 0.0015583433624788065, 0.16092865873908668, -0.0010584140547162404, -0.0027596433004529464, -6.0336200093885674e-05, -2.886998200101941e-06, 0.00233350506207587]
       ]
     },
-    "test_qnep": {
+    "qnep": {
       "total_energy": -932.9517636952153,
       "energy": [
         [-5.356262316504957],

@@ -53,9 +53,9 @@ class APITests(unittest.TestCase):
     def test_saved_cpu_references(self):
         """All atoms/components, including all nine per-atom virial entries."""
         for mode, backend in BACKENDS.items():
-            for name in ('test_nep', 'test_qnep'):
+            for name in ('nep', 'qnep'):
                 with self.subTest(mode=mode, fixture=name):
-                    directory = ROOT / name
+                    directory = HERE / 'data' / name
                     actual = backend.run(directory / 'nep.txt', [read_xyz(directory)])[0]
                     for field, filename in [('force', 'force_analytical_ref.out'),
                                             ('virial', 'virial_ref.out'), ('descriptor', 'descriptor_ref.out')]:
@@ -69,9 +69,9 @@ class APITests(unittest.TestCase):
     def test_saved_gpu_forces(self):
         """Existing float32 GPUMD results; no GPU or GPUMD executable needed."""
         for mode, backend in BACKENDS.items():
-            for name, tol in [('test_nep', 1e-5), ('test_qnep', 1.2e-4)]:
+            for name, tol in [('nep', 1e-5), ('qnep', 1.2e-4)]:
                 with self.subTest(mode=mode, fixture=name):
-                    directory = ROOT / name
+                    directory = HERE / 'data' / name
                     actual = backend.run(directory / 'nep.txt', [read_xyz(directory)])[0]['force']
                     gpu = [row[:3] for row in read_matrix(directory / 'force_gpu.out')]
                     self.close(actual, gpu, name + '/GPU force', tol, 0)
@@ -80,9 +80,9 @@ class APITests(unittest.TestCase):
         if 'analytic' not in BACKENDS:
             self.skipTest('Finite differences target the analytic implementation')
         backend = BACKENDS['analytic']
-        for name, step in [('test_nep', 2e-5), ('test_qnep', 2e-4)]:
+        for name, step in [('nep', 2e-5), ('qnep', 2e-4)]:
             with self.subTest(fixture=name):
-                directory = ROOT / name
+                directory = HERE / 'data' / name
                 frame = read_xyz(directory)
                 frames = [displaced(frame, i, d, sign * step)
                           for i in range(len(frame['type'])) for d in range(3) for sign in (-1, 1)]
@@ -95,7 +95,7 @@ class APITests(unittest.TestCase):
                 # Preserve that regression, but test derivative consistency at
                 # 2e-6 separately instead of weakening the force assertion.
                 # The closest pair is only 8.85e-6 Angstrom below the cutoff.
-                if name == 'test_qnep':
+                if name == 'qnep':
                     step = 2e-6
                     frames = [displaced(frame, i, d, sign * step)
                               for i in range(len(frame['type'])) for d in range(3) for sign in (-1, 1)]

@@ -34,7 +34,7 @@ it also runs from outside the repository.
 
 | Check | Purpose |
 | --- | --- |
-| `test_nep`, `test_qnep` saved references | Every force component, all nine per-atom virial components, and every descriptor component |
+| `data/nep`, `data/qnep` saved references | Every force component, all nine per-atom virial components, and every descriptor component |
 | Saved finite-difference and GPU forces | Reproduce the original examples and compare with their GPUMD float32 results |
 | Additional frozen results | Atomic energies, charges, BEC, typewise cutoffs, response models, latent space, B projection, ZBL, DFTD3, and the table build |
 | Energy derivatives | Coordinate finite differences for forces and all nine homogeneous strains for total virial |
@@ -56,8 +56,9 @@ this suite's intended usage.
 
 ## References and tolerances
 
-The historical `*_ref.out` and `force_gpu.out` files are read directly from
-`test_nep/` and `test_qnep/`. `references.json` supplements them with results from
+The PbTe models, structures, historical `*_ref.out` files, and `force_gpu.out`
+files are stored in `data/nep/` and `data/qnep/` next to the test scripts.
+`references.json` supplements them with results from
 unmodified commit `9bc09df9fb96dc0bf3facad6b34ce02deeaf1ffa`. It records input
 SHA-256 hashes and separate analytic/table results. Synthetic C/Si fixtures have
 nonuniform descriptor scalers and distinct ANN parameters for each species;
