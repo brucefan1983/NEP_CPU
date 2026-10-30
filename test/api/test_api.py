@@ -421,7 +421,7 @@ class APITests(unittest.TestCase):
 
     def test_openmp_consistency(self):
         if not any(b.openmp for b in BACKENDS.values()):
-            self.skipTest('Enable with --openmp')
+            self.skipTest('OpenMP disabled with --no-openmp')
         for mode, backend in BACKENDS.items():
             for name in ('ordinary', 'typewise', 'charge1', 'charge2', 'zbl_flexible'):
                 with self.subTest(mode=mode, model=name):

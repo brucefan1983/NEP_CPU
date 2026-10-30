@@ -18,7 +18,11 @@ def main():
     parser.add_argument('--mode', choices=('analytic', 'table', 'both'), default='both')
     parser.add_argument('--cxx', default=os.environ.get('CXX', 'g++'), help='C++ compiler (default: CXX or g++)')
     parser.add_argument('--cxxflags', default=os.environ.get('CXXFLAGS', ''), help='additional compiler flags')
-    parser.add_argument('--openmp', action='store_true', help='compile with OpenMP and compare 1 vs 3 threads')
+    openmp = parser.add_mutually_exclusive_group()
+    openmp.add_argument('--openmp', action='store_true', default=True,
+                        help='compile with OpenMP and compare 1 vs 3 threads (default)')
+    openmp.add_argument('--no-openmp', dest='openmp', action='store_false',
+                        help='compile without OpenMP and skip the thread comparison')
     parser.add_argument('--only', default='', help='run test methods whose names contain this string')
     args = parser.parse_args()
     modes = ('analytic', 'table') if args.mode == 'both' else (args.mode,)

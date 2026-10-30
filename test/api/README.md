@@ -6,25 +6,29 @@ From the repository root:
 python3 test/api/run_tests.py
 ```
 
-Requires Python 3.8+ (standard library only) and a C++11 compiler (`g++` by
-default). No NumPy, MATLAB, GPU, GPUMD, LAMMPS, or Python binding is required.
+Requires Python 3.8+ (standard library only) and a C++11 compiler with OpenMP
+support (`g++` by default). No NumPy, MATLAB, GPU, GPUMD, LAMMPS, or Python
+binding is required.
 Python compiles a small C++ adapter, runs the API, and checks the results.
-Both analytic and table builds run by default. Compilation and all generated
-files use a temporary directory, removed on exit. Existing examples and their
+Both analytic and table builds, including the OpenMP consistency check, run by
+default. Compilation and all generated files use a temporary directory, removed
+on exit. Existing examples and their
 reference files are never overwritten. A failed assertion, crash, or compilation
 failure returns a nonzero exit status.
 
 ```sh
 python3 test/api/run_tests.py --mode analytic
 python3 test/api/run_tests.py --mode table
-python3 test/api/run_tests.py --openmp
+python3 test/api/run_tests.py --no-openmp
 python3 test/api/run_tests.py --only typewise
 ```
 
 `--cxx` / `CXX` select the compiler; `--cxxflags` / `CXXFLAGS` add compiler flags.
-For example, `--cxxflags='-O0 -g'`. The default build is serial; `--openmp`
-adds `-fopenmp` and checks one versus three threads. Paths are resolved from
-the script, so it also runs from outside the repository.
+For example, `--cxxflags='-O0 -g'`. The default build adds `-fopenmp` and checks
+one versus three threads. Other checks use one thread. For compilers without
+OpenMP support, `--no-openmp` builds serially and skips only the thread comparison.
+`--openmp` remains accepted explicitly. Paths are resolved from the script, so
+it also runs from outside the repository.
 
 ## Coverage
 
