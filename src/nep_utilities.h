@@ -1732,18 +1732,19 @@ void construct_table_radial_or_angular(
   const int num_types_sq,
   const int n_max,
   const int basis_size,
-  const double rc,
-  const double rcinv,
+  const double* rc_type,
   const double* c,
   double* gn,
   double* gnp)
 {
   for (int table_index = 0; table_index < table_length; ++table_index) {
-    double d12 = table_index * table_resolution * rc;
-    double fc12, fcp12;
-    find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
     for (int t1 = 0; t1 < num_types; ++t1) {
       for (int t2 = 0; t2 < num_types; ++t2) {
+        double rc = (rc_type[t1] + rc_type[t2]) * 0.5;
+        double rcinv = 1.0 / rc;
+        double d12 = table_index * table_resolution * rc;
+        double fc12, fcp12;
+        find_fc_and_fcp(rc, rcinv, d12, fc12, fcp12);
         int t12 = t1 * num_types + t2;
         double fn12[MAX_NUM_N];
         double fnp12[MAX_NUM_N];
