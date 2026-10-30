@@ -27,7 +27,6 @@ public:
 
     int charge_mode = 0;
     int model_type = 0; // 0=potential, 1=dipole, 2=polarizability
-    int version = 4;
     double rc_radial_max = 0.0;
     double rc_angular_max = 0.0;
     double rc_radial[94];

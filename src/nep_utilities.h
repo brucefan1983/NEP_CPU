@@ -213,34 +213,6 @@ void apply_ann_one_layer_charge(
   energy -= b1[0];
 }
 
-void apply_ann_one_layer_nep5(
-  const int dim,
-  const int num_neurons1,
-  const double* w0,
-  const double* b0,
-  const double* w1,
-  const double* b1,
-  double* q,
-  double& energy,
-  double* energy_derivative,
-  double* latent_space)
-{
-  for (int n = 0; n < num_neurons1; ++n) {
-    double w0_times_q = 0.0;
-    for (int d = 0; d < dim; ++d) {
-      w0_times_q += w0[n * dim + d] * q[d];
-    }
-    double x1 = tanh(w0_times_q - b0[n]);
-    latent_space[n] = w1[n] * x1; // also try x1
-    energy += w1[n] * x1;
-    for (int d = 0; d < dim; ++d) {
-      double y1 = (1.0 - x1 * x1) * w0[n * dim + d];
-      energy_derivative[d] += w1[n] * y1;
-    }
-  }
-  energy -= w1[num_neurons1] + b1[0]; // typewise bias + common bias
-}
-
 void find_fc(double rc, double rcinv, double d12, double& fc)
 {
   if (d12 < rc) {
@@ -1727,7 +1699,6 @@ void find_index_and_weight(
 }
 
 void construct_table_radial_or_angular(
-  const int version,
   const int num_types,
   const int num_types_sq,
   const int n_max,
