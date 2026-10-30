@@ -1780,6 +1780,13 @@ void find_force_ZBL_for_lammps(
   double& g_total_potential,
   double* g_potential)
 {
+  double max_rc_outer = zbl.rc_outer;
+  if (zbl.flexibled) {
+    const int num_type_zbl = zbl.num_types * (zbl.num_types + 1) / 2;
+    for (int n = 0; n < num_type_zbl; ++n) {
+      max_rc_outer = std::max(max_rc_outer, zbl.para[10 * n + 1]);
+    }
+  }
   for (int ii = 0; ii < N; ++ii) {
     int n1 = g_ilist[ii];
     int type1 = type_map[g_type[n1]]; // from LAMMPS to NEP convention
@@ -1791,7 +1798,6 @@ void find_force_ZBL_for_lammps(
         g_pos[n2][0] - g_pos[n1][0], g_pos[n2][1] - g_pos[n1][1], g_pos[n2][2] - g_pos[n1][2]};
 
       double d12sq = r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2];
-      double max_rc_outer = 2.5;
       if (d12sq >= max_rc_outer * max_rc_outer) {
         continue;
       }
