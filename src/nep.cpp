@@ -991,6 +991,12 @@ void find_bec_angular_small_box(
         }
         accumulate_f12(
           paramb.L_max,
+          paramb.has_q_222,
+          paramb.has_q_1111,
+          paramb.has_q_112,
+          paramb.has_q_123,
+          paramb.has_q_233,
+          paramb.has_q_134,
           paramb.num_L,
           n,
           paramb.n_max_angular + 1,
