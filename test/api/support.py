@@ -87,7 +87,8 @@ class Backend:
         if mode == 'table':
             command += ['-DUSE_TABLE_FOR_RADIAL_FUNCTIONS']
         command += ['-I', str(ROOT / 'src'), str(HERE / 'driver.cpp')]
-        command += [str(ROOT / 'src' / f) for f in ('nep.cpp', 'ewald_nep.cpp', 'neighbor_nep.cpp')]
+        command += [str(ROOT / 'src' / f)
+                    for f in ('nep.cpp', 'nep_model_file.cpp', 'ewald_nep.cpp', 'neighbor_nep.cpp')]
         command += ['-o', str(self.executable)]
         print('Compiling ' + mode + ': ' + shlex.join(command), flush=True)
         result = subprocess.run(command, text=True, capture_output=True, timeout=180)

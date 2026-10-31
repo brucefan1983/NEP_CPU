@@ -2,9 +2,11 @@
 Usage:
     Compile:
         # Without openMP support
-        g++ -O3 main.cpp ../src/nep.cpp ../src/ewald.cpp ../src/neighbor.cpp
+        g++ -std=c++11 -O3 main.cpp ../src/nep.cpp ../src/nep_model_file.cpp \
+            ../src/ewald_nep.cpp ../src/neighbor_nep.cpp
         # With openMP support
-        g++ -O3 -fopenmp main.cpp ../src/nep.cpp ../src/ewald.cpp ../src/neighbor.cpp
+        g++ -std=c++11 -O3 -fopenmp main.cpp ../src/nep.cpp ../src/nep_model_file.cpp \
+            ../src/ewald_nep.cpp ../src/neighbor_nep.cpp
     run:
         export OMP_NUM_THREADS=6 # 6 is the number of the threads to be used
         ./a.out
