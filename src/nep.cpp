@@ -1151,6 +1151,22 @@ void find_force_charge_real_space_small_box(
   }
 }
 
+void find_charge_self_energy(
+  const NEP::Charge_Para charge_para,
+  const int N,
+  const double* g_charge,
+  double* g_pe,
+  double* g_D_real)
+{
+  for (int n1 = 0; n1 < N; ++n1) {
+    const double q1 = g_charge[n1];
+    const double s_pe = -charge_para.two_alpha_over_sqrt_pi * 0.5 * q1 * q1;
+    const double D_real = -q1 * charge_para.two_alpha_over_sqrt_pi;
+    g_D_real[n1] += K_C_SP * D_real;
+    g_pe[n1] += K_C_SP * s_pe;
+  }
+}
+
 void find_dftd3_coordination_number(
   NEP::DFTD3& dftd3,
   const int N,
@@ -1834,7 +1850,15 @@ void NEP::init_from_file(const std::string& potential_filename, const bool is_ra
   }
 
   paramb.model_type = model.name == "nep_dipole" ? 1 : model.name == "nep_polarizability" ? 2 : 0;
-  paramb.charge_mode = model.name == "qnep1" ? 1 : model.name == "qnep2" ? 2 : 0;
+  if (model.name == "qnep1") {
+    paramb.charge_mode = 1;
+  } else if (model.name == "qnep2") {
+    paramb.charge_mode = 2;
+  } else if (model.name == "qnep3") {
+    paramb.charge_mode = 3;
+  } else {
+    paramb.charge_mode = 0;
+  }
   paramb.num_types = model.num_types;
   paramb.num_types_sq = paramb.num_types * paramb.num_types;
   element_list = model.elements;
@@ -2267,6 +2291,8 @@ void NEP::compute(
       virial.data(),
       potential.data(),
       D_real.data());
+  } else if (paramb.charge_mode == 3) {
+    find_charge_self_energy(charge_para, N, charge.data(), potential.data(), D_real.data());
   }
 
   zero_mean_D_real(N, D_real.data());
