@@ -1,8 +1,10 @@
 # NEP_CPU
 
+NEP_CPU is part of the [GPUMD](https://github.com/brucefan1983/GPUMD) project. It provides a standalone CPU implementation of GPUMD's NEP model evaluation routines for use in Python packages and LAMMPS.
+
 # What does this repository contain?
 
-* A **standalone** C++ implementation (a class called `NEP`) of the neuroevolution potential (NEP) as introduced in the GPUMD package (https://github.com/brucefan1983/GPUMD). We stress that **there is no external dependence**.
+* A **standalone** C++ class (`NEP`) with **no external dependencies**.
 
 * An interface of the `NEP` class to the CPU version of LAMMPS (https://github.com/lammps/lammps). **It can be run with MPI**.
 
