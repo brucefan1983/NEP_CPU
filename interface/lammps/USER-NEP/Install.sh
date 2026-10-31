@@ -1,4 +1,4 @@
-# Install/unInstall package files in LAMMPS
+# Install/uninstall package files in LAMMPS
 # mode = 0/1/2 for uninstall/install/update
 
 mode=$1
@@ -22,7 +22,7 @@ action () {
     fi
 }
 
-# define LAMMPS_VERSION_NUMBER in pair_nep.cpp
+# define LAMMPS_VERSION_NUMBER in pair_NEP.cpp
 if (test $mode = 1) then
     LAMMPS_VERSION=`grep "VERSION" ../version.h | awk -F "[\"\"]" '{print $2}'`
     LAMMPS_VERSION_NUMBER=`date -d "$LAMMPS_VERSION" +%Y%m%d`
