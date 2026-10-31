@@ -48,8 +48,13 @@ it also runs from outside the repository.
 | DFTD3 | Frozen result, finite differences, and NEP + DFTD3 additivity |
 | Feature API | Latent-space energy reconstruction and B-projection derivatives with respect to ANN parameters |
 | Rejections | Removed/unknown models, second hidden layer, short ANN header, wrong compute overload, wrong output sizes, and the LAMMPS model-type guard |
+| Version-1 model files | Record order, case, comments, numerical blocks, and rejection of malformed or unsupported records |
+| Parameter layout | Three species, asymmetric ordered-pair coefficients, unequal radial/angular dimensions, exact parameter storage, independent pair descriptors, and force/virial/BEC consistency |
+| Reference energies | Per-element energy shifts with unchanged forces, virials, charges, BEC, and features |
+| LAMMPS API | Reversed element mapping, total and per-atom energies/virials, and optional per-atom output buffers |
+| Rank diagnostics | Root-only output and nonzero exit, tested through the API rank flag |
 
-The LAMMPS guard is exercised through `compute_for_lammps`; this suite does not
+The LAMMPS checks call the C++ API directly; this suite does not
 run a LAMMPS executable or test MPI/ghost-atom integration. See `test/lammps` for
 LAMMPS examples. Reinitializing an existing object with a second model is outside
 this suite's intended usage.
@@ -60,7 +65,7 @@ The PbTe models, structures, historical `*_ref.out` files, and `force_gpu.out`
 files are stored in `data/nep/` and `data/qnep/` next to the test scripts.
 `references.json` supplements them with results from
 unmodified commit `9bc09df9fb96dc0bf3facad6b34ce02deeaf1ffa`. It records input
-SHA-256 hashes and separate analytic/table results. Synthetic C/Si fixtures have
+SHA-256 hashes and separate analytic/table results. Synthetic C/Si and C/Si/O fixtures have
 nonuniform descriptor scalers and distinct ANN parameters for each species;
 they exercise code paths, not physical accuracy.
 

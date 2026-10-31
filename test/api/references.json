@@ -2,34 +2,34 @@
   "source_commit": "9bc09df9fb96dc0bf3facad6b34ce02deeaf1ffa",
   "description": "Captured from unmodified main; historical analytic references are in test/api/data/nep and test/api/data/qnep.",
   "input_sha256": {
-    "test/api/data/nep/nep.txt": "c24436a2af57ec28ad6268055fae7f9b7dab34f8d7f1b85321f9e4bf91f5067d",
+    "test/api/data/nep/nep.txt": "9861ded33fd716ae5e1c7b620486e4ffa6825f352c28a07ce6f5f019b82987d1",
     "test/api/data/nep/xyz.in": "47695bbb8aa2a6e94f4a96c1bed8fc9c4b4f40f782218e9fa7fcb377b08b7673",
     "test/api/data/nep/force_analytical_ref.out": "9afc1c01bf49fb95d297034514cd5234b6b159f2bd0a1e55c457b432a17a6032",
     "test/api/data/nep/force_finite_difference_ref.out": "7787ffc428e61f55ee6e9f12b9e91cbea9b9428d0c8025d7ca2d180f4f57f8e1",
     "test/api/data/nep/virial_ref.out": "6643c0975109ec39766101cddb4e0d35223929d93a81645279b17f42f28d9d99",
     "test/api/data/nep/descriptor_ref.out": "41f3fad6a1d69ffa0e6e9fbd399e2618a80aa427fee5227772b214e350720189",
     "test/api/data/nep/force_gpu.out": "8d8bcff09c80c5b1ae008b497fc799018aa27301bb9b453edc1940b381ddf5e9",
-    "test/api/data/qnep/nep.txt": "3fd9a6a6fe9553fa2f2b5bb2768c7960e54b9ae3958f0bf2b26c08c4d941ed69",
+    "test/api/data/qnep/nep.txt": "c5ee25c2357dd9cc9adeae3660d0bec5da2424b47cc8371e3543cc6a376e03c1",
     "test/api/data/qnep/xyz.in": "47695bbb8aa2a6e94f4a96c1bed8fc9c4b4f40f782218e9fa7fcb377b08b7673",
     "test/api/data/qnep/force_analytical_ref.out": "219b74053cbbf01f1b1628ab4737ae5400fa4c022e3acb37a3a82d9ea7d0557f",
     "test/api/data/qnep/force_finite_difference_ref.out": "d63ddd38edac2a72989fab28f5c8ff03f8b19a7687cd9b09868b63d8129e8723",
     "test/api/data/qnep/virial_ref.out": "4992992c02788b5d05062f9c1ae7a28c48d3b51fdd2693fb905a23d707a22e63",
     "test/api/data/qnep/descriptor_ref.out": "6ebf9e99c789eee7df5ac8bce618e464a18cc4e1717b9d57955ef34b7157735f",
     "test/api/data/qnep/force_gpu.out": "765f57e40e2a63a807dba97b923be6d3ad85b8e0cd9dc793bb0f2e2ae06acbf0",
-    "test_dftd3/C_2022_NEP4.txt": "92a40310a8ae668a54322daeb596fc1696f8ae8b01dfb7152d4470200755a60b"
+    "test_dftd3/C_2022_NEP4.txt": "97ae2010f2130aa85efbbc3867df651838a5115d7f2909fe172a61c7a299183b"
   },
   "synthetic_sha256": {
-    "ordinary": "25015b52b3860ac2f2919438a0b9eb8dd6339bab7945e70c72634027140a4517",
-    "typewise": "20f5303d30a0b2f7fa5f609a356facb18feae399f8bcb20b163e30cf1936e8e3",
-    "charge1": "87dae03bb36bc1ed7d96c1d2410ac827c9b776b74b2a3cf4e9a996a0a4743812",
-    "charge2": "f8d31e0197e8c75521fd3fb4d1cfdac6a66301766d3788d84756cf638004d8ce",
-    "dipole": "85e1bdd1c25accb787567698ec6030dc59295d991f3bcde4be23fa40a7bd1487",
-    "polarizability": "aa2ab5dfa00bc902de902c80f93dc3779fc86ea2047a95a149f99cf978e9dbf3",
-    "zbl_fixed": "8a16e235b828687dfbf7bbbf38113b04cb6a440a9dfbb60ec42c3dd9f402dcf9",
-    "zbl_typewise": "ac2bad68a4370745aec98ec1548027458db04a493e60dbaf7e85267aefb1c303",
-    "zbl_flexible": "cbed9a41eea2a16fc2f6c4d28d427759ea196e9b4991a5a3421bbe204c0dc04f",
-    "zbl_charge1": "47d56eab3b56c8f81965a049b367433c5dd1c4b6aa78a3d61c78f35552896a68",
-    "zbl_charge2": "02fef49df97ef23fd0e9a0d1e1ee6b988b02306e42e58a461a19462b170a52d9"
+    "ordinary": "799c88faed0f1e58e51b869f2180779fb66a3c78de343ebb900f57ae772d157e",
+    "typewise": "c41b719a84b5739ef32a19254577ffcc1adf7cb73dcdb686bc90a6a95e750755",
+    "charge1": "3b2f0aba84128f5ce28d04956bcf700795b4dd399e25d867d89ac5d0f8a21027",
+    "charge2": "b5017643028a13f6101af87db189f8f1f6d470366251778b7a334c9e0ae98ac0",
+    "dipole": "8f5b752ec0ad53f163858357f11be184149335ae911864acbfa29f8090b126cf",
+    "polarizability": "9e978774b634b66b7168362ea602d6cd0a49f3c482f50115fb8b8066d1bd0d84",
+    "zbl_fixed": "f4c3bfe3b7a84eb0a72be797f8f6cccf9c996f7b941706edf47f4d33bd9c2bbc",
+    "zbl_typewise": "6f3da817935c5e6dbcfd37ac1112f549791abf65243402c33c2dc73ff8a8f0b4",
+    "zbl_flexible": "126032780a4be90939b4d7e1a97df21d95fcfe45d2f013641e2e1aa609a92811",
+    "zbl_charge1": "93f674e9e86692a6cb127d53d992608e182acd550e460ef4624a70431897a860",
+    "zbl_charge2": "776f9cae888e65d8f053e0e469bac4b49f568c43c3d27518f8ad3ead95a83aae"
   },
   "analytic": {
     "nep": {

@@ -1,14 +1,28 @@
 # NEP_CPU
 
+NEP_CPU is part of the [GPUMD](https://github.com/brucefan1983/GPUMD) project. It provides a standalone CPU implementation of GPUMD's NEP model evaluation routines for use in Python packages and LAMMPS.
+
 # What does this repository contain?
 
-* A **standalone** C++ implementation (a class called `NEP`) of the neuroevolution potential (NEP) as introduced in the GPUMD package (https://github.com/brucefan1983/GPUMD). We stress that **there is no external dependence**.
+* A **standalone** C++ class (`NEP`) with **no external dependencies**.
 
 * An interface of the `NEP` class to the CPU version of LAMMPS (https://github.com/lammps/lammps). **It can be run with MPI**.
+
+# Model files
+
+Only model files with `format_version 1` are accepted. See the [GPUMD format specification](https://github.com/brucefan1983/GPUMD/blob/master/potentials/nep/nep_model_format.md).
+
+Convert an older model file using GPUMD's [nep_model_converter.py](https://github.com/brucefan1983/GPUMD/blob/master/potentials/nep/nep_model_converter.py):
+
+```sh
+python3 /path/to/GPUMD/potentials/nep/nep_model_converter.py nep_old.txt nep.txt
+```
 
 # The standalone C++ implementation of NEP
 
 * The `NEP` C++ class and the interfaces are defined in `src/nep.h`.
+
+* Compile your program together with `src/nep.cpp`, `src/nep_model_file.cpp`, `src/ewald_nep.cpp`, and `src/neighbor_nep.cpp`, using C++11 or later.
   
 * The following folders contain some testing code and results:
   * `test/api/`
@@ -96,3 +110,6 @@ make install
 
 * If you use the LAMMPS interface of the `NEP` class, a proper citation for LAMMPS is also suggested. 
 
+# License
+
+The NEP_CPU core is licensed under LGPL-3.0-or-later; see the [LGPL v3](LICENSES/LGPL-3.0.txt) and [GPL v3](LICENSES/GPL-3.0.txt) license texts. The LAMMPS interface retains its existing GPL license and copyright notices.

@@ -44,28 +44,38 @@ def supercell(frame):
     return result
 
 
-def model_text(kind='nep4', flags=ALL_FLAGS, typewise=False, zbl=None, zero=False):
+def model_text(kind='nep', flags=ALL_FLAGS, typewise=False, zbl=None, zero=False):
     dim, neurons, types = 3 + 3 * (4 + sum(flags)), 8, 2
     ann_count = types * neurons * (dim + 2) + 1
-    if 'charge' in kind:
+    if kind.startswith('qnep'):
         ann_count += types * neurons + 1
     if 'polarizability' in kind:
         ann_count *= 2
     rng = random.Random(215)
     values = [rng.uniform(-0.3, 0.3) if not zero else 0.0 for _ in range(ann_count + 72)]
-    if 'charge' in kind:
+    if kind.startswith('qnep'):
         values[ann_count - 2] = 1.7
     fields = [2 * flags[0], *flags[1:]]
     while len(fields) > 2 and fields[-1] == 0:
         fields.pop()
-    header = [kind + ' 2 C Si']
+    header = ['nep 2 C Si', 'format_version 1', 'model ' + kind]
     if zbl is not None:
         header += [zbl]
     header += ['cutoff 5 4 4.4 3.6 100 100' if typewise else 'cutoff 5 4 100 100',
-               'n_max 2 2', 'basis_size 2 2', 'l_max 4 ' + ' '.join(map(str, fields)), 'ANN 8 0']
-    lines = header + [format(v, '.17g') for v in values]
+               'n_max 2 2', 'basis_size 2 2', 'l_max 4 ' + ' '.join(map(str, fields)), 'ann 8 0']
+    if kind not in ('nep_dipole', 'nep_polarizability'):
+        header += ['energy_reference 0 0']
+    # Preserve the original fixture's logical coefficients while serializing
+    # version-1 [center_type, neighbor_type, n, k] descriptor segments.
+    parameters = values[:ann_count]
+    for offset in (ann_count, ann_count + 36):
+        parameters += [values[offset + nk * 4 + pair] for pair in range(4) for nk in range(9)]
+    lines = header + ['@ parameters ' + str(len(parameters))]
+    lines += [format(v, '.17g') for v in parameters]
+    lines += ['@ q_scaler ' + str(dim)]
     lines += [format(0.7 + 0.03 * d, '.17g') for d in range(dim)]
     if zbl == 'zbl 0 0':
+        lines += ['@ zbl_parameters 30']
         lines += [str(v) for row in FLEXIBLE_ZBL for v in row]
     return '\n'.join(lines) + '\n'
 
@@ -74,15 +84,15 @@ def write_models(directory):
     settings = {
         'ordinary': {},
         'typewise': dict(typewise=True),
-        'charge1': dict(kind='nep4_charge1'),
-        'charge2': dict(kind='nep4_charge2'),
-        'dipole': dict(kind='nep4_dipole'),
-        'polarizability': dict(kind='nep4_polarizability'),
-        'zbl_fixed': dict(kind='nep4_zbl', zbl='zbl 1 3.5'),
-        'zbl_typewise': dict(kind='nep4_zbl', zbl='zbl 2 4 0.65', typewise=True),
-        'zbl_flexible': dict(kind='nep4_zbl', zbl='zbl 0 0'),
-        'zbl_charge1': dict(kind='nep4_zbl_charge1', zbl='zbl 1 3.5'),
-        'zbl_charge2': dict(kind='nep4_zbl_charge2', zbl='zbl 1 3.5'),
+        'charge1': dict(kind='qnep1'),
+        'charge2': dict(kind='qnep2'),
+        'dipole': dict(kind='nep_dipole'),
+        'polarizability': dict(kind='nep_polarizability'),
+        'zbl_fixed': dict(zbl='zbl 1 3.5'),
+        'zbl_typewise': dict(zbl='zbl 2 4 0.65', typewise=True),
+        'zbl_flexible': dict(zbl='zbl 0 0'),
+        'zbl_charge1': dict(kind='qnep1', zbl='zbl 1 3.5'),
+        'zbl_charge2': dict(kind='qnep2', zbl='zbl 1 3.5'),
     }
     models = {}
     for name, options in settings.items():
@@ -99,8 +109,10 @@ def raw_charges(model, descriptors, types):
     compute; the raw values are needed for the GPUMD bond-based BEC definition.
     """
     import math
-    dim, neurons = len(descriptors[0]), 8
-    values = list(map(float, model.read_text().splitlines()[6:]))
+    dim = len(descriptors[0])
+    neurons = next(int(line.split()[1]) for line in model.read_text().splitlines()
+                   if line.startswith('ann '))
+    values = read_block(model, 'parameters')
     width = neurons * (dim + 3)
     result = []
     for t, q in zip(types, descriptors):
@@ -110,3 +122,45 @@ def raw_charges(model, descriptors, types):
         result.append(sum(values[start + neurons * (dim + 2) + j] * hidden[j]
                           for j in range(neurons)))
     return result
+
+
+def read_block(model, name):
+    """Read a numerical block from the canonical test fixtures."""
+    lines = model.read_text().splitlines()
+    start = next(i for i, line in enumerate(lines) if line.startswith('@ ' + name + ' '))
+    count = int(lines[start].split()[2])
+    tokens = []
+    for line in lines[start + 1:]:
+        tokens.extend(line.split())
+        if len(tokens) >= count:
+            return list(map(float, tokens[:count]))
+    raise ValueError('Truncated fixture block: ' + name)
+
+
+def asymmetric_model(kind, n_max, basis_size):
+    """Three species with distinct ordered-pair coefficients and unequal segment sizes."""
+    dim, neurons, types = n_max[0] + 1 + (n_max[1] + 1) * 10, 5, 3
+    charge = kind.startswith('qnep')
+    ann_count = types * neurons * (dim + 2 + charge) + 1 + charge
+    if kind == 'nep_polarizability':
+        ann_count *= 2
+    rng = random.Random(987)
+    parameters = [rng.uniform(-0.25, 0.25) for _ in range(ann_count)]
+    if charge:
+        parameters[-2] = 1.7
+    coefficients = []
+    for n_max_one, basis_one in zip(n_max, basis_size):
+        segment = [[[[rng.uniform(-0.25, 0.25) for _ in range(basis_one + 1)]
+                     for _ in range(n_max_one + 1)] for _ in range(types)] for _ in range(types)]
+        coefficients.append(segment)
+        parameters += [c for center in segment for neighbor in center for row in neighbor for c in row]
+    lines = ['nep 3 C Si O', 'format_version 1', 'model ' + kind, 'cutoff 5 4 100 100',
+             'n_max {} {}'.format(*n_max), 'basis_size {} {}'.format(*basis_size),
+             'l_max 4 2 1 1 1 1 1', 'ann 5 0']
+    if kind not in ('nep_dipole', 'nep_polarizability'):
+        lines += ['energy_reference 0 0 0']
+    lines += ['@ parameters ' + str(len(parameters))]
+    lines += [format(v, '.17g') for v in parameters]
+    lines += ['@ q_scaler ' + str(dim)]
+    lines += [format(0.7 + 0.03 * d, '.17g') for d in range(dim)]
+    return '\n'.join(lines) + '\n', coefficients

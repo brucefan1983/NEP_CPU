@@ -87,14 +87,15 @@ class Backend:
         if mode == 'table':
             command += ['-DUSE_TABLE_FOR_RADIAL_FUNCTIONS']
         command += ['-I', str(ROOT / 'src'), str(HERE / 'driver.cpp')]
-        command += [str(ROOT / 'src' / f) for f in ('nep.cpp', 'ewald_nep.cpp', 'neighbor_nep.cpp')]
+        command += [str(ROOT / 'src' / f)
+                    for f in ('nep.cpp', 'nep_model_file.cpp', 'ewald_nep.cpp', 'neighbor_nep.cpp')]
         command += ['-o', str(self.executable)]
         print('Compiling ' + mode + ': ' + shlex.join(command), flush=True)
         result = subprocess.run(command, text=True, capture_output=True, timeout=180)
         if result.returncode:
             raise RuntimeError('Compilation failed:\n' + result.stdout + result.stderr)
 
-    def invoke(self, model, frames, action='full', threads=None):
+    def invoke(self, model, frames, action='full', threads=None, rank=0):
         # A fresh process isolates exit(1) and memory corruption; frames within
         # that process share one initialized NEP instance (MD-like reuse).
         with tempfile.TemporaryDirectory(prefix='case_', dir=self.directory) as tmp:
@@ -106,7 +107,7 @@ class Backend:
                     for t, r in zip(frame['type'], frame['position']):
                         stream.write(str(t) + ' ' + ' '.join(format(x, '.17g') for x in r) + '\n')
             env = dict(os.environ, OMP_NUM_THREADS=str(threads or self.threads), OMP_DYNAMIC='FALSE')
-            result = subprocess.run([str(self.executable), str(model), str(source), str(target)],
+            result = subprocess.run([str(self.executable), str(model), str(source), str(target), str(rank)],
                                     text=True, capture_output=True, env=env, timeout=120)
             text = target.read_text() if target.exists() else ''
             return result, text

@@ -1,16 +1,16 @@
 /*
-    Copyright 2022 Zheyong Fan, Junjie Wang, Eric Lindgren
-    This file is part of NEP_CPU.
-    NEP_CPU is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
+    Copyright 2017 Zheyong Fan and GPUMD development team
+    This file is part of GPUMD.
+    GPUMD is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
-    NEP_CPU is distributed in the hope that it will be useful,
+    GPUMD is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with NEP_CPU.  If not, see <http://www.gnu.org/licenses/>.
+    GNU Lesser General Public License for more details.
+    You should have received a copy of the GNU Lesser General Public License
+    along with GPUMD.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 /*----------------------------------------------------------------------------80
@@ -137,6 +137,17 @@ void complex_product(const double a, const double b, double& real_part, double& 
   const double real_temp = real_part;
   real_part = a * real_temp - b * imag_part;
   imag_part = a * imag_part + b * real_temp;
+}
+
+inline int get_c_index(
+  const int type_index,
+  const int n,
+  const int k,
+  const int n_max,
+  const int basis_size,
+  const int offset = 0)
+{
+  return offset + type_index * ((n_max + 1) * (basis_size + 1)) + n * (basis_size + 1) + k;
 }
 
 void apply_ann_one_layer(
@@ -302,67 +313,6 @@ void find_f_and_fp_zbl(
   find_fc_and_fcp_zbl(zbl_para[0], zbl_para[1], d12, fc, fcp);
   fp = fp * fc + f * fcp;
   f *= fc;
-}
-
-void find_fn(const int n, const double rcinv, const double d12, const double fc12, double& fn)
-{
-  if (n == 0) {
-    fn = fc12;
-  } else if (n == 1) {
-    double x = 2.0 * (d12 * rcinv - 1.0) * (d12 * rcinv - 1.0) - 1.0;
-    fn = (x + 1.0) * 0.5 * fc12;
-  } else {
-    double x = 2.0 * (d12 * rcinv - 1.0) * (d12 * rcinv - 1.0) - 1.0;
-    double t0 = 1.0;
-    double t1 = x;
-    double t2;
-    for (int m = 2; m <= n; ++m) {
-      t2 = 2.0 * x * t1 - t0;
-      t0 = t1;
-      t1 = t2;
-    }
-    fn = (t2 + 1.0) * 0.5 * fc12;
-  }
-}
-
-void find_fn_and_fnp(
-  const int n,
-  const double rcinv,
-  const double d12,
-  const double fc12,
-  const double fcp12,
-  double& fn,
-  double& fnp)
-{
-  if (n == 0) {
-    fn = fc12;
-    fnp = fcp12;
-  } else if (n == 1) {
-    double x = 2.0 * (d12 * rcinv - 1.0) * (d12 * rcinv - 1.0) - 1.0;
-    fn = (x + 1.0) * 0.5;
-    fnp = 2.0 * (d12 * rcinv - 1.0) * rcinv * fc12 + fn * fcp12;
-    fn *= fc12;
-  } else {
-    double x = 2.0 * (d12 * rcinv - 1.0) * (d12 * rcinv - 1.0) - 1.0;
-    double t0 = 1.0;
-    double t1 = x;
-    double t2;
-    double u0 = 1.0;
-    double u1 = 2.0 * x;
-    double u2;
-    for (int m = 2; m <= n; ++m) {
-      t2 = 2.0 * x * t1 - t0;
-      t0 = t1;
-      t1 = t2;
-      u2 = 2.0 * x * u1 - u0;
-      u0 = u1;
-      u1 = u2;
-    }
-    fn = (t2 + 1.0) * 0.5;
-    fnp = n * u0 * 2.0 * (d12 * rcinv - 1.0) * rcinv;
-    fnp = fnp * fc12 + fn * fcp12;
-    fn *= fc12;
-  }
 }
 
 void find_fn(const int n_max, const double rcinv, const double d12, const double fc12, double* fn)
@@ -1202,90 +1152,6 @@ void accumulate_f12_one(
 
 void accumulate_f12(
   const int L_max,
-  const int num_L,
-  const int n,
-  const int n_max_angular_plus_1,
-  const double d12,
-  const double* r12,
-  double fn,
-  double fnp,
-  const double* Fp,
-  const double* sum_fxyz,
-  double* f12)
-{
-  const double fn_original = fn;
-  const double fnp_original = fnp;
-  const double d12inv = 1.0 / d12;
-  const double r12unit[3] = {r12[0] * d12inv, r12[1] * d12inv, r12[2] * d12inv};
-
-  fnp = fnp * d12inv - fn * d12inv * d12inv;
-  fn = fn * d12inv;
-  if (num_L >= L_max + 2) {
-    double s1[3] = {
-      sum_fxyz[n * NUM_OF_ABC + 0], sum_fxyz[n * NUM_OF_ABC + 1], sum_fxyz[n * NUM_OF_ABC + 2]};
-    get_f12_5body(d12, d12inv, fn, fnp, Fp[(L_max + 1) * n_max_angular_plus_1 + n], s1, r12, f12);
-  }
-
-  if (L_max >= 1) {
-    double s1[3];
-    calculate_s_one<1>(n, n_max_angular_plus_1, Fp, sum_fxyz, s1);
-    accumulate_f12_one<1>(d12inv, fn_original, fnp_original, s1, r12unit, f12);
-  }
-
-  fnp = fnp * d12inv - fn * d12inv * d12inv;
-  fn = fn * d12inv;
-  if (num_L >= L_max + 1) {
-    double s2[5] = {
-      sum_fxyz[n * NUM_OF_ABC + 3], sum_fxyz[n * NUM_OF_ABC + 4], sum_fxyz[n * NUM_OF_ABC + 5],
-      sum_fxyz[n * NUM_OF_ABC + 6], sum_fxyz[n * NUM_OF_ABC + 7]};
-    get_f12_4body(d12, d12inv, fn, fnp, Fp[L_max * n_max_angular_plus_1 + n], s2, r12, f12);
-  }
-
-  if (L_max >= 2) {
-    double s2[5];
-    calculate_s_one<2>(n, n_max_angular_plus_1, Fp, sum_fxyz, s2);
-    accumulate_f12_one<2>(d12inv, fn_original, fnp_original, s2, r12unit, f12);
-  }
-
-  if (L_max >= 3) {
-    double s3[7];
-    calculate_s_one<3>(n, n_max_angular_plus_1, Fp, sum_fxyz, s3);
-    accumulate_f12_one<3>(d12inv, fn_original, fnp_original, s3, r12unit, f12);
-  }
-
-  if (L_max >= 4) {
-    double s4[9];
-    calculate_s_one<4>(n, n_max_angular_plus_1, Fp, sum_fxyz, s4);
-    accumulate_f12_one<4>(d12inv, fn_original, fnp_original, s4, r12unit, f12);
-  }
-
-  if (L_max >= 5) {
-    double s5[11];
-    calculate_s_one<5>(n, n_max_angular_plus_1, Fp, sum_fxyz, s5);
-    accumulate_f12_one<5>(d12inv, fn_original, fnp_original, s5, r12unit, f12);
-  }
-
-  if (L_max >= 6) {
-    double s6[13];
-    calculate_s_one<6>(n, n_max_angular_plus_1, Fp, sum_fxyz, s6);
-    accumulate_f12_one<6>(d12inv, fn_original, fnp_original, s6, r12unit, f12);
-  }
-
-  if (L_max >= 7) {
-    double s7[15];
-    calculate_s_one<7>(n, n_max_angular_plus_1, Fp, sum_fxyz, s7);
-    accumulate_f12_one<7>(d12inv, fn_original, fnp_original, s7, r12unit, f12);
-  }
-
-  if (L_max >= 8) {
-    double s8[17];
-    calculate_s_one<8>(n, n_max_angular_plus_1, Fp, sum_fxyz, s8);
-    accumulate_f12_one<8>(d12inv, fn_original, fnp_original, s8, r12unit, f12);
-  }
-}
-
-void accumulate_f12(
-  const int L_max,
   const int has_q_222,
   const int has_q_1111,
   const int has_q_112,
@@ -1515,53 +1381,6 @@ double find_q_one(const double* s)
 
 void find_q(
   const int L_max,
-  const int num_L,
-  const int n_max_angular_plus_1,
-  const int n,
-  const double* s,
-  double* q)
-{
-  if (L_max >= 1) {
-    q[0 * n_max_angular_plus_1 + n] = find_q_one<1>(s);
-  }
-  if (L_max >= 2) {
-    q[1 * n_max_angular_plus_1 + n] = find_q_one<2>(s);
-  }
-  if (L_max >= 3) {
-    q[2 * n_max_angular_plus_1 + n] = find_q_one<3>(s);
-  }
-  if (L_max >= 4) {
-    q[3 * n_max_angular_plus_1 + n] = find_q_one<4>(s);
-  }
-  if (L_max >= 5) {
-    q[4 * n_max_angular_plus_1 + n] = find_q_one<5>(s);
-  }
-  if (L_max >= 6) {
-    q[5 * n_max_angular_plus_1 + n] = find_q_one<6>(s);
-  }
-  if (L_max >= 7) {
-    q[6 * n_max_angular_plus_1 + n] = find_q_one<7>(s);
-  }
-  if (L_max >= 8) {
-    q[7 * n_max_angular_plus_1 + n] = find_q_one<8>(s);
-  }
-  if (num_L >= L_max + 1) {
-    q[L_max * n_max_angular_plus_1 + n] =
-      C4B[0] * s[3] * s[3] * s[3] + C4B[1] * s[3] * (s[4] * s[4] + s[5] * s[5]) +
-      C4B[2] * s[3] * (s[6] * s[6] + s[7] * s[7]) + C4B[3] * s[6] * (s[5] * s[5] - s[4] * s[4]) +
-      C4B[4] * s[4] * s[5] * s[7];
-  }
-  if (num_L >= L_max + 2) {
-    double s0_sq = s[0] * s[0];
-    double s1_sq_plus_s2_sq = s[1] * s[1] + s[2] * s[2];
-    q[(L_max + 1) * n_max_angular_plus_1 + n] = C5B[0] * s0_sq * s0_sq +
-                                                C5B[1] * s0_sq * s1_sq_plus_s2_sq +
-                                                C5B[2] * s1_sq_plus_s2_sq * s1_sq_plus_s2_sq;
-  }
-}
-
-void find_q(
-  const int L_max,
   const int has_q_222,
   const int has_q_1111,
   const int has_q_112,
@@ -1724,8 +1543,9 @@ void construct_table_radial_or_angular(
           double gn12 = 0.0;
           double gnp12 = 0.0;
           for (int k = 0; k <= basis_size; ++k) {
-            gn12 += fn12[k] * c[(n * (basis_size + 1) + k) * num_types_sq + t12];
-            gnp12 += fnp12[k] * c[(n * (basis_size + 1) + k) * num_types_sq + t12];
+            int c_index = get_c_index(t12, n, k, n_max, basis_size);
+            gn12 += fn12[k] * c[c_index];
+            gnp12 += fnp12[k] * c[c_index];
           }
           int index_all = (table_index * num_types_sq + t12) * (n_max + 1) + n;
           gn[index_all] = gn12;

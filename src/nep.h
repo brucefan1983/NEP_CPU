@@ -1,16 +1,16 @@
 /*
-    Copyright 2022 Zheyong Fan, Junjie Wang, Eric Lindgren
-    This file is part of NEP_CPU.
-    NEP_CPU is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
+    Copyright 2017 Zheyong Fan and GPUMD development team
+    This file is part of GPUMD.
+    GPUMD is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
-    NEP_CPU is distributed in the hope that it will be useful,
+    GPUMD is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with NEP_CPU.  If not, see <http://www.gnu.org/licenses/>.
+    GNU Lesser General Public License for more details.
+    You should have received a copy of the GNU Lesser General Public License
+    along with GPUMD.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 #pragma once
@@ -48,6 +48,7 @@ public:
     std::size_t num_c_radial = 0;
     std::size_t num_types = 0;
     double q_scaler[140];
+    double energy_reference[94] = {};
     int atomic_numbers[94];
   };
 
@@ -241,4 +242,7 @@ public:
     const std::string& functional_input,
     const double rc_potential,
     const double rc_coordination_number);
+
+private:
+  bool is_rank_0 = true;
 };
