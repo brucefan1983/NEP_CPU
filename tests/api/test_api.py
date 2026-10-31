@@ -6,7 +6,8 @@ import json
 import math
 import unittest
 
-from fixtures import (ALL_FLAGS, FLEXIBLE_ZBL, ZBL_COEFFICIENTS, cluster,
+from fixtures import (ALL_FLAGS, FLEXIBLE_ZBL, ZBL_COEFFICIENTS, angular_axis_frame,
+                      angular_cases, angular_descriptor_oracle, cluster,
                       asymmetric_model, model_text, pair, raw_charges, read_block,
                       small_cell, supercell, write_models)
 from support import (HERE, ROOT, displaced, flatten, matvec, read_matrix, read_xyz,
@@ -14,10 +15,16 @@ from support import (HERE, ROOT, displaced, flatten, matvec, read_matrix, read_x
 
 
 def configure(directory, backends):
-    global WORK, BACKENDS, MODELS, REFERENCE
+    global WORK, BACKENDS, MODELS, REFERENCE, ANGULAR_MODELS, ANGULAR_REFERENCE
     WORK, BACKENDS = directory, backends
     MODELS = write_models(directory)
     REFERENCE = json.loads((HERE / 'references.json').read_text())
+    ANGULAR_MODELS = {}
+    for name, options in angular_cases().items():
+        path = directory / ('angular_' + name + '.txt')
+        path.write_text(model_text(**options))
+        ANGULAR_MODELS[name] = path
+    ANGULAR_REFERENCE = json.loads((HERE / 'angular_references.json').read_text())
 
 
 class APITests(unittest.TestCase):
@@ -669,6 +676,149 @@ class APITests(unittest.TestCase):
                             one = backend.run(model, [frame])[0]
                             many = backend.run(model, [frame], threads=3)[0]
                             self.compare_result(many, one, 'asymmetric layout / OpenMP', 3e-9, 3e-9)
+
+    def test_angular_references(self):
+        self.assertEqual(set(ANGULAR_REFERENCE['model_sha256']), set(ANGULAR_MODELS))
+        frame = cluster()
+        encoded = json.dumps(frame, sort_keys=True, separators=(',', ':')).encode()
+        self.assertEqual(hashlib.sha256(encoded).hexdigest(), ANGULAR_REFERENCE['frame_sha256'])
+        for name, model in ANGULAR_MODELS.items():
+            with self.subTest(model=name):
+                self.assertEqual(hashlib.sha256(model.read_bytes()).hexdigest(),
+                                 ANGULAR_REFERENCE['model_sha256'][name])
+        for mode, backend in BACKENDS.items():
+            self.assertEqual(set(ANGULAR_REFERENCE[mode]), set(ANGULAR_MODELS))
+            for name, model in ANGULAR_MODELS.items():
+                with self.subTest(mode=mode, model=name):
+                    self.compare_result(backend.run(model, [frame])[0],
+                                        ANGULAR_REFERENCE[mode][name], 'angular reference/' + name)
+
+    def test_angular_descriptor_oracle(self):
+        if 'analytic' not in BACKENDS:
+            self.skipTest('Exact radial functions target the analytic implementation')
+        backend = BACKENDS['analytic']
+        for name, model in ANGULAR_MODELS.items():
+            if not name.startswith(('nep_l', 'typewise_l')):
+                continue
+            for frame in (cluster(), angular_axis_frame()):
+                with self.subTest(model=name, positions=frame['position']):
+                    expected = angular_descriptor_oracle(model, frame)
+                    actual = backend.run(model, [frame])[0]['descriptor']
+                    self.close([row[3:3 + len(expected[0])] for row in actual], expected,
+                               'three-body descriptors / Legendre addition theorem')
+
+    def test_angular_derivatives(self):
+        if 'analytic' not in BACKENDS:
+            self.skipTest('Finite differences target the analytic implementation')
+        backend = BACKENDS['analytic']
+        for name, model in ANGULAR_MODELS.items():
+            if 'dipole' in name or 'polarizability' in name:
+                continue
+            with self.subTest(model=name):
+                self.check_derivatives(backend, model, cluster(), all_coordinates=False)
+        for l_max in range(2, 9):
+            with self.subTest(l_max=l_max, flags='three-body only'):
+                path = WORK / 'angular_three_body.txt'
+                path.write_text(model_text(l_max=l_max, flags=(0,) * 6))
+                self.check_derivatives(backend, path, cluster(), all_coordinates=False)
+        for l_max in (2, 4, 5, 8):
+            with self.subTest(l_max=l_max, geometry='axes and near pole'):
+                self.check_derivatives(backend, ANGULAR_MODELS['nep_l{}'.format(l_max)],
+                                       angular_axis_frame(), all_coordinates=False)
+
+    def test_angular_symmetries(self):
+        rotation = [[0.36, -0.48, 0.8], [0.8, 0.60, 0.0], [-0.48, 0.64, 0.6]]
+        frame = cluster()
+        rotated = transform(frame, rotation)
+        order = [3, 0, 5, 1, 4, 2]
+        permuted = copy.deepcopy(frame)
+        for field in ('type', 'position'):
+            permuted[field] = [frame[field][i] for i in order]
+        for mode, backend in BACKENDS.items():
+            for name, model in ANGULAR_MODELS.items():
+                with self.subTest(mode=mode, model=name):
+                    base, rot, perm = backend.run(model, [frame, rotated, permuted])
+                    for field in ('energy', 'charge', 'descriptor'):
+                        if field in base:
+                            self.close(rot[field], base[field], 'angular rotation/' + field, 3e-9, 3e-9)
+                    for field in ('virial', 'bec'):
+                        if field in base:
+                            self.close(rot[field], [tensor_transform(row, rotation) for row in base[field]],
+                                       'angular tensor rotation/' + field, 3e-9, 3e-9)
+                    if 'force' in base:
+                        self.close(rot['force'], [matvec(rotation, row) for row in base['force']],
+                                   'angular force rotation', 3e-9, 3e-9)
+                        self.close([sum(row[d] for row in base['force']) for d in range(3)],
+                                   [0.] * 3, 'angular zero net force', 2e-10, 0)
+                    for field in ('energy', 'force', 'virial', 'charge', 'bec', 'descriptor'):
+                        if field in base:
+                            self.close(perm[field], [base[field][i] for i in order],
+                                       'angular permutation/' + field, 3e-9, 3e-9)
+                    if 'response' in base:
+                        self.close(perm['response'], base['response'], 'angular response permutation', 3e-9, 3e-9)
+                        response = base['response'][0]
+                        if name.startswith('nep_dipole'):
+                            expected = matvec(rotation, response)
+                        else:
+                            xx, yy, zz, xy, yz, zx = response
+                            tensor = tensor_transform([xx, xy, zx, xy, yy, yz, zx, yz, zz], rotation)
+                            expected = [tensor[d] for d in (0, 4, 8, 1, 5, 6)]
+                        self.close(rot['response'], [expected], 'angular response rotation', 3e-9, 3e-9)
+
+    def test_angular_lammps(self):
+        for mode, backend in BACKENDS.items():
+            for name, model in ANGULAR_MODELS.items():
+                if not name.startswith(('nep_l', 'typewise_l', 'zbl_')):
+                    continue
+                with self.subTest(mode=mode, model=name):
+                    self.check_lammps(backend, model, cluster())
+            for l_max in (2, 5, 8):
+                with self.subTest(mode=mode, l_max=l_max, geometry='axes and near pole'):
+                    self.check_lammps(backend, ANGULAR_MODELS['nep_l{}'.format(l_max)], angular_axis_frame())
+
+    def test_angular_charge_and_bec(self):
+        for mode, backend in BACKENDS.items():
+            for name, model in ANGULAR_MODELS.items():
+                if name.startswith('qnep'):
+                    with self.subTest(mode=mode, model=name):
+                        self.check_charge_and_bec(backend, model, cluster())
+
+    def test_angular_reuse_and_periodic_images(self):
+        for mode, backend in BACKENDS.items():
+            for name in ('typewise_l2', 'typewise_l5', 'typewise_l8', 'qnep3_l8'):
+                with self.subTest(mode=mode, model=name):
+                    model = ANGULAR_MODELS[name]
+                    frames = [pair((1, 0), 2.3), cluster(), small_cell(), angular_axis_frame()]
+                    fresh = [backend.run(model, [frame])[0] for frame in frames]
+                    order = (0, 1, 2, 3, 0, 2, 1)
+                    shared = backend.run(model, [frames[i] for i in order])
+                    for value, i in zip(shared, order):
+                        self.compare_result(value, fresh[i], 'angular reused object')
+                    shifted = copy.deepcopy(frames[2])
+                    for i, r in enumerate(shifted['position']):
+                        image = (i % 3 - 1, 1 - i % 2, i % 2)
+                        delta = matvec(shifted['box'], image)
+                        shifted['position'][i] = [x + y for x, y in zip(r, delta)]
+                    self.compare_result(backend.run(model, [shifted])[0], fresh[2],
+                                        'angular periodic images', 3e-9, 3e-9)
+                    if name.startswith('typewise'):
+                        large, small = backend.run(model, [supercell(frames[2]), frames[2]])
+                        self.compare_result(small, fresh[2], 'angular shrink after supercell', 3e-9, 3e-9)
+                        for field in ('energy', 'force', 'virial', 'descriptor'):
+                            self.close(large[field], fresh[2][field] * 27,
+                                       'angular small cell / supercell/' + field, 3e-9, 3e-9)
+
+    def test_angular_openmp(self):
+        if not any(b.openmp for b in BACKENDS.values()):
+            self.skipTest('OpenMP disabled with --no-openmp')
+        for mode, backend in BACKENDS.items():
+            for name, model in ANGULAR_MODELS.items():
+                with self.subTest(mode=mode, model=name):
+                    frames = [cluster(), small_cell()]
+                    one = backend.run(model, frames, threads=1)
+                    many = backend.run(model, frames, threads=3)
+                    for a, b in zip(one, many):
+                        self.compare_result(a, b, 'angular 1 vs 3 threads', 3e-9, 3e-9)
 
     def test_qnep3_self_energy(self):
         """Compare against qNEP2 plus the independent Ewald self-energy formula."""

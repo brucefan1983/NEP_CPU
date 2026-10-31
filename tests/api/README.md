@@ -55,6 +55,9 @@ compiler and OpenMP options.
 | Rejections | Removed/unknown models, second hidden layer, short ANN header, wrong compute overload, wrong output sizes, and the LAMMPS model-type guard |
 | Version-1 model files | Record order, case, comments, numerical blocks, and rejection of malformed or unsupported records |
 | Parameter layout | Three species, asymmetric ordered-pair coefficients, unequal radial/angular dimensions, exact parameter storage, independent pair descriptors, and force/virial/BEC consistency |
+| Angular orders 2 through 8 | Frozen analytic/table outputs for 27 models; selected force derivatives, all strain components, rotations, permutations, charge/BEC, response models, typewise cutoffs, ZBL, object reuse, periodic images, and OpenMP |
+| Independent angular descriptors | Legendre addition theorem for multi-neighbor clusters, including axis-aligned and near-pole bonds, without using the C++ Cartesian harmonic coefficients |
+| Angular LAMMPS API | Standalone/LAMMPS energy, force and virial agreement across all angular orders and representative typewise/ZBL models; optional output buffers and reversed element mapping |
 | Reference energies | Per-element energy shifts with unchanged forces, virials, charges, BEC, and features |
 | LAMMPS API | Reversed element mapping, total and per-atom energies/virials, and optional per-atom output buffers |
 | Rank diagnostics | Root-only output and nonzero exit, tested through the API rank flag |
@@ -101,6 +104,14 @@ some pairs. The suite reproduces those saved values and separately uses
 `long double` to reduce cancellation; API outputs remain doubles. Strict coordinate and strain
 finite differences are applied to the analytic build: independently interpolated
 function and derivative tables do not form an exact derivative pair.
+
+`angular_references.json` records outputs from unmodified commit
+`63ffd6abbfe965c843d226b69715385be43dbd19`, with model and geometry hashes.
+It covers ordinary NEP at every `L_max` from 2 through 8 and other callers at
+representative orders 2, 5, and 8. The highest harmonic order required by an
+enabled four-body term must not exceed the three-body `L_max`: `q_123` and
+`q_233` require at least 3, and `q_134` requires at least 4. All fixtures obey
+this constraint so the required moments are available.
 
 There is no automatic reference-update option. Before intentionally changing
 reference values, establish the cause, validate against an independent check
