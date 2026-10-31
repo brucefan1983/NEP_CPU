@@ -95,7 +95,7 @@ class Backend:
         if result.returncode:
             raise RuntimeError('Compilation failed:\n' + result.stdout + result.stderr)
 
-    def invoke(self, model, frames, action='full', threads=None):
+    def invoke(self, model, frames, action='full', threads=None, rank=0):
         # A fresh process isolates exit(1) and memory corruption; frames within
         # that process share one initialized NEP instance (MD-like reuse).
         with tempfile.TemporaryDirectory(prefix='case_', dir=self.directory) as tmp:
@@ -107,7 +107,7 @@ class Backend:
                     for t, r in zip(frame['type'], frame['position']):
                         stream.write(str(t) + ' ' + ' '.join(format(x, '.17g') for x in r) + '\n')
             env = dict(os.environ, OMP_NUM_THREADS=str(threads or self.threads), OMP_DYNAMIC='FALSE')
-            result = subprocess.run([str(self.executable), str(model), str(source), str(target)],
+            result = subprocess.run([str(self.executable), str(model), str(source), str(target), str(rank)],
                                     text=True, capture_output=True, env=env, timeout=120)
             text = target.read_text() if target.exists() else ''
             return result, text

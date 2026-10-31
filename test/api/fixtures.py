@@ -109,7 +109,9 @@ def raw_charges(model, descriptors, types):
     compute; the raw values are needed for the GPUMD bond-based BEC definition.
     """
     import math
-    dim, neurons = len(descriptors[0]), 8
+    dim = len(descriptors[0])
+    neurons = next(int(line.split()[1]) for line in model.read_text().splitlines()
+                   if line.startswith('ann '))
     values = read_block(model, 'parameters')
     width = neurons * (dim + 3)
     result = []
@@ -133,3 +135,32 @@ def read_block(model, name):
         if len(tokens) >= count:
             return list(map(float, tokens[:count]))
     raise ValueError('Truncated fixture block: ' + name)
+
+
+def asymmetric_model(kind, n_max, basis_size):
+    """Three species with distinct ordered-pair coefficients and unequal segment sizes."""
+    dim, neurons, types = n_max[0] + 1 + (n_max[1] + 1) * 10, 5, 3
+    charge = kind.startswith('qnep')
+    ann_count = types * neurons * (dim + 2 + charge) + 1 + charge
+    if kind == 'nep_polarizability':
+        ann_count *= 2
+    rng = random.Random(987)
+    parameters = [rng.uniform(-0.25, 0.25) for _ in range(ann_count)]
+    if charge:
+        parameters[-2] = 1.7
+    coefficients = []
+    for n_max_one, basis_one in zip(n_max, basis_size):
+        segment = [[[[rng.uniform(-0.25, 0.25) for _ in range(basis_one + 1)]
+                     for _ in range(n_max_one + 1)] for _ in range(types)] for _ in range(types)]
+        coefficients.append(segment)
+        parameters += [c for center in segment for neighbor in center for row in neighbor for c in row]
+    lines = ['nep 3 C Si O', 'format_version 1', 'model ' + kind, 'cutoff 5 4 100 100',
+             'n_max {} {}'.format(*n_max), 'basis_size {} {}'.format(*basis_size),
+             'l_max 4 2 1 1 1 1 1', 'ann 5 0']
+    if kind not in ('nep_dipole', 'nep_polarizability'):
+        lines += ['energy_reference 0 0 0']
+    lines += ['@ parameters ' + str(len(parameters))]
+    lines += [format(v, '.17g') for v in parameters]
+    lines += ['@ q_scaler ' + str(dim)]
+    lines += [format(0.7 + 0.03 * d, '.17g') for d in range(dim)]
+    return '\n'.join(lines) + '\n', coefficients
