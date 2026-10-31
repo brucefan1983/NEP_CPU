@@ -30,6 +30,9 @@ OpenMP support, `--no-openmp` builds serially and skips only the thread comparis
 `--openmp` remains accepted explicitly. Paths are resolved from the script, so
 it also runs from outside the repository.
 
+The D3 dataset tool tests run by default in the same suite, using the same
+compiler and OpenMP options.
+
 ## Coverage
 
 | Check | Purpose |
@@ -46,6 +49,7 @@ it also runs from outside the repository.
 | Typewise cutoffs | Each ordered type pair, equivalent uniform-cutoff model, and both sides of radial/angular cutoffs |
 | ZBL | Independent Python pair-energy/force/virial formula; fixed, typewise, and flexible switching |
 | DFTD3 | Frozen result, finite differences, and NEP + DFTD3 additivity |
+| D3 dataset tool | Saved C and C/Si results, add/subtract roundtrip, metadata preservation, invalid inputs, and OpenMP |
 | Feature API | Latent-space energy reconstruction and B-projection derivatives with respect to ANN parameters |
 | Rejections | Removed/unknown models, second hidden layer, short ANN header, wrong compute overload, wrong output sizes, and the LAMMPS model-type guard |
 | Version-1 model files | Record order, case, comments, numerical blocks, and rejection of malformed or unsupported records |
@@ -64,6 +68,7 @@ this suite's intended usage.
 The PbTe models, structures, historical `*_ref.out` files, and `force_gpu.out`
 files are stored in `data/nep/` and `data/qnep/` next to the test scripts.
 The carbon model used for D3 checks is in `data/dftd3/`.
+The dataset tool's C/Si reference is in `data/dftd3/reference.json`.
 `references.json` supplements them with results from
 unmodified commit `9bc09df9fb96dc0bf3facad6b34ce02deeaf1ffa`. It records input
 SHA-256 hashes and separate analytic/table results. Synthetic C/Si and C/Si/O fixtures have

@@ -1,20 +1,21 @@
-#!/usr/bin/env python3
 """Regression tests for the D3 dataset tool; uses only the Python standard library."""
 import io
 import json
 import math
-import os
 from pathlib import Path
 import sys
 import tempfile
 import unittest
 
-sys.dont_write_bytecode = True
-ROOT = Path(__file__).resolve().parents[2]
+from support import HERE, ROOT
 sys.path.insert(0, str(ROOT / 'tools' / 'dftd3'))
-sys.path.insert(0, str(ROOT / 'test' / 'api'))
 import dftd3
 from fixtures import cluster
+
+
+def configure(directory, cxx, cxxflags, openmp):
+    global WORK, CXX, CXXFLAGS, OPENMP
+    WORK, CXX, CXXFLAGS, OPENMP = directory, cxx, cxxflags, openmp
 
 
 def dataset(mixed=False):
@@ -32,18 +33,15 @@ def dataset(mixed=False):
     return str(len(rows)) + '\n' + header + ''.join(rows)
 
 
-class D3Tests(unittest.TestCase):
+class D3ToolTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.build = tempfile.TemporaryDirectory(prefix='nep_d3_tests_')
-        cls.addClassCleanup(cls.build.cleanup)
         print('Compiling D3 helper...', flush=True)
-        cls.executable = dftd3.compile_backend(cls.build.name, os.environ.get('CXX', 'g++'),
-                                             os.environ.get('CXXFLAGS', ''))
-        cls.reference = json.loads((ROOT / 'test/api/references.json').read_text())['analytic']['d3']
+        cls.executable = dftd3.compile_backend(WORK, CXX, CXXFLAGS, OPENMP)
+        cls.reference = json.loads((HERE / 'references.json').read_text())['analytic']['d3']
 
     def setUp(self):
-        self.work = tempfile.TemporaryDirectory(dir=self.build.name)
+        self.work = tempfile.TemporaryDirectory(prefix='d3_', dir=WORK)
         self.addCleanup(self.work.cleanup)
         self.directory = Path(self.work.name)
 
@@ -93,14 +91,14 @@ class D3Tests(unittest.TestCase):
                                                     for x, y in zip(before.tensors['stress'], total)])
                 self.unchanged_fields(before, after)
 
-    def test_saved_d3_reference(self):
+    def test_dftd3_tool_saved_d3_reference(self):
         self.check_reference(dataset(), self.reference)
 
-    def test_mixed_species_reference(self):
-        reference = json.loads((Path(__file__).parent / 'reference.json').read_text())['result']
+    def test_dftd3_tool_mixed_species_reference(self):
+        reference = json.loads((HERE / 'data/dftd3/reference.json').read_text())['result']
         self.check_reference(dataset(mixed=True), reference)
 
-    def test_roundtrip_and_changing_atom_count(self):
+    def test_dftd3_tool_roundtrip_and_changing_atom_count(self):
         example = (ROOT / 'tools/dftd3/example.xyz').read_text()
         text = dataset(mixed=True) + example + dataset()
         added, _ = self.run_conversion(text)
@@ -115,7 +113,7 @@ class D3Tests(unittest.TestCase):
             for name in old.tensors:
                 self.close(old.tensors[name], new.tensors[name])
 
-    def test_optional_tensors_and_singular_force(self):
+    def test_dftd3_tool_optional_tensors_and_singular_force(self):
         text = dataset()
         before = next(dftd3.read_frames(io.StringIO(text)))
         for tensor in ('virial', 'stress'):
@@ -126,12 +124,14 @@ class D3Tests(unittest.TestCase):
         self.assertNotIn('pbc', frames[0].fields)
         self.close([frames[0].energy], [before.energy + self.reference['total_energy']])
 
-    def test_openmp(self):
+    def test_dftd3_tool_openmp(self):
+        if not OPENMP:
+            self.skipTest('OpenMP disabled with --no-openmp')
         one, _ = self.run_conversion(dataset(), threads=1)
         three, _ = self.run_conversion(dataset(), threads=3)
         self.assertEqual(one, three)
 
-    def test_invalid_inputs_leave_no_output(self):
+    def test_dftd3_tool_invalid_inputs_leave_no_output(self):
         text = dataset()
         cases = ['', text.replace('energy = -12.3', 'other_energy=-12.3'),
                  text.replace('energy = -12.3', 'energy=nan'),
@@ -153,7 +153,7 @@ class D3Tests(unittest.TestCase):
             self.run_conversion(text + '3\ntruncated\n')
         self.assertFalse((self.directory / 'output.xyz').exists())
 
-    def test_existing_output_and_invalid_settings(self):
+    def test_dftd3_tool_existing_output_and_invalid_settings(self):
         source, target = self.directory / 'input.xyz', self.directory / 'output.xyz'
         source.write_text(dataset())
         target.write_text('existing output\n')
@@ -167,11 +167,7 @@ class D3Tests(unittest.TestCase):
                 dftd3.convert(source, target, self.executable, 'add', 'pbe', *cutoffs)
         self.assertFalse(target.exists())
 
-    def test_unsupported_functional(self):
+    def test_dftd3_tool_unsupported_functional(self):
         with self.assertRaisesRegex(RuntimeError, 'not supported'):
             self.run_conversion(dataset(), functional='unknown_functional')
         self.assertFalse((self.directory / 'output.xyz').exists())
-
-
-if __name__ == '__main__':
-    unittest.main(verbosity=2)

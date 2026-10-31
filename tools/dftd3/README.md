@@ -30,8 +30,8 @@ does not leave a partial output dataset.
 `example.xyz` is the original `test_dftd3/train.xyz` dataset. This tool replaces
 the old executable's add/subtract modes (3 and 4).
 
-Run the tool's regression tests with:
+Run all regression tests, including this tool's tests, with:
 
 ```sh
-python3 test/dftd3/run_tests.py
+python3 test/api/run_tests.py
 ```

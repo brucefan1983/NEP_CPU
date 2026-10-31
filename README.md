@@ -27,7 +27,6 @@ python3 /path/to/GPUMD/potentials/nep/nep_model_converter.py nep_old.txt nep.txt
 * The following folders contain some testing code and results:
   * `test/api/`
   * `test/lammps/`
-  * `test/dftd3/`
   
 * The `NEP` C++ class is used as an engine powering the following Python packages:
   * `calorine`: https://gitlab.com/materials-modeling/calorine
