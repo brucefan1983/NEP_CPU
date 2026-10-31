@@ -6,9 +6,21 @@
 
 * An interface of the `NEP` class to the CPU version of LAMMPS (https://github.com/lammps/lammps). **It can be run with MPI**.
 
+# Model files
+
+Only model files with `format_version 1` are accepted. See the [GPUMD format specification](https://github.com/brucefan1983/GPUMD/blob/master/potentials/nep/nep_model_format.md).
+
+Convert an older model file using GPUMD's [nep_model_converter.py](https://github.com/brucefan1983/GPUMD/blob/master/potentials/nep/nep_model_converter.py):
+
+```sh
+python3 /path/to/GPUMD/potentials/nep/nep_model_converter.py nep_old.txt nep.txt
+```
+
 # The standalone C++ implementation of NEP
 
 * The `NEP` C++ class and the interfaces are defined in `src/nep.h`.
+
+* Compile your program together with `src/nep.cpp`, `src/nep_model_file.cpp`, `src/ewald_nep.cpp`, and `src/neighbor_nep.cpp`, using C++11 or later.
   
 * The following folders contain some testing code and results:
   * `test/api/`
