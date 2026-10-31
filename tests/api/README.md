@@ -3,7 +3,7 @@
 From the repository root:
 
 ```sh
-python3 test/api/run_tests.py
+python3 tests/api/run_tests.py
 ```
 
 Requires Python 3.8+ (standard library only) and a C++11 compiler with OpenMP
@@ -17,10 +17,10 @@ reference files are never overwritten. A failed assertion, crash, or compilation
 failure returns a nonzero exit status.
 
 ```sh
-python3 test/api/run_tests.py --mode analytic
-python3 test/api/run_tests.py --mode table
-python3 test/api/run_tests.py --no-openmp
-python3 test/api/run_tests.py --only typewise
+python3 tests/api/run_tests.py --mode analytic
+python3 tests/api/run_tests.py --mode table
+python3 tests/api/run_tests.py --no-openmp
+python3 tests/api/run_tests.py --only typewise
 ```
 
 `--cxx` / `CXX` select the compiler; `--cxxflags` / `CXXFLAGS` add compiler flags.
@@ -30,12 +30,15 @@ OpenMP support, `--no-openmp` builds serially and skips only the thread comparis
 `--openmp` remains accepted explicitly. Paths are resolved from the script, so
 it also runs from outside the repository.
 
+The D3 dataset tool tests run by default in the same suite, using the same
+compiler and OpenMP options.
+
 ## Coverage
 
 | Check | Purpose |
 | --- | --- |
 | `data/nep`, `data/qnep` saved references | Every force component, all nine per-atom virial components, and every descriptor component |
-| Saved finite-difference and GPU forces | Reproduce the original examples and compare with their GPUMD float32 results |
+| Saved finite-difference and GPU forces | Selected finite-difference force components and every GPUMD float32 force component |
 | Additional frozen results | Atomic energies, charges, BEC, typewise cutoffs, response models, latent space, B projection, ZBL, DFTD3, and the table build |
 | Energy derivatives | Coordinate finite differences for forces and all nine homogeneous strains for total virial |
 | All 64 many-body flag layouts | Selected force components and all strain components for ordinary NEP, qNEP1, and qNEP2 |
@@ -46,6 +49,7 @@ it also runs from outside the repository.
 | Typewise cutoffs | Each ordered type pair, equivalent uniform-cutoff model, and both sides of radial/angular cutoffs |
 | ZBL | Independent Python pair-energy/force/virial formula; fixed, typewise, and flexible switching |
 | DFTD3 | Frozen result, finite differences, and NEP + DFTD3 additivity |
+| D3 dataset tool | Saved C and C/Si results, add/subtract roundtrip, metadata preservation, invalid inputs, and OpenMP |
 | Feature API | Latent-space energy reconstruction and B-projection derivatives with respect to ANN parameters |
 | Rejections | Removed/unknown models, second hidden layer, short ANN header, wrong compute overload, wrong output sizes, and the LAMMPS model-type guard |
 | Version-1 model files | Record order, case, comments, numerical blocks, and rejection of malformed or unsupported records |
@@ -55,7 +59,7 @@ it also runs from outside the repository.
 | Rank diagnostics | Root-only output and nonzero exit, tested through the API rank flag |
 
 The LAMMPS checks call the C++ API directly; this suite does not
-run a LAMMPS executable or test MPI/ghost-atom integration. See `test/lammps` for
+run a LAMMPS executable or test MPI/ghost-atom integration. See `tests/lammps` for
 LAMMPS examples. Reinitializing an existing object with a second model is outside
 this suite's intended usage.
 
@@ -63,6 +67,8 @@ this suite's intended usage.
 
 The PbTe models, structures, historical `*_ref.out` files, and `force_gpu.out`
 files are stored in `data/nep/` and `data/qnep/` next to the test scripts.
+The carbon model used for D3 checks is in `data/dftd3/`.
+The dataset tool's C/Si reference is in `data/dftd3/reference.json`.
 `references.json` supplements them with results from
 unmodified commit `9bc09df9fb96dc0bf3facad6b34ce02deeaf1ffa`. It records input
 SHA-256 hashes and separate analytic/table results. Synthetic C/Si and C/Si/O fixtures have
@@ -80,6 +86,12 @@ and `1.2e-4 eV/Angstrom` for qNEP. These are fixture-specific, based on the
 preserved float32 results, not general CPU/GPU accuracy bounds. Table results
 are checked against their own frozen results with the tight CPU tolerance;
 the additional historical analytic comparison allows interpolation error.
+
+Finite differences on the two 250-atom PbTe structures check all three coordinates
+of six fixed atoms per structure (three per element), covering different
+coordination environments and pairs near the radial/angular cutoffs. Saved
+CPU/GPU comparisons still check every atom; small synthetic fixtures retain
+their existing derivative checks.
 
 The original qNEP finite-difference step, `2e-4 Angstrom`, crosses a cutoff for
 some pairs. The suite reproduces those saved values and separately uses

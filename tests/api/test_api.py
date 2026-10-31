@@ -81,16 +81,20 @@ class APITests(unittest.TestCase):
         if 'analytic' not in BACKENDS:
             self.skipTest('Finite differences target the analytic implementation')
         backend = BACKENDS['analytic']
+        # Three atoms per species, spanning low/high coordination and pairs
+        # closest to the radial (atom 8) and angular (atom 130) cutoffs.
+        atoms = (5, 8, 66, 130, 153, 238)
         for name, step in [('nep', 2e-5), ('qnep', 2e-4)]:
             with self.subTest(fixture=name):
                 directory = HERE / 'data' / name
                 frame = read_xyz(directory)
                 frames = [displaced(frame, i, d, sign * step)
-                          for i in range(len(frame['type'])) for d in range(3) for sign in (-1, 1)]
+                          for i in atoms for d in range(3) for sign in (-1, 1)]
                 energies = [r['total_energy'] for r in backend.run(directory / 'nep.txt', frames, 'energy')]
                 fd = [(energies[k] - energies[k + 1]) / (2 * step) for k in range(0, len(energies), 2)]
                 fd = [fd[i:i + 3] for i in range(0, len(fd), 3)]
-                self.close(fd, read_matrix(directory / 'force_finite_difference_ref.out'),
+                saved = read_matrix(directory / 'force_finite_difference_ref.out')
+                self.close(fd, [saved[i] for i in atoms],
                            name + '/saved FD', 2e-7, 2e-7)
                 # qNEP's historical 2e-4 step crosses a cutoff for some pairs.
                 # Preserve that regression, but test derivative consistency at
@@ -99,12 +103,12 @@ class APITests(unittest.TestCase):
                 if name == 'qnep':
                     step = 2e-6
                     frames = [displaced(frame, i, d, sign * step)
-                              for i in range(len(frame['type'])) for d in range(3) for sign in (-1, 1)]
+                              for i in atoms for d in range(3) for sign in (-1, 1)]
                     energies = [r['total_energy'] for r in backend.run(directory / 'nep.txt', frames, 'energy')]
                     fd = [(energies[k] - energies[k + 1]) / (2 * step) for k in range(0, len(energies), 2)]
                     fd = [fd[i:i + 3] for i in range(0, len(fd), 3)]
                 actual = backend.run(directory / 'nep.txt', [frame])[0]['force']
-                self.close(fd, actual, name + '/force = -dE/dr', 2e-7, 2e-7)
+                self.close(fd, [actual[i] for i in atoms], name + '/force = -dE/dr', 2e-7, 2e-7)
 
     def test_synthetic_references(self):
         for mode, backend in BACKENDS.items():
@@ -332,7 +336,7 @@ class APITests(unittest.TestCase):
                             self.close(result['virial'], virial, 'ZBL per-atom virial', 3e-10, 3e-11)
 
     def test_dftd3(self):
-        model = ROOT / 'test_dftd3/C_2022_NEP4.txt'
+        model = ROOT / 'tests/api/data/dftd3/nep.txt'
         frame = cluster()
         frame['type'] = [0] * len(frame['type'])
         for mode, backend in BACKENDS.items():

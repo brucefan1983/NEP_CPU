@@ -25,9 +25,8 @@ python3 /path/to/GPUMD/potentials/nep/nep_model_converter.py nep_old.txt nep.txt
 * Compile your program together with `src/nep.cpp`, `src/nep_model_file.cpp`, `src/ewald_nep.cpp`, and `src/neighbor_nep.cpp`, using C++11 or later.
   
 * The following folders contain some testing code and results:
-  * `test/api/`
-  * `test/lammps/`
-  * `test_dftd3/`
+  * `tests/api/`
+  * `tests/lammps/`
   
 * The `NEP` C++ class is used as an engine powering the following Python packages:
   * `calorine`: https://gitlab.com/materials-modeling/calorine
@@ -35,6 +34,11 @@ python3 /path/to/GPUMD/potentials/nep/nep_model_converter.py nep_old.txt nep.txt
   * `somd`: https://github.com/initqp/somd
   * `NepTrainKit`: https://github.com/aboys-cb/NepTrainKit
   
+# D3 dataset corrections
+
+Use the [Python D3 tool](tools/dftd3/README.md) to add or subtract D3(BJ)
+energy, force, and virial corrections in extended XYZ datasets.
+
 # The NEP-LAMMPS interface
 
 The NEP-LAMMPS interface supports NEP potential models, including their ZBL variants, with one hidden layer. qNEP, dipole, and polarizability models are not supported.

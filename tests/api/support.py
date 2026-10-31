@@ -113,8 +113,8 @@ class Backend:
             return result, text
 
     def run(self, model, frames, action='full', threads=None):
-        # Bound process time and temporary file size for the 1,500-frame real
-        # fixture finite differences. Short MD-like reuse sequences stay intact.
+        # Bound process time and temporary file size for long frame sequences.
+        # Short MD-like reuse sequences stay intact.
         if len(frames) > 128:
             values = []
             for start in range(0, len(frames), 128):
