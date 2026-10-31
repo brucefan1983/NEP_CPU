@@ -318,13 +318,17 @@ void find_f_and_fp_zbl(
 void find_fn(const int n_max, const double rcinv, const double d12, const double fc12, double* fn)
 {
   double x = 2.0 * (d12 * rcinv - 1.0) * (d12 * rcinv - 1.0) - 1.0;
-  fn[0] = 1.0;
-  fn[1] = x;
+  double half_fc12 = 0.5 * fc12;
+  fn[0] = fc12;
+  fn[1] = (x + 1.0) * half_fc12;
+  double fn_m_minus_2 = 1.0;
+  double fn_m_minus_1 = x;
+  double tmp = 0.0;
   for (int m = 2; m <= n_max; ++m) {
-    fn[m] = 2.0 * x * fn[m - 1] - fn[m - 2];
-  }
-  for (int m = 0; m <= n_max; ++m) {
-    fn[m] = (fn[m] + 1.0) * 0.5 * fc12;
+    tmp = 2.0 * x * fn_m_minus_1 - fn_m_minus_2;
+    fn_m_minus_2 = fn_m_minus_1;
+    fn_m_minus_1 = tmp;
+    fn[m] = (tmp + 1.0) * half_fc12;
   }
 }
 
@@ -337,26 +341,29 @@ void find_fn_and_fnp(
   double* fn,
   double* fnp)
 {
-  double x = 2.0 * (d12 * rcinv - 1.0) * (d12 * rcinv - 1.0) - 1.0;
-  fn[0] = 1.0;
-  fnp[0] = 0.0;
-  fn[1] = x;
-  fnp[1] = 1.0;
+  double d12_mul_rcinv = d12 * rcinv;
+  double x = 2.0 * (d12_mul_rcinv - 1.0) * (d12_mul_rcinv - 1.0) - 1.0;
+  fn[0] = fc12;
+  fnp[0] = fcp12;
+  fn[1] = (x + 1.0) * 0.5 * fc12;
+  fnp[1] = 2.0 * (d12_mul_rcinv - 1.0) * rcinv * fc12 + (x + 1.0) * 0.5 * fcp12;
   double u0 = 1.0;
   double u1 = 2.0 * x;
   double u2;
+  double fn_m_minus_2 = 1.0;
+  double fn_m_minus_1 = x;
   for (int m = 2; m <= n_max; ++m) {
-    fn[m] = 2.0 * x * fn[m - 1] - fn[m - 2];
-    fnp[m] = m * u1;
+    double fn_tmp1 = 2.0 * x * fn_m_minus_1 - fn_m_minus_2;
+    fn_m_minus_2 = fn_m_minus_1;
+    fn_m_minus_1 = fn_tmp1;
+    double fnp_tmp = m * u1;
     u2 = 2.0 * x * u1 - u0;
     u0 = u1;
     u1 = u2;
-  }
-  for (int m = 0; m <= n_max; ++m) {
-    fn[m] = (fn[m] + 1.0) * 0.5;
-    fnp[m] *= 2.0 * (d12 * rcinv - 1.0) * rcinv;
-    fnp[m] = fnp[m] * fc12 + fn[m] * fcp12;
-    fn[m] *= fc12;
+
+    double fn_tmp2 = (fn_tmp1 + 1.0) * 0.5;
+    fnp[m] = (fnp_tmp * 2.0 * (d12 * rcinv - 1.0) * rcinv) * fc12 + fn_tmp2 * fcp12;
+    fn[m] = fn_tmp2 * fc12;
   }
 }
 
