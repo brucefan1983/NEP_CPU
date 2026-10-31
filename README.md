@@ -110,3 +110,6 @@ make install
 
 * If you use the LAMMPS interface of the `NEP` class, a proper citation for LAMMPS is also suggested. 
 
+# License
+
+The NEP_CPU core is licensed under LGPL-3.0-or-later; see the [LGPL v3](LICENSES/LGPL-3.0.txt) and [GPL v3](LICENSES/GPL-3.0.txt) license texts. The LAMMPS interface retains its existing GPL license and copyright notices.
