@@ -41,7 +41,8 @@ compiler and OpenMP options.
 | Saved finite-difference and GPU forces | Selected finite-difference force components and every GPUMD float32 force component |
 | Additional frozen results | Atomic energies, charges, BEC, typewise cutoffs, response models, latent space, B projection, ZBL, DFTD3, and the table build |
 | Energy derivatives | Coordinate finite differences for forces and all nine homogeneous strains for total virial |
-| All 64 many-body flag layouts | Selected force components and all strain components for ordinary NEP, qNEP1, and qNEP2 |
+| All 64 many-body flag layouts | Selected force components and all strain components for ordinary NEP, qNEP1, qNEP2, and qNEP3 |
+| qNEP3 self energy | Independent qNEP2 + self-energy comparison, unchanged charges/BEC, zero-charge limit, force/virial derivatives, and OpenMP |
 | Charge response | Neutrality, BEC sum rule, and finite differences of raw ANN charges for the GPUMD bond-based BEC |
 | Symmetries | Translation, atom permutation, proper rotation of forces/tensors/dipole/polarizability |
 | Periodic geometry | Triclinic cells, independent atom image shifts, small cell versus 3x3x3 supercell |

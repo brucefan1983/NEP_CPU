@@ -150,12 +150,12 @@ class APITests(unittest.TestCase):
             self.check_derivatives(BACKENDS['analytic'], MODELS['typewise'], small_cell())
 
     def test_all_many_body_flag_combinations(self):
-        """64 layouts, each with energy/force/virial checks for NEP and qNEP1/2."""
+        """64 layouts, each with energy/force/virial checks for NEP and qNEP1/2/3."""
         if 'analytic' not in BACKENDS:
             self.skipTest('Finite differences target the analytic implementation')
         backend = BACKENDS['analytic']
         for flags in itertools.product((0, 1), repeat=6):
-            for kind in ('nep', 'qnep1', 'qnep2'):
+            for kind in ('nep', 'qnep1', 'qnep2', 'qnep3'):
                 with self.subTest(flags=flags, kind=kind):
                     model = WORK / 'flags.txt'
                     model.write_text(model_text(kind=kind, flags=flags))
@@ -517,7 +517,7 @@ class APITests(unittest.TestCase):
             start = next(i for i, line in enumerate(lines) if line.startswith('@ ' + block + ' '))
             count = int(lines[start].split()[2])
             cases['missing_' + block] = '\n'.join(lines[:start] + lines[start + count + 1:]) + '\n'
-        for name in ('qnep3', 'nep_temperature', 'nep_spin', 'nep_vdw', 'unknown'):
+        for name in ('nep_temperature', 'nep_spin', 'nep_vdw', 'unknown'):
             cases['model_' + name] = text.replace('model nep\n', 'model ' + name + '\n')
         for value in ('nan', 'inf', '-inf', '1e40', '1e-60', '1e-999', '0x1p0', '1x', '1,2'):
             scaler_start = text.index('@ q_scaler 33\n') + len('@ q_scaler 33\n')
@@ -629,7 +629,7 @@ class APITests(unittest.TestCase):
                        for k, c in enumerate(coefficients))
 
         for n_max, basis_size in [((1, 2), (4, 1)), ((4, 0), (1, 3))]:
-            for kind in ('nep', 'qnep1', 'qnep2', 'nep_dipole', 'nep_polarizability'):
+            for kind in ('nep', 'qnep1', 'qnep2', 'qnep3', 'nep_dipole', 'nep_polarizability'):
                 text, coefficients = asymmetric_model(kind, n_max, basis_size)
                 model = WORK / 'asymmetric.txt'
                 model.write_text(text)
@@ -663,12 +663,63 @@ class APITests(unittest.TestCase):
                             self.check_lammps(backend, model, frame)
                         if kind.startswith('qnep'):
                             self.check_charge_and_bec(backend, model, frame)
-                        if mode == 'analytic' and kind in ('nep', 'qnep1', 'qnep2'):
+                        if mode == 'analytic' and kind in ('nep', 'qnep1', 'qnep2', 'qnep3'):
                             self.check_derivatives(backend, model, frame, all_coordinates=False)
                         if backend.openmp:
                             one = backend.run(model, [frame])[0]
                             many = backend.run(model, [frame], threads=3)[0]
                             self.compare_result(many, one, 'asymmetric layout / OpenMP', 3e-9, 3e-9)
+
+    def test_qnep3_self_energy(self):
+        """Compare against qNEP2 plus the independent Ewald self-energy formula."""
+        q2, q3 = WORK / 'self_qnep2.txt', WORK / 'self_qnep3.txt'
+        for cutoff, zbl in [(5.0, None), (6.0, 'zbl 1 3.5')]:
+            text = model_text(kind='qnep2', zbl=zbl).replace('cutoff 5 4', 'cutoff {} 4'.format(cutoff))
+            text = text.replace('energy_reference 0 0', 'energy_reference 1.23456789012345 -2.34567890123456')
+            q2.write_text(text)
+            q3.write_text(text.replace('model qnep2', 'model qnep3'))
+            coefficient = -14.399645 * math.sqrt(math.pi) / cutoff
+            for mode, backend in BACKENDS.items():
+                for frame in (cluster(), small_cell()):
+                    with self.subTest(mode=mode, cutoff=cutoff, box=frame['box']):
+                        before = backend.run(q2, [frame])[0]
+                        after = backend.run(q3, [frame])[0]
+                        for field in ('charge', 'bec', 'descriptor'):
+                            self.close(after[field], before[field], 'qNEP3 unchanged ' + field)
+                        shifts = [coefficient * q[0] ** 2 for q in before['charge']]
+                        self.assertLess(sum(shifts), -1e-4)
+                        self.close(after['energy'], [[e[0] + s] for e, s in zip(before['energy'], shifts)],
+                                   'qNEP3 atomic self energy')
+                        self.close(after['total_energy'], before['total_energy'] + sum(shifts),
+                                   'qNEP3 total self energy')
+                        if mode == 'analytic':
+                            self.check_derivatives(backend, q3, frame)
+                        if backend.openmp:
+                            self.compare_result(backend.run(q3, [frame], threads=3)[0], after,
+                                                'qNEP3 / OpenMP', 3e-9, 3e-9)
+        # With zero ANN charge, the new term must vanish exactly.
+        q2.write_text(model_text(kind='qnep2', zero=True))
+        q3.write_text(model_text(kind='qnep3', zero=True))
+        for mode, backend in BACKENDS.items():
+            self.compare_result(backend.run(q3, [cluster()])[0], backend.run(q2, [cluster()])[0],
+                                mode + '/zero charge')
+
+    def test_qnep3_rejections(self):
+        text = model_text(kind='qnep3')
+        cases = [(model_text(kind='qnep3', typewise=True), 'load', 'uniform cutoffs'),
+                 (model_text(kind='qnep3', zbl='zbl 0 0'), 'load', 'Flexible ZBL'),
+                 (text.replace('ann 8 0', 'ann 8 4'), 'load', 'one hidden layer'),
+                 (text, 'bad_lammps', 'only supports non-charge'),
+                 (text, 'ordinary', 'qNEP')]
+        model = WORK / 'rejected_qnep3.txt'
+        for mode, backend in BACKENDS.items():
+            for content, action, message in cases:
+                with self.subTest(mode=mode, action=action, message=message):
+                    model.write_text(content)
+                    result, output = backend.invoke(model, [cluster()], action)
+                    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                    self.assertIn(message, result.stdout + result.stderr)
+                    self.assertEqual(output, '')
 
     def test_openmp_consistency(self):
         if not any(b.openmp for b in BACKENDS.values()):
