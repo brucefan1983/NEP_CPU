@@ -139,6 +139,17 @@ void complex_product(const double a, const double b, double& real_part, double& 
   imag_part = a * imag_part + b * real_temp;
 }
 
+inline int get_c_index(
+  const int type_index,
+  const int n,
+  const int k,
+  const int n_max,
+  const int basis_size,
+  const int offset = 0)
+{
+  return offset + type_index * ((n_max + 1) * (basis_size + 1)) + n * (basis_size + 1) + k;
+}
+
 void apply_ann_one_layer(
   const int dim,
   const int num_neurons1,
@@ -1724,8 +1735,9 @@ void construct_table_radial_or_angular(
           double gn12 = 0.0;
           double gnp12 = 0.0;
           for (int k = 0; k <= basis_size; ++k) {
-            gn12 += fn12[k] * c[(n * (basis_size + 1) + k) * num_types_sq + t12];
-            gnp12 += fnp12[k] * c[(n * (basis_size + 1) + k) * num_types_sq + t12];
+            int c_index = get_c_index(t12, n, k, n_max, basis_size);
+            gn12 += fn12[k] * c[c_index];
+            gnp12 += fnp12[k] * c[c_index];
           }
           int index_all = (table_index * num_types_sq + t12) * (n_max + 1) + n;
           gn[index_all] = gn12;

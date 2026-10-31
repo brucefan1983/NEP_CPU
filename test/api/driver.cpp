@@ -31,7 +31,7 @@ int main(int argc, char** argv)
     return 2;
   }
   NEP nep;
-  nep.init_from_file(argv[1], false);
+  nep.init_from_file(argv[1], true);
   std::ifstream input(argv[2]);
   std::ofstream out(argv[3]);
   if (!input || !out) return 2;

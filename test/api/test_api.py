@@ -150,7 +150,7 @@ class APITests(unittest.TestCase):
             self.skipTest('Finite differences target the analytic implementation')
         backend = BACKENDS['analytic']
         for flags in itertools.product((0, 1), repeat=6):
-            for kind in ('nep4', 'nep4_charge1', 'nep4_charge2'):
+            for kind in ('nep', 'qnep1', 'qnep2'):
                 with self.subTest(flags=flags, kind=kind):
                     model = WORK / 'flags.txt'
                     model.write_text(model_text(kind=kind, flags=flags))
@@ -296,7 +296,7 @@ class APITests(unittest.TestCase):
             for kind in ('fixed', 'typewise', 'flexible'):
                 zbl = {'fixed': 'zbl 1 3.5', 'typewise': 'zbl 2 4 0.65', 'flexible': 'zbl 0 0'}[kind]
                 model = WORK / ('zero_zbl_' + kind + '.txt')
-                model.write_text(model_text(kind='nep4_zbl', zbl=zbl, zero=True))
+                model.write_text(model_text(zbl=zbl, zero=True))
                 for types in itertools.product((0, 1), repeat=2):
                     inner, outer, coeff = 1., 3.5, ZBL_COEFFICIENTS
                     if kind == 'typewise':
@@ -352,7 +352,8 @@ class APITests(unittest.TestCase):
                 base = backend.run(model, [frame], 'features')[0]
                 lines = model.read_text().splitlines()
                 dim, neurons, h = 33, 8, 1e-5
-                common_bias = float(lines[6 + 2 * neurons * (dim + 2)])
+                start = next(i for i, line in enumerate(lines) if line.startswith('@ parameters ')) + 1
+                common_bias = float(lines[start + 2 * neurons * (dim + 2)])
                 self.close([[sum(row) - common_bias] for row in base['latent']], base['energy'], 'latent reconstruction')
                 # Perturb input weight, hidden bias and output weight for both
                 # species. B_projection is per-atom, neuron-major within atom.
@@ -361,7 +362,7 @@ class APITests(unittest.TestCase):
                         offset = j * dim if component == 0 else neurons * dim + j
                         if component == dim + 1:
                             offset += neurons
-                        index = 6 + t * neurons * (dim + 2) + offset
+                        index = start + t * neurons * (dim + 2) + offset
                         energies = []
                         for sign in (-1, 1):
                             changed = lines[:]
@@ -378,15 +379,17 @@ class APITests(unittest.TestCase):
         for mode, backend in BACKENDS.items():
             cases = []
             for tag in ('nep3', 'nep3_zbl', 'nep3_dipole', 'nep3_polarizability',
+                        'nep4', 'nep4_zbl', 'nep4_charge1', 'nep4_charge2',
+                        'nep4_zbl_charge1', 'nep4_zbl_charge2', 'nep4_dipole', 'nep4_polarizability',
                         'nep5', 'nep5_zbl', 'nep4_charge3', 'nep4_zbl_charge3', 'unknown'):
                 path = WORK / (tag + '.txt')
                 path.write_text(tag + ' 2 C Si\n')
-                cases.append((path, 'load', 'unsupported NEP model'))
+                cases.append((path, 'load', 'expected first line'))
             for name, text, expected in [
-                ('two_layers', model_text().replace('ANN 8 0', 'ANN 8 4'), 'one hidden layer'),
-                ('short_ann', model_text().replace('ANN 8 0', 'ANN 8'), 'ANN num_neurons 0'),
-                ('bad_count', 'nep4 3 C Si\n', 'atom symbols'),
-                ('short_header', 'nep4\n', 'at least 3 items')]:
+                ('two_layers', model_text().replace('ann 8 0', 'ann 8 4'), 'one hidden layer'),
+                ('short_ann', model_text().replace('ann 8 0', 'ann 8'), "incorrect number of values in 'ann'"),
+                ('bad_count', 'nep 3 C Si\n', 'element count'),
+                ('short_header', 'nep\n', 'expected first line')]:
                 path = WORK / (name + '.txt')
                 path.write_text(text)
                 cases.append((path, 'load', expected))
@@ -411,13 +414,15 @@ class APITests(unittest.TestCase):
                     self.assertIn(message, result.stdout + result.stderr)
                     self.assertEqual(output, '', 'Rejected input produced numerical results')
 
-    def test_q222_legacy_marker(self):
+    def test_q222_requires_zero_or_two(self):
         for mode, backend in BACKENDS.items():
             with self.subTest(mode=mode):
-                old = WORK / 'q222_marker_1.txt'
-                old.write_text(model_text().replace('l_max 4 2', 'l_max 4 1'))
-                a, b = [backend.run(p, [cluster()])[0] for p in (MODELS['ordinary'], old)]
-                self.compare_result(a, b, 'q222 markers 1 and 2')
+                path = WORK / 'q222_marker_1.txt'
+                path.write_text(model_text().replace('l_max 4 2', 'l_max 4 1'))
+                result, output = backend.invoke(path, [cluster()], 'load')
+                self.assertEqual(result.returncode, 1)
+                self.assertIn('q_222 value in l_max must be 0 or 2', result.stdout)
+                self.assertEqual(output, '')
 
     def test_openmp_consistency(self):
         if not any(b.openmp for b in BACKENDS.values()):

@@ -22,14 +22,13 @@ heat transport, Phys. Rev. B. 104, 104309 (2021).
 
 #include "nep.h"
 #include "dftd3para.h"
-#include "nep_utilities.h"
 #include "neighbor_nep.h"
+#include "nep_model_file.h"
+#include "nep_utilities.h"
 #include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <iostream>
-#include <iterator>
-#include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -117,8 +116,8 @@ void find_descriptor_small_box(
       for (int n = 0; n <= paramb.n_max_radial; ++n) {
         double gn12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_radial; ++k) {
-          int c_index = (n * (paramb.basis_size_radial + 1) + k) * paramb.num_types_sq;
-          c_index += t1 * paramb.num_types + t2;
+          int c_index = get_c_index(
+            t1 * paramb.num_types + t2, n, k, paramb.n_max_radial, paramb.basis_size_radial);
           gn12 += fn12[k] * annmb.c[c_index];
         }
         q[n] += gn12;
@@ -161,8 +160,9 @@ void find_descriptor_small_box(
         find_fn(paramb.basis_size_angular, rcinv, d12, fc12, fn12);
         double gn12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_angular; ++k) {
-          int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
-          c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
+          int c_index = get_c_index(
+            t1 * paramb.num_types + t2, n, k, paramb.n_max_angular, paramb.basis_size_angular,
+            paramb.num_c_radial);
           gn12 += fn12[k] * annmb.c[c_index];
         }
         accumulate_s(paramb.L_max, d12, r12[0], r12[1], r12[2], gn12, s);
@@ -219,7 +219,7 @@ void find_descriptor_small_box(
       }
 
       if (calculating_potential) {
-        g_potential[n1] += F;
+        g_potential[n1] += F + paramb.energy_reference[t1];
       }
 
       for (int d = 0; d < annmb.dim; ++d) {
@@ -292,8 +292,8 @@ void find_force_radial_small_box(
       for (int n = 0; n <= paramb.n_max_radial; ++n) {
         double gnp12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_radial; ++k) {
-          int c_index = (n * (paramb.basis_size_radial + 1) + k) * paramb.num_types_sq;
-          c_index += t1 * paramb.num_types + t2;
+          int c_index = get_c_index(
+            t1 * paramb.num_types + t2, n, k, paramb.n_max_radial, paramb.basis_size_radial);
           gnp12 += fnp12[k] * annmb.c[c_index];
         }
         double tmp12 = g_Fp[n1 + n * N] * gnp12 * d12inv;
@@ -419,8 +419,9 @@ void find_force_angular_small_box(
         double gn12 = 0.0;
         double gnp12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_angular; ++k) {
-          int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
-          c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
+          int c_index = get_c_index(
+            t1 * paramb.num_types + t2, n, k, paramb.n_max_angular, paramb.basis_size_angular,
+            paramb.num_c_radial);
           gn12 += fn12[k] * annmb.c[c_index];
           gnp12 += fnp12[k] * annmb.c[c_index];
         }
@@ -593,8 +594,8 @@ void find_descriptor_small_box(
       for (int n = 0; n <= paramb.n_max_radial; ++n) {
         double gn12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_radial; ++k) {
-          int c_index = (n * (paramb.basis_size_radial + 1) + k) * paramb.num_types_sq;
-          c_index += t1 * paramb.num_types + t2;
+          int c_index = get_c_index(
+            t1 * paramb.num_types + t2, n, k, paramb.n_max_radial, paramb.basis_size_radial);
           gn12 += fn12[k] * annmb.c[c_index];
         }
         q[n] += gn12;
@@ -617,8 +618,9 @@ void find_descriptor_small_box(
         find_fn(paramb.basis_size_angular, rcinv, d12, fc12, fn12);
         double gn12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_angular; ++k) {
-          int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
-          c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
+          int c_index = get_c_index(
+            t1 * paramb.num_types + t2, n, k, paramb.n_max_angular, paramb.basis_size_angular,
+            paramb.num_c_radial);
           gn12 += fn12[k] * annmb.c[c_index];
         }
         accumulate_s(paramb.L_max, d12, r12[0], r12[1], r12[2], gn12, s);
@@ -660,7 +662,7 @@ void find_descriptor_small_box(
         charge_derivative);
 
       if (calculating_potential) {
-        g_potential[n1] += F;
+        g_potential[n1] += F + paramb.energy_reference[t1];
         g_charge[n1] = charge;
       }
 
@@ -737,8 +739,8 @@ void find_force_radial_small_box(
       for (int n = 0; n <= paramb.n_max_radial; ++n) {
         double gnp12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_radial; ++k) {
-          int c_index = (n * (paramb.basis_size_radial + 1) + k) * paramb.num_types_sq;
-          c_index += t1 * paramb.num_types + t2;
+          int c_index = get_c_index(
+            t1 * paramb.num_types + t2, n, k, paramb.n_max_radial, paramb.basis_size_radial);
           gnp12 += fnp12[k] * annmb.c[c_index];
         }
         double tmp12 = (g_Fp[n1 + n * N] + g_charge_derivative[n1 + n * N] * g_D_real[n1]) * gnp12 * d12inv;
@@ -827,8 +829,9 @@ void find_force_angular_small_box(
         double gn12 = 0.0;
         double gnp12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_angular; ++k) {
-          int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
-          c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
+          int c_index = get_c_index(
+            t1 * paramb.num_types + t2, n, k, paramb.n_max_angular, paramb.basis_size_angular,
+            paramb.num_c_radial);
           gn12 += fn12[k] * annmb.c[c_index];
           gnp12 += fnp12[k] * annmb.c[c_index];
         }
@@ -915,8 +918,8 @@ void find_bec_radial_small_box(
       for (int n = 0; n <= paramb.n_max_radial; ++n) {
         double gnp12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_radial; ++k) {
-          int c_index = (n * (paramb.basis_size_radial + 1) + k) * paramb.num_types_sq;
-          c_index += t1 * paramb.num_types + t2;
+          int c_index = get_c_index(
+            t1 * paramb.num_types + t2, n, k, paramb.n_max_radial, paramb.basis_size_radial);
           gnp12 += fnp12[k] * annmb.c[c_index];
         }
         const double tmp12 = g_charge_derivative[n1 + n * N] * gnp12 * d12inv;
@@ -1001,8 +1004,9 @@ void find_bec_angular_small_box(
         double gn12 = 0.0;
         double gnp12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_angular; ++k) {
-          int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
-          c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
+          int c_index = get_c_index(
+            t1 * paramb.num_types + t2, n, k, paramb.n_max_angular, paramb.basis_size_angular,
+            paramb.num_c_radial);
           gn12 += fn12[k] * annmb.c[c_index];
           gnp12 += fnp12[k] * annmb.c[c_index];
         }
@@ -1391,8 +1395,8 @@ void find_descriptor_for_lammps(
       for (int n = 0; n <= paramb.n_max_radial; ++n) {
         double gn12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_radial; ++k) {
-          int c_index = (n * (paramb.basis_size_radial + 1) + k) * paramb.num_types_sq;
-          c_index += t1 * paramb.num_types + t2;
+          int c_index = get_c_index(
+            t1 * paramb.num_types + t2, n, k, paramb.n_max_radial, paramb.basis_size_radial);
           gn12 += fn12[k] * annmb.c[c_index];
         }
         q[n] += gn12;
@@ -1437,8 +1441,9 @@ void find_descriptor_for_lammps(
         find_fn(paramb.basis_size_angular, rcinv, d12, fc12, fn12);
         double gn12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_angular; ++k) {
-          int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
-          c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
+          int c_index = get_c_index(
+            t1 * paramb.num_types + t2, n, k, paramb.n_max_angular, paramb.basis_size_angular,
+            paramb.num_c_radial);
           gn12 += fn12[k] * annmb.c[c_index];
         }
         accumulate_s(paramb.L_max, d12, r12[0], r12[1], r12[2], gn12, s);
@@ -1462,6 +1467,7 @@ void find_descriptor_for_lammps(
       annmb.dim, annmb.num_neurons1, annmb.w0[t1], annmb.b0[t1], annmb.w1[t1], annmb.b1, q, F, Fp,
       latent_space, false, nullptr);
 
+    F += paramb.energy_reference[t1];
     g_total_potential += F; // always calculate this
     if (g_potential) {      // only calculate when required
       g_potential[n1] += F;
@@ -1536,8 +1542,8 @@ void find_force_radial_for_lammps(
       for (int n = 0; n <= paramb.n_max_radial; ++n) {
         double gnp12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_radial; ++k) {
-          int c_index = (n * (paramb.basis_size_radial + 1) + k) * paramb.num_types_sq;
-          c_index += t1 * paramb.num_types + t2;
+          int c_index = get_c_index(
+            t1 * paramb.num_types + t2, n, k, paramb.n_max_radial, paramb.basis_size_radial);
           gnp12 += fnp12[k] * annmb.c[c_index];
         }
         double tmp12 = g_Fp[n1 + n * nlocal] * gnp12 * d12inv;
@@ -1655,8 +1661,9 @@ void find_force_angular_for_lammps(
         double gn12 = 0.0;
         double gnp12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_angular; ++k) {
-          int c_index = (n * (paramb.basis_size_angular + 1) + k) * paramb.num_types_sq;
-          c_index += t1 * paramb.num_types + t2 + paramb.num_c_radial;
+          int c_index = get_c_index(
+            t1 * paramb.num_types + t2, n, k, paramb.n_max_angular, paramb.basis_size_angular,
+            paramb.num_c_radial);
           gn12 += fn12[k] * annmb.c[c_index];
           gnp12 += fnp12[k] * annmb.c[c_index];
         }
@@ -1801,55 +1808,6 @@ void find_force_ZBL_for_lammps(
   }
 }
 
-std::vector<std::string> get_tokens(std::ifstream& input)
-{
-  std::string line;
-  std::getline(input, line);
-  std::istringstream iss(line);
-  std::vector<std::string> tokens{
-    std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{}};
-  return tokens;
-}
-
-void print_tokens(const std::vector<std::string>& tokens)
-{
-  std::cout << "Line:";
-  for (const auto& token : tokens) {
-    std::cout << " " << token;
-  }
-  std::cout << std::endl;
-}
-
-int get_int_from_token(const std::string& token, const char* filename, const int line)
-{
-  int value = 0;
-  try {
-    value = std::stoi(token);
-  } catch (const std::exception& e) {
-    std::cout << "Standard exception:\n";
-    std::cout << "    File:          " << filename << std::endl;
-    std::cout << "    Line:          " << line << std::endl;
-    std::cout << "    Error message: " << e.what() << std::endl;
-    exit(1);
-  }
-  return value;
-}
-
-double get_double_from_token(const std::string& token, const char* filename, const int line)
-{
-  double value = 0;
-  try {
-    value = std::stod(token);
-  } catch (const std::exception& e) {
-    std::cout << "Standard exception:\n";
-    std::cout << "    File:          " << filename << std::endl;
-    std::cout << "    Line:          " << line << std::endl;
-    std::cout << "    Error message: " << e.what() << std::endl;
-    exit(1);
-  }
-  return value;
-}
-
 } // namespace
 
 NEP::NEP() {}
@@ -1858,232 +1816,76 @@ NEP::NEP(const std::string& potential_filename) { init_from_file(potential_filen
 
 void NEP::init_from_file(const std::string& potential_filename, const bool is_rank_0)
 {
+  this->is_rank_0 = is_rank_0;
   std::ifstream input(potential_filename);
   if (!input.is_open()) {
-    std::cout << "Failed to open " << potential_filename << std::endl;
+    if (is_rank_0) {
+      std::cout << "Failed to open " << potential_filename << std::endl;
+    }
     exit(1);
   }
 
-  std::vector<std::string> tokens = get_tokens(input);
-  if (tokens.size() < 3) {
-    print_tokens(tokens);
-    std::cout << "The first line of nep.txt should have at least 3 items." << std::endl;
-    exit(1);
-  }
-  if (tokens[0] == "nep4") {
-    paramb.model_type = 0;
-    zbl.enabled = false;
-  } else if (tokens[0] == "nep4_zbl") {
-    paramb.model_type = 0;
-    zbl.enabled = true;
-  } else if (tokens[0] == "nep4_dipole") {
-    paramb.model_type = 1;
-    zbl.enabled = false;
-  } else if (tokens[0] == "nep4_polarizability") {
-    paramb.model_type = 2;
-    zbl.enabled = false;
-  } else if (tokens[0] == "nep4_charge1") {
-    paramb.model_type = 0;
-    zbl.enabled = false;
-    paramb.charge_mode = 1;
-  } else if (tokens[0] == "nep4_zbl_charge1") {
-    paramb.model_type = 0;
-    zbl.enabled = true;
-    paramb.charge_mode = 1;
-  } else if (tokens[0] == "nep4_charge2") {
-    paramb.model_type = 0;
-    zbl.enabled = false;
-    paramb.charge_mode = 2;
-  } else if (tokens[0] == "nep4_zbl_charge2") {
-    paramb.model_type = 0;
-    zbl.enabled = true;
-    paramb.charge_mode = 2;
-  } else {
-    std::cout << tokens[0] << " is an unsupported NEP model." << std::endl;
+  NEP_Model_File model;
+  std::string error;
+  if (!model.read(input, error)) {
+    if (is_rank_0) {
+      std::cout << potential_filename << ": " << error << std::endl;
+    }
     exit(1);
   }
 
-  paramb.num_types = get_int_from_token(tokens[1], __FILE__, __LINE__);
-  if (tokens.size() != 2 + paramb.num_types) {
-    print_tokens(tokens);
-    std::cout << "The first line of nep.txt should have " << paramb.num_types << " atom symbols."
-              << std::endl;
-    exit(1);
-  }
-
-  element_list.resize(paramb.num_types);
+  paramb.model_type = model.name == "nep_dipole" ? 1 : model.name == "nep_polarizability" ? 2 : 0;
+  paramb.charge_mode = model.name == "qnep1" ? 1 : model.name == "qnep2" ? 2 : 0;
+  paramb.num_types = model.num_types;
+  paramb.num_types_sq = paramb.num_types * paramb.num_types;
+  element_list = model.elements;
   for (std::size_t n = 0; n < paramb.num_types; ++n) {
-    int atomic_number = 0;
-    element_list[n] = tokens[2 + n];
     for (int m = 0; m < NUM_ELEMENTS; ++m) {
-      if (tokens[2 + n] == ELEMENTS[m]) {
-        atomic_number = m;
+      if (element_list[n] == ELEMENTS[m]) {
+        paramb.atomic_numbers[n] = m;
+        dftd3.atomic_number[n] = m;
         break;
       }
     }
-    paramb.atomic_numbers[n] = atomic_number;
-    dftd3.atomic_number[n] = atomic_number;
+    paramb.rc_radial[n] = model.rc_radial[n];
+    paramb.rc_angular[n] = model.rc_angular[n];
+    paramb.energy_reference[n] = model.energy_reference.empty() ? 0.0 : model.energy_reference[n];
   }
-
-  // zbl
-  if (zbl.enabled) {
-    tokens = get_tokens(input);
-    if (tokens.size() != 3 && tokens.size() != 4) {
-      print_tokens(tokens);
-      std::cout << "This line should be zbl rc_inner rc_outer [zbl_factor]." << std::endl;
-      exit(1);
-    }
-    zbl.rc_inner = get_double_from_token(tokens[1], __FILE__, __LINE__);
-    zbl.rc_outer = get_double_from_token(tokens[2], __FILE__, __LINE__);
-    if (zbl.rc_inner == 0 && zbl.rc_outer == 0) {
-      zbl.flexibled = true;
-    } else {
-      if (tokens.size() == 4) {
-        paramb.typewise_cutoff_zbl_factor = get_double_from_token(tokens[3], __FILE__, __LINE__);
-        paramb.use_typewise_cutoff_zbl = true;
-      }
-    }
-  }
-
-  // cutoff
-  tokens = get_tokens(input);
-  if (tokens.size() != 5 && tokens.size() != paramb.num_types * 2 + 3) {
-    print_tokens(tokens);
-    std::cout << "cutoff should have 4 or num_types * 2 + 2 parameters.\n";
-    exit(1);
-  }
-  if (tokens.size() == 5) {
-    paramb.rc_radial[0] = get_double_from_token(tokens[1], __FILE__, __LINE__);
-    paramb.rc_angular[0] = get_double_from_token(tokens[2], __FILE__, __LINE__);
-    for (std::size_t n = 0; n < paramb.num_types; ++n) {
-      paramb.rc_radial[n] = paramb.rc_radial[0];
-      paramb.rc_angular[n] = paramb.rc_angular[0];
-    }
-  } else {
-    for (std::size_t n = 0; n < paramb.num_types; ++n) {
-      paramb.rc_radial[n] = get_double_from_token(tokens[1 + n * 2], __FILE__, __LINE__);
-      paramb.rc_angular[n] = get_double_from_token(tokens[2 + n * 2], __FILE__, __LINE__);
-    }
-  }
-  for (std::size_t n = 0; n < paramb.num_types; ++n) {
-    if (paramb.rc_radial[n] > paramb.rc_radial_max) {
-      paramb.rc_radial_max = paramb.rc_radial[n];
-    }
-    if (paramb.rc_angular[n] > paramb.rc_angular_max) {
-      paramb.rc_angular_max = paramb.rc_angular[n];
-    }
-  }
-
-  int MN_radial = get_int_from_token(tokens[tokens.size() - 2], __FILE__, __LINE__);
-  int MN_angular = get_int_from_token(tokens[tokens.size() - 1], __FILE__, __LINE__);
-
-  // n_max 10 8
-  tokens = get_tokens(input);
-  if (tokens.size() != 3) {
-    print_tokens(tokens);
-    std::cout << "This line should be n_max n_max_radial n_max_angular." << std::endl;
-    exit(1);
-  }
-  paramb.n_max_radial = get_int_from_token(tokens[1], __FILE__, __LINE__);
-  paramb.n_max_angular = get_int_from_token(tokens[2], __FILE__, __LINE__);
-
-  // basis_size 10 8
-  tokens = get_tokens(input);
-  if (tokens.size() != 3) {
-    print_tokens(tokens);
-    std::cout << "This line should be basis_size basis_size_radial basis_size_angular."
-              << std::endl;
-    exit(1);
-  }
-  paramb.basis_size_radial = get_int_from_token(tokens[1], __FILE__, __LINE__);
-  paramb.basis_size_angular = get_int_from_token(tokens[2], __FILE__, __LINE__);
-
-  // l_max
-  tokens = get_tokens(input);
-  if (tokens.size() < 4) {
-    print_tokens(tokens);
-    std::cout << "l_max line should have 3 to 7 values." << std::endl;
-    exit(1);
-  }
-
-  paramb.L_max = get_int_from_token(tokens[1], __FILE__, __LINE__);
-  paramb.num_L = paramb.L_max;
-
-  // Both 1 and 2 indicate that q_222 is enabled.
-  paramb.has_q_222 = get_int_from_token(tokens[2], __FILE__, __LINE__) != 0;
-  paramb.has_q_1111 = get_int_from_token(tokens[3], __FILE__, __LINE__);
-  if (tokens.size() >= 5) {
-    paramb.has_q_112 = get_int_from_token(tokens[4], __FILE__, __LINE__);
-  }
-  if (tokens.size() >= 6) {
-    paramb.has_q_123 = get_int_from_token(tokens[5], __FILE__, __LINE__);
-  }
-  if (tokens.size() >= 7) {
-    paramb.has_q_233 = get_int_from_token(tokens[6], __FILE__, __LINE__);
-  }
-  if (tokens.size() >= 8) {
-    paramb.has_q_134 = get_int_from_token(tokens[7], __FILE__, __LINE__);
-  }
-  paramb.num_L += paramb.has_q_222 + paramb.has_q_1111 + paramb.has_q_112 +
-                  paramb.has_q_123 + paramb.has_q_233 + paramb.has_q_134;
-
-  paramb.dim_angular = (paramb.n_max_angular + 1) * paramb.num_L;
-
-  // ANN
-  tokens = get_tokens(input);
-  if (tokens.size() != 3) {
-    print_tokens(tokens);
-    std::cout << "This line should be ANN num_neurons 0." << std::endl;
-    exit(1);
-  }
-  annmb.num_neurons1 = get_int_from_token(tokens[1], __FILE__, __LINE__);
-  if (get_int_from_token(tokens[2], __FILE__, __LINE__) != 0) {
-    print_tokens(tokens);
-    std::cout << "Only NEP models with one hidden layer are supported." << std::endl;
-    exit(1);
-  }
-  annmb.dim = (paramb.n_max_radial + 1) + paramb.dim_angular;
-
-  // calculated parameters:
-  paramb.num_types_sq = paramb.num_types * paramb.num_types;
-  annmb.num_para_ann = (annmb.dim + 2) * annmb.num_neurons1 * paramb.num_types + 1;
-  if (paramb.model_type == 2) {
-    annmb.num_para_ann *= 2;
-  }
-  if (paramb.charge_mode > 0) {
-    annmb.num_para_ann += annmb.num_neurons1 * paramb.num_types + 1;
-  }
-  int num_para_descriptor =
-    paramb.num_types_sq * ((paramb.n_max_radial + 1) * (paramb.basis_size_radial + 1) +
-                           (paramb.n_max_angular + 1) * (paramb.basis_size_angular + 1));
-  annmb.num_para = annmb.num_para_ann + num_para_descriptor;
-
+  paramb.rc_radial_max = *std::max_element(model.rc_radial.begin(), model.rc_radial.end());
+  paramb.rc_angular_max = *std::max_element(model.rc_angular.begin(), model.rc_angular.end());
+  paramb.n_max_radial = model.n_max_radial;
+  paramb.n_max_angular = model.n_max_angular;
+  paramb.basis_size_radial = model.basis_size_radial;
+  paramb.basis_size_angular = model.basis_size_angular;
+  paramb.L_max = model.L_max;
+  paramb.has_q_222 = model.has_q_222;
+  paramb.has_q_1111 = model.has_q_1111;
+  paramb.has_q_112 = model.has_q_112;
+  paramb.has_q_123 = model.has_q_123;
+  paramb.has_q_233 = model.has_q_233;
+  paramb.has_q_134 = model.has_q_134;
+  paramb.num_L = paramb.L_max + paramb.has_q_222 + paramb.has_q_1111 + paramb.has_q_112 +
+                 paramb.has_q_123 + paramb.has_q_233 + paramb.has_q_134;
+  paramb.dim_angular = model.layout.dim_angular;
   paramb.num_c_radial =
     paramb.num_types_sq * (paramb.n_max_radial + 1) * (paramb.basis_size_radial + 1);
+  std::copy(model.q_scaler.begin(), model.q_scaler.end(), paramb.q_scaler);
 
-  // NN and descriptor parameters
-  parameters.resize(annmb.num_para);
-  for (int n = 0; n < annmb.num_para; ++n) {
-    tokens = get_tokens(input);
-    parameters[n] = get_double_from_token(tokens[0], __FILE__, __LINE__);
-  }
+  annmb.dim = model.layout.dim;
+  annmb.num_neurons1 = model.num_neurons1;
+  annmb.num_para_ann = model.layout.number_of_variables_ann * model.layout.ann_count;
+  annmb.num_para = model.layout.number_of_variables;
+  parameters.swap(model.parameters);
   update_potential(parameters.data(), annmb);
-  for (int d = 0; d < annmb.dim; ++d) {
-    tokens = get_tokens(input);
-    paramb.q_scaler[d] = get_double_from_token(tokens[0], __FILE__, __LINE__);
-  }
 
-  // flexible zbl potential parameters if (zbl.flexibled)
-  if (zbl.flexibled) {
-    int num_type_zbl = (paramb.num_types * (paramb.num_types + 1)) / 2;
-    for (int d = 0; d < 10 * num_type_zbl; ++d) {
-      tokens = get_tokens(input);
-      zbl.para[d] = get_double_from_token(tokens[0], __FILE__, __LINE__);
-    }
-    zbl.num_types = paramb.num_types;
-  }
-  input.close();
-
+  zbl.enabled = model.enable_zbl;
+  zbl.flexibled = model.flexible_zbl;
+  zbl.num_types = paramb.num_types;
+  zbl.rc_inner = model.zbl_rc_inner;
+  zbl.rc_outer = model.zbl_rc_outer;
+  paramb.use_typewise_cutoff_zbl = model.use_typewise_cutoff_zbl;
+  paramb.typewise_cutoff_zbl_factor = model.typewise_cutoff_zbl_factor;
+  std::copy(model.zbl_parameters.begin(), model.zbl_parameters.end(), zbl.para);
 
   // charge related parameters and data
   if (paramb.charge_mode > 0) {
@@ -2099,23 +1901,8 @@ void NEP::init_from_file(const std::string& potential_filename, const bool is_ra
   // only report for rank_0
   if (is_rank_0) {
 
-    if (paramb.charge_mode > 0) {
-      if (paramb.num_types == 1) {
-        std::cout << "Use the NEP4-Charge" << paramb.charge_mode << " potential with " << paramb.num_types
-                  << " atom type.\n";
-      } else {
-        std::cout << "Use the NEP4-Charge" << paramb.charge_mode << " potential with " << paramb.num_types
-                  << " atom types.\n";
-      }
-    } else {
-      if (paramb.num_types == 1) {
-        std::cout << "Use the NEP4 potential with " << paramb.num_types
-                  << " atom type.\n";
-      } else {
-        std::cout << "Use the NEP4 potential with " << paramb.num_types
-                  << " atom types.\n";
-      }
-    }
+    std::cout << "Use the " << model.name << " model with " << paramb.num_types
+              << (paramb.num_types == 1 ? " atom type.\n" : " atom types.\n");
 
     for (std::size_t n = 0; n < paramb.num_types; ++n) {
       std::cout << "    type " << n << " (" << element_list[n]
@@ -2149,7 +1936,8 @@ void NEP::init_from_file(const std::string& potential_filename, const bool is_ra
     std::cout << "    has_q_233 = " << paramb.has_q_233 << ".\n";
     std::cout << "    ANN = " << annmb.dim << "-" << annmb.num_neurons1 << "-1.\n";
     std::cout << "    number of neural network parameters = " << annmb.num_para_ann << ".\n";
-    std::cout << "    number of descriptor parameters = " << num_para_descriptor << ".\n";
+    std::cout << "    number of descriptor parameters = "
+              << model.layout.number_of_variables_descriptor << ".\n";
     std::cout << "    total number of parameters = " << annmb.num_para << ".\n";
   }
 }
@@ -2174,7 +1962,10 @@ void NEP::update_type_map(const int ntype, int* type_map, char** elements)
 
     // check if no corresponding element
     if (n == paramb.num_types) {
-      std::cout << "There is no element " << element_name << " in the potential file." << std::endl;
+      if (is_rank_0) {
+        std::cout << "There is no element " << element_name << " in the potential file."
+                  << std::endl;
+      }
       exit(1);
     }
   }
@@ -2868,7 +2659,9 @@ void NEP::compute_for_lammps(
   double** virial)
 {
   if (paramb.model_type != 0 || paramb.charge_mode != 0) {
-    std::cout << "The LAMMPS interface only supports non-charge NEP potential models.\n";
+    if (is_rank_0) {
+      std::cout << "The LAMMPS interface only supports non-charge NEP potential models.\n";
+    }
     exit(1);
   }
 

@@ -416,27 +416,6 @@ static void write(const std::string& outputfile, const std::vector<Structure>& s
   output.close();
 }
 
-static std::vector<std::string> get_atom_symbols(std::string& nep_file)
-{
-  std::ifstream input_potential(nep_file);
-  if (!input_potential.is_open()) {
-    std::cout << "Failed to open " << nep_file << std::endl;
-    exit(1);
-  }
-
-  std::string potential_name;
-  input_potential >> potential_name;
-  int number_of_types;
-  input_potential >> number_of_types;
-  std::vector<std::string> atom_symbols(number_of_types);
-  for (int n = 0; n < number_of_types; ++n) {
-    input_potential >> atom_symbols[n];
-  }
-
-  input_potential.close();
-  return atom_symbols;
-}
-
 static void calculate_one_structure(
   NEP& nep,
   std::vector<std::string>& atom_symbols,
@@ -526,7 +505,7 @@ static void calculate(
   double D3_cutoff_cn)
 {
   NEP nep(nep_file);
-  std::vector<std::string> atom_symbols = get_atom_symbols(nep_file);
+  std::vector<std::string> atom_symbols = nep.element_list;
   for (int nc = 0; nc < structures.size(); ++nc) {
     calculate_one_structure(
       nep, atom_symbols, structures[nc], mode, functional, D3_cutoff, D3_cutoff_cn);

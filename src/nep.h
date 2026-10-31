@@ -48,6 +48,7 @@ public:
     std::size_t num_c_radial = 0;
     std::size_t num_types = 0;
     double q_scaler[140];
+    double energy_reference[94] = {};
     int atomic_numbers[94];
   };
 
@@ -241,4 +242,7 @@ public:
     const std::string& functional_input,
     const double rc_potential,
     const double rc_coordination_number);
+
+private:
+  bool is_rank_0 = true;
 };
