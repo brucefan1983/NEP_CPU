@@ -33,5 +33,5 @@ the old executable's add/subtract modes (3 and 4).
 Run all regression tests, including this tool's tests, with:
 
 ```sh
-python3 test/api/run_tests.py
+python3 tests/api/run_tests.py
 ```

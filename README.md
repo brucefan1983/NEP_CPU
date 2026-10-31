@@ -25,8 +25,8 @@ python3 /path/to/GPUMD/potentials/nep/nep_model_converter.py nep_old.txt nep.txt
 * Compile your program together with `src/nep.cpp`, `src/nep_model_file.cpp`, `src/ewald_nep.cpp`, and `src/neighbor_nep.cpp`, using C++11 or later.
   
 * The following folders contain some testing code and results:
-  * `test/api/`
-  * `test/lammps/`
+  * `tests/api/`
+  * `tests/lammps/`
   
 * The `NEP` C++ class is used as an engine powering the following Python packages:
   * `calorine`: https://gitlab.com/materials-modeling/calorine

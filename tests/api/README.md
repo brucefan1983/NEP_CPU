@@ -3,7 +3,7 @@
 From the repository root:
 
 ```sh
-python3 test/api/run_tests.py
+python3 tests/api/run_tests.py
 ```
 
 Requires Python 3.8+ (standard library only) and a C++11 compiler with OpenMP
@@ -17,10 +17,10 @@ reference files are never overwritten. A failed assertion, crash, or compilation
 failure returns a nonzero exit status.
 
 ```sh
-python3 test/api/run_tests.py --mode analytic
-python3 test/api/run_tests.py --mode table
-python3 test/api/run_tests.py --no-openmp
-python3 test/api/run_tests.py --only typewise
+python3 tests/api/run_tests.py --mode analytic
+python3 tests/api/run_tests.py --mode table
+python3 tests/api/run_tests.py --no-openmp
+python3 tests/api/run_tests.py --only typewise
 ```
 
 `--cxx` / `CXX` select the compiler; `--cxxflags` / `CXXFLAGS` add compiler flags.
@@ -59,7 +59,7 @@ compiler and OpenMP options.
 | Rank diagnostics | Root-only output and nonzero exit, tested through the API rank flag |
 
 The LAMMPS checks call the C++ API directly; this suite does not
-run a LAMMPS executable or test MPI/ghost-atom integration. See `test/lammps` for
+run a LAMMPS executable or test MPI/ghost-atom integration. See `tests/lammps` for
 LAMMPS examples. Reinitializing an existing object with a second model is outside
 this suite's intended usage.
 

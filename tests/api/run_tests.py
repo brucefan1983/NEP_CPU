@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run from anywhere: python3 /path/to/NEP_CPU/test/api/run_tests.py."""
+"""Run from anywhere: python3 /path/to/NEP_CPU/tests/api/run_tests.py."""
 import argparse
 import os
 import subprocess
