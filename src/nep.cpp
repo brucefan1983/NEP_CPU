@@ -125,39 +125,41 @@ void find_descriptor_small_box(
 #endif
     }
 
-    for (int n = 0; n <= paramb.n_max_angular; ++n) {
-      double s[NUM_OF_ABC] = {0.0};
-      for (int i1 = 0; i1 < g_NN_angular[n1]; ++i1) {
-        int index = i1 * N + n1;
-        int n2 = g_NL_angular[index];
-        double r12[3] = {g_x12_angular[index], g_y12_angular[index], g_z12_angular[index]};
-        double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
+    double s_all[MAX_NUM_N * NUM_OF_ABC];
+    std::fill(s_all, s_all + (paramb.n_max_angular + 1) * NUM_OF_ABC, 0.0);
+    for (int i1 = 0; i1 < g_NN_angular[n1]; ++i1) {
+      int index = i1 * N + n1;
+      int n2 = g_NL_angular[index];
+      double r12[3] = {g_x12_angular[index], g_y12_angular[index], g_z12_angular[index]};
+      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
-        int t2 = g_type[n2];
-        double rc = (paramb.rc_angular[t1] + paramb.rc_angular[t2]) * 0.5;
-        if (d12 >= rc) {
-          continue;
-        }
-        double rcinv = 1.0 / rc;
-        int index_left, index_right;
-        double weight_left, weight_right;
-        find_index_and_weight(
-          d12 * rcinv, index_left, index_right, weight_left, weight_right);
-        int t12 = t1 * paramb.num_types + t2;
+      int t2 = g_type[n2];
+      double rc = (paramb.rc_angular[t1] + paramb.rc_angular[t2]) * 0.5;
+      if (d12 >= rc) {
+        continue;
+      }
+      double rcinv = 1.0 / rc;
+      int index_left, index_right;
+      double weight_left, weight_right;
+      find_index_and_weight(d12 * rcinv, index_left, index_right, weight_left, weight_right);
+      int t12 = t1 * paramb.num_types + t2;
+#else
+      int t2 = g_type[n2];
+      double fc12;
+      double rc = (paramb.rc_angular[t1] + paramb.rc_angular[t2]) * 0.5;
+      double rcinv = 1.0 / rc;
+      find_fc(rc, rcinv, d12, fc12);
+      double fn12[MAX_NUM_N];
+      find_fn(paramb.basis_size_angular, rcinv, d12, fc12, fn12);
+#endif
+      for (int n = 0; n <= paramb.n_max_angular; ++n) {
+#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
         double gn12 =
           g_gn_angular[(index_left * paramb.num_types_sq + t12) * (paramb.n_max_angular + 1) + n] *
             weight_left +
           g_gn_angular[(index_right * paramb.num_types_sq + t12) * (paramb.n_max_angular + 1) + n] *
             weight_right;
-        accumulate_s(paramb.L_max, d12, r12[0], r12[1], r12[2], gn12, s);
 #else
-        int t2 = g_type[n2];
-        double fc12;
-        double rc = (paramb.rc_angular[t1] + paramb.rc_angular[t2]) * 0.5;
-        double rcinv = 1.0 / rc;
-        find_fc(rc, rcinv, d12, fc12);
-        double fn12[MAX_NUM_N];
-        find_fn(paramb.basis_size_angular, rcinv, d12, fc12, fn12);
         double gn12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_angular; ++k) {
           int c_index = get_c_index(
@@ -165,9 +167,12 @@ void find_descriptor_small_box(
             paramb.num_c_radial);
           gn12 += fn12[k] * annmb.c[c_index];
         }
-        accumulate_s(paramb.L_max, d12, r12[0], r12[1], r12[2], gn12, s);
 #endif
+        accumulate_s(paramb.L_max, d12, r12[0], r12[1], r12[2], gn12, s_all + n * NUM_OF_ABC);
       }
+    }
+    for (int n = 0; n <= paramb.n_max_angular; ++n) {
+      double* s = s_all + n * NUM_OF_ABC;
       find_q(
         paramb.L_max, paramb.has_q_222, paramb.has_q_1111, paramb.has_q_112, paramb.has_q_123,
         paramb.has_q_233, paramb.has_q_134, paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
@@ -606,20 +611,21 @@ void find_descriptor_small_box(
       }
     }
 
-    for (int n = 0; n <= paramb.n_max_angular; ++n) {
-      double s[NUM_OF_ABC] = {0.0};
-      for (int i1 = 0; i1 < g_NN_angular[n1]; ++i1) {
-        int index = i1 * N + n1;
-        int n2 = g_NL_angular[index];
-        double r12[3] = {g_x12_angular[index], g_y12_angular[index], g_z12_angular[index]};
-        double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
-        int t2 = g_type[n2];
-        double fc12;
-        double rc = paramb.rc_angular_max;
-        double rcinv = 1.0 / rc;
-        find_fc(rc, rcinv, d12, fc12);
-        double fn12[MAX_NUM_N];
-        find_fn(paramb.basis_size_angular, rcinv, d12, fc12, fn12);
+    double s_all[MAX_NUM_N * NUM_OF_ABC];
+    std::fill(s_all, s_all + (paramb.n_max_angular + 1) * NUM_OF_ABC, 0.0);
+    for (int i1 = 0; i1 < g_NN_angular[n1]; ++i1) {
+      int index = i1 * N + n1;
+      int n2 = g_NL_angular[index];
+      double r12[3] = {g_x12_angular[index], g_y12_angular[index], g_z12_angular[index]};
+      double d12 = sqrt(r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2]);
+      int t2 = g_type[n2];
+      double fc12;
+      double rc = paramb.rc_angular_max;
+      double rcinv = 1.0 / rc;
+      find_fc(rc, rcinv, d12, fc12);
+      double fn12[MAX_NUM_N];
+      find_fn(paramb.basis_size_angular, rcinv, d12, fc12, fn12);
+      for (int n = 0; n <= paramb.n_max_angular; ++n) {
         double gn12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_angular; ++k) {
           int c_index = get_c_index(
@@ -627,8 +633,11 @@ void find_descriptor_small_box(
             paramb.num_c_radial);
           gn12 += fn12[k] * annmb.c[c_index];
         }
-        accumulate_s(paramb.L_max, d12, r12[0], r12[1], r12[2], gn12, s);
+        accumulate_s(paramb.L_max, d12, r12[0], r12[1], r12[2], gn12, s_all + n * NUM_OF_ABC);
       }
+    }
+    for (int n = 0; n <= paramb.n_max_angular; ++n) {
+      double* s = s_all + n * NUM_OF_ABC;
       find_q(
         paramb.L_max, paramb.has_q_222, paramb.has_q_1111, paramb.has_q_112, paramb.has_q_123,
         paramb.has_q_233, paramb.has_q_134, paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
@@ -1431,41 +1440,42 @@ void find_descriptor_for_lammps(
 #endif
     }
 
-    for (int n = 0; n <= paramb.n_max_angular; ++n) {
-      double s[NUM_OF_ABC] = {0.0};
-      for (int i1 = 0; i1 < g_NN[n1]; ++i1) {
-        int n2 = g_NL[n1][i1];
-        int t2 = type_map[g_type[n2]]; // from LAMMPS to NEP convention
-        double rc = (paramb.rc_angular[t1] + paramb.rc_angular[t2]) * 0.5;
-        double rcinv = 1.0 / rc;
+    double s_all[MAX_NUM_N * NUM_OF_ABC];
+    std::fill(s_all, s_all + (paramb.n_max_angular + 1) * NUM_OF_ABC, 0.0);
+    for (int i1 = 0; i1 < g_NN[n1]; ++i1) {
+      int n2 = g_NL[n1][i1];
+      int t2 = type_map[g_type[n2]]; // from LAMMPS to NEP convention
+      double rc = (paramb.rc_angular[t1] + paramb.rc_angular[t2]) * 0.5;
+      double rcinv = 1.0 / rc;
 
-        double r12[3] = {
-          g_pos[n2][0] - g_pos[n1][0], g_pos[n2][1] - g_pos[n1][1], g_pos[n2][2] - g_pos[n1][2]};
+      double r12[3] = {
+        g_pos[n2][0] - g_pos[n1][0], g_pos[n2][1] - g_pos[n1][1], g_pos[n2][2] - g_pos[n1][2]};
 
-        double d12sq = r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2];
-        if (d12sq >= rc * rc) {
-          continue;
-        }
-        double d12 = sqrt(d12sq);
-
+      double d12sq = r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2];
+      if (d12sq >= rc * rc) {
+        continue;
+      }
+      double d12 = sqrt(d12sq);
 
 #ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
-        int index_left, index_right;
-        double weight_left, weight_right;
-        find_index_and_weight(
-          d12 * rcinv, index_left, index_right, weight_left, weight_right);
-        int t12 = t1 * paramb.num_types + t2;
+      int index_left, index_right;
+      double weight_left, weight_right;
+      find_index_and_weight(d12 * rcinv, index_left, index_right, weight_left, weight_right);
+      int t12 = t1 * paramb.num_types + t2;
+#else
+      double fc12;
+      find_fc(rc, rcinv, d12, fc12);
+      double fn12[MAX_NUM_N];
+      find_fn(paramb.basis_size_angular, rcinv, d12, fc12, fn12);
+#endif
+      for (int n = 0; n <= paramb.n_max_angular; ++n) {
+#ifdef USE_TABLE_FOR_RADIAL_FUNCTIONS
         double gn12 =
           g_gn_angular[(index_left * paramb.num_types_sq + t12) * (paramb.n_max_angular + 1) + n] *
             weight_left +
           g_gn_angular[(index_right * paramb.num_types_sq + t12) * (paramb.n_max_angular + 1) + n] *
             weight_right;
-        accumulate_s(paramb.L_max, d12, r12[0], r12[1], r12[2], gn12, s);
 #else
-        double fc12;
-        find_fc(rc, rcinv, d12, fc12);
-        double fn12[MAX_NUM_N];
-        find_fn(paramb.basis_size_angular, rcinv, d12, fc12, fn12);
         double gn12 = 0.0;
         for (int k = 0; k <= paramb.basis_size_angular; ++k) {
           int c_index = get_c_index(
@@ -1473,9 +1483,12 @@ void find_descriptor_for_lammps(
             paramb.num_c_radial);
           gn12 += fn12[k] * annmb.c[c_index];
         }
-        accumulate_s(paramb.L_max, d12, r12[0], r12[1], r12[2], gn12, s);
 #endif
+        accumulate_s(paramb.L_max, d12, r12[0], r12[1], r12[2], gn12, s_all + n * NUM_OF_ABC);
       }
+    }
+    for (int n = 0; n <= paramb.n_max_angular; ++n) {
+      double* s = s_all + n * NUM_OF_ABC;
       find_q(
         paramb.L_max, paramb.has_q_222, paramb.has_q_1111, paramb.has_q_112, paramb.has_q_123,
         paramb.has_q_233, paramb.has_q_134, paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
