@@ -1934,6 +1934,7 @@ void NEP::init_from_file(const std::string& potential_filename, const bool is_ra
     std::cout << "    has_q_112 = " << paramb.has_q_112 << ".\n";
     std::cout << "    has_q_123 = " << paramb.has_q_123 << ".\n";
     std::cout << "    has_q_233 = " << paramb.has_q_233 << ".\n";
+    std::cout << "    has_q_134 = " << paramb.has_q_134 << ".\n";
     std::cout << "    ANN = " << annmb.dim << "-" << annmb.num_neurons1 << "-1.\n";
     std::cout << "    number of neural network parameters = " << annmb.num_para_ann << ".\n";
     std::cout << "    number of descriptor parameters = "
