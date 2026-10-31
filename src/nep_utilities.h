@@ -1036,6 +1036,189 @@ void get_f12_4body_134(
   f12[2] += tmp1 * r12[2];
 }
 
+void get_f12_1(
+  const double d12inv,
+  const double fn,
+  const double fnp,
+  const double Fp,
+  const double* s,
+  const double* r12,
+  double* f12)
+{
+  double tmp = s[1] * r12[0];
+  tmp += s[2] * r12[1];
+  tmp *= 2.0;
+  tmp += s[0] * r12[2];
+  tmp *= Fp * fnp * d12inv * 2.0;
+  for (int d = 0; d < 3; ++d) {
+    f12[d] += tmp * r12[d];
+  }
+  tmp = Fp * fn * 2.0;
+  f12[0] += tmp * 2.0 * s[1];
+  f12[1] += tmp * 2.0 * s[2];
+  f12[2] += tmp * s[0];
+}
+
+void get_f12_2(
+  const double d12,
+  const double d12inv,
+  const double fn,
+  const double fnp,
+  const double Fp,
+  const double* s,
+  const double* r12,
+  double* f12)
+{
+  double tmp = s[1] * r12[0] * r12[2];               // Re[Y21]
+  tmp += s[2] * r12[1] * r12[2];                     // Im[Y21]
+  tmp += s[3] * (r12[0] * r12[0] - r12[1] * r12[1]); // Re[Y22]
+  tmp += s[4] * 2.0 * r12[0] * r12[1];               // Im[Y22]
+  tmp *= 2.0;
+  tmp += s[0] * (3.0 * r12[2] * r12[2] - d12 * d12); // Y20
+  tmp *= Fp * fnp * d12inv * 2.0;
+  for (int d = 0; d < 3; ++d) {
+    f12[d] += tmp * r12[d];
+  }
+  tmp = Fp * fn * 4.0;
+  f12[0] += tmp * (-s[0] * r12[0] + s[1] * r12[2] + 2.0 * s[3] * r12[0] + 2.0 * s[4] * r12[1]);
+  f12[1] += tmp * (-s[0] * r12[1] + s[2] * r12[2] - 2.0 * s[3] * r12[1] + 2.0 * s[4] * r12[0]);
+  f12[2] += tmp * (2.0 * s[0] * r12[2] + s[1] * r12[0] + s[2] * r12[1]);
+}
+
+void get_f12_3(
+  const double d12,
+  const double d12inv,
+  const double fn,
+  const double fnp,
+  const double Fp,
+  const double* s,
+  const double* r12,
+  double* f12)
+{
+  double d12sq = d12 * d12;
+  double x2 = r12[0] * r12[0];
+  double y2 = r12[1] * r12[1];
+  double z2 = r12[2] * r12[2];
+  double xy = r12[0] * r12[1];
+  double xz = r12[0] * r12[2];
+  double yz = r12[1] * r12[2];
+
+  double tmp = s[1] * (5.0 * z2 - d12sq) * r12[0];
+  tmp += s[2] * (5.0 * z2 - d12sq) * r12[1];
+  tmp += s[3] * (x2 - y2) * r12[2];
+  tmp += s[4] * 2.0 * xy * r12[2];
+  tmp += s[5] * r12[0] * (x2 - 3.0 * y2);
+  tmp += s[6] * r12[1] * (3.0 * x2 - y2);
+  tmp *= 2.0;
+  tmp += s[0] * (5.0 * z2 - 3.0 * d12sq) * r12[2];
+  tmp *= Fp * fnp * d12inv * 2.0;
+  for (int d = 0; d < 3; ++d) {
+    f12[d] += tmp * r12[d];
+  }
+
+  // x
+  tmp = s[1] * (4.0 * z2 - 3.0 * x2 - y2);
+  tmp += s[2] * (-2.0 * xy);
+  tmp += s[3] * 2.0 * xz;
+  tmp += s[4] * (2.0 * yz);
+  tmp += s[5] * (3.0 * (x2 - y2));
+  tmp += s[6] * (6.0 * xy);
+  tmp *= 2.0;
+  tmp += s[0] * (-6.0 * xz);
+  f12[0] += tmp * Fp * fn * 2.0;
+  // y
+  tmp = s[1] * (-2.0 * xy);
+  tmp += s[2] * (4.0 * z2 - 3.0 * y2 - x2);
+  tmp += s[3] * (-2.0 * yz);
+  tmp += s[4] * (2.0 * xz);
+  tmp += s[5] * (-6.0 * xy);
+  tmp += s[6] * (3.0 * (x2 - y2));
+  tmp *= 2.0;
+  tmp += s[0] * (-6.0 * yz);
+  f12[1] += tmp * Fp * fn * 2.0;
+  // z
+  tmp = s[1] * (8.0 * xz);
+  tmp += s[2] * (8.0 * yz);
+  tmp += s[3] * (x2 - y2);
+  tmp += s[4] * (2.0 * xy);
+  tmp *= 2.0;
+  tmp += s[0] * (9.0 * z2 - 3.0 * d12sq);
+  f12[2] += tmp * Fp * fn * 2.0;
+}
+
+void get_f12_4(
+  const double x,
+  const double y,
+  const double z,
+  const double r,
+  const double rinv,
+  const double fn,
+  const double fnp,
+  const double Fp,
+  const double* s,
+  double* f12)
+{
+  const double r2 = r * r;
+  const double x2 = x * x;
+  const double y2 = y * y;
+  const double z2 = z * z;
+  const double xy = x * y;
+  const double xz = x * z;
+  const double yz = y * z;
+  const double xyz = x * yz;
+  const double x2my2 = x2 - y2;
+
+  double tmp = s[1] * (7.0 * z2 - 3.0 * r2) * xz; // Y41_real
+  tmp += s[2] * (7.0 * z2 - 3.0 * r2) * yz;       // Y41_imag
+  tmp += s[3] * (7.0 * z2 - r2) * x2my2;          // Y42_real
+  tmp += s[4] * (7.0 * z2 - r2) * 2.0 * xy;       // Y42_imag
+  tmp += s[5] * (x2 - 3.0 * y2) * xz;             // Y43_real
+  tmp += s[6] * (3.0 * x2 - y2) * yz;             // Y43_imag
+  tmp += s[7] * (x2my2 * x2my2 - 4.0 * x2 * y2);  // Y44_real
+  tmp += s[8] * (4.0 * xy * x2my2);               // Y44_imag
+  tmp *= 2.0;
+  tmp += s[0] * ((35.0 * z2 - 30.0 * r2) * z2 + 3.0 * r2 * r2); // Y40
+  tmp *= Fp * fnp * rinv * 2.0;
+  f12[0] += tmp * x;
+  f12[1] += tmp * y;
+  f12[2] += tmp * z;
+
+  // x
+  tmp = s[1] * z * (7.0 * z2 - 3.0 * r2 - 6.0 * x2);  // Y41_real
+  tmp += s[2] * (-6.0 * xyz);                         // Y41_imag
+  tmp += s[3] * 4.0 * x * (3.0 * z2 - x2);            // Y42_real
+  tmp += s[4] * 2.0 * y * (7.0 * z2 - r2 - 2.0 * x2); // Y42_imag
+  tmp += s[5] * 3.0 * z * x2my2;                      // Y43_real
+  tmp += s[6] * 6.0 * xyz;                            // Y43_imag
+  tmp += s[7] * 4.0 * x * (x2 - 3.0 * y2);            // Y44_real
+  tmp += s[8] * 4.0 * y * (3.0 * x2 - y2);            // Y44_imag
+  tmp *= 2.0;
+  tmp += s[0] * 12.0 * x * (r2 - 5.0 * z2); // Y40
+  f12[0] += tmp * Fp * fn * 2.0;
+  // y
+  tmp = s[1] * (-6.0 * xyz);                          // Y41_real
+  tmp += s[2] * z * (7.0 * z2 - 3.0 * r2 - 6.0 * y2); // Y41_imag
+  tmp += s[3] * 4.0 * y * (y2 - 3.0 * z2);            // Y42_real
+  tmp += s[4] * 2.0 * x * (7.0 * z2 - r2 - 2.0 * y2); // Y42_imag
+  tmp += s[5] * (-6.0 * xyz);                         // Y43_real
+  tmp += s[6] * 3.0 * z * x2my2;                      // Y43_imag
+  tmp += s[7] * 4.0 * y * (y2 - 3.0 * x2);            // Y44_real
+  tmp += s[8] * 4.0 * x * (x2 - 3.0 * y2);            // Y44_imag
+  tmp *= 2.0;
+  tmp += s[0] * 12.0 * y * (r2 - 5.0 * z2); // Y40
+  f12[1] += tmp * Fp * fn * 2.0;
+  // z
+  tmp = s[1] * 3.0 * x * (5.0 * z2 - r2);  // Y41_real
+  tmp += s[2] * 3.0 * y * (5.0 * z2 - r2); // Y41_imag
+  tmp += s[3] * 12.0 * z * x2my2;          // Y42_real
+  tmp += s[4] * 24.0 * xyz;                // Y42_imag
+  tmp += s[5] * x * (x2 - 3.0 * y2);       // Y43_real
+  tmp += s[6] * y * (3.0 * x2 - y2);       // Y43_imag
+  tmp *= 2.0;
+  tmp += s[0] * 16.0 * z * (5.0 * z2 - 3.0 * r2); // Y40
+  f12[2] += tmp * Fp * fn * 2.0;
+}
+
 template <int L>
 void calculate_s_one(
   const int n, const int n_max_angular_plus_1, const double* Fp, const double* sum_fxyz, double* s)
@@ -1174,25 +1357,51 @@ void accumulate_f12(
   const double d12inv = 1.0 / d12;
   const double r12unit[3] = {r12[0] * d12inv, r12[1] * d12inv, r12[2] * d12inv};
 
+  double fn_low = fn;
+  double fnp_low = fnp;
+
   if (L_max >= 1) {
-    double s1[3];
-    calculate_s_one<1>(n, n_max_angular_plus_1, Fp, sum_fxyz, s1);
-    accumulate_f12_one<1>(d12inv, fn_original, fnp_original, s1, r12unit, f12);
+    fnp_low = fnp_low * d12inv - fn_low * d12inv * d12inv;
+    fn_low = fn_low * d12inv;
+    double s1[3] = {
+      sum_fxyz[n * NUM_OF_ABC + 0] * C3B[0], sum_fxyz[n * NUM_OF_ABC + 1] * C3B[1],
+      sum_fxyz[n * NUM_OF_ABC + 2] * C3B[2]};
+    get_f12_1(d12inv, fn_low, fnp_low, Fp[n], s1, r12, f12);
   }
+
   if (L_max >= 2) {
-    double s2[5];
-    calculate_s_one<2>(n, n_max_angular_plus_1, Fp, sum_fxyz, s2);
-    accumulate_f12_one<2>(d12inv, fn_original, fnp_original, s2, r12unit, f12);
+    fnp_low = fnp_low * d12inv - fn_low * d12inv * d12inv;
+    fn_low = fn_low * d12inv;
+    double s2[5] = {
+      sum_fxyz[n * NUM_OF_ABC + 3] * C3B[3], sum_fxyz[n * NUM_OF_ABC + 4] * C3B[4],
+      sum_fxyz[n * NUM_OF_ABC + 5] * C3B[5], sum_fxyz[n * NUM_OF_ABC + 6] * C3B[6],
+      sum_fxyz[n * NUM_OF_ABC + 7] * C3B[7]};
+    get_f12_2(d12, d12inv, fn_low, fnp_low, Fp[n_max_angular_plus_1 + n], s2, r12, f12);
   }
+
   if (L_max >= 3) {
-    double s3[7];
-    calculate_s_one<3>(n, n_max_angular_plus_1, Fp, sum_fxyz, s3);
-    accumulate_f12_one<3>(d12inv, fn_original, fnp_original, s3, r12unit, f12);
+    fnp_low = fnp_low * d12inv - fn_low * d12inv * d12inv;
+    fn_low = fn_low * d12inv;
+    double s3[7] = {
+      sum_fxyz[n * NUM_OF_ABC + 8] * C3B[8],   sum_fxyz[n * NUM_OF_ABC + 9] * C3B[9],
+      sum_fxyz[n * NUM_OF_ABC + 10] * C3B[10], sum_fxyz[n * NUM_OF_ABC + 11] * C3B[11],
+      sum_fxyz[n * NUM_OF_ABC + 12] * C3B[12], sum_fxyz[n * NUM_OF_ABC + 13] * C3B[13],
+      sum_fxyz[n * NUM_OF_ABC + 14] * C3B[14]};
+    get_f12_3(d12, d12inv, fn_low, fnp_low, Fp[2 * n_max_angular_plus_1 + n], s3, r12, f12);
   }
+
   if (L_max >= 4) {
-    double s4[9];
-    calculate_s_one<4>(n, n_max_angular_plus_1, Fp, sum_fxyz, s4);
-    accumulate_f12_one<4>(d12inv, fn_original, fnp_original, s4, r12unit, f12);
+    fnp_low = fnp_low * d12inv - fn_low * d12inv * d12inv;
+    fn_low = fn_low * d12inv;
+    double s4[9] = {
+      sum_fxyz[n * NUM_OF_ABC + 15] * C3B[15], sum_fxyz[n * NUM_OF_ABC + 16] * C3B[16],
+      sum_fxyz[n * NUM_OF_ABC + 17] * C3B[17], sum_fxyz[n * NUM_OF_ABC + 18] * C3B[18],
+      sum_fxyz[n * NUM_OF_ABC + 19] * C3B[19], sum_fxyz[n * NUM_OF_ABC + 20] * C3B[20],
+      sum_fxyz[n * NUM_OF_ABC + 21] * C3B[21], sum_fxyz[n * NUM_OF_ABC + 22] * C3B[22],
+      sum_fxyz[n * NUM_OF_ABC + 23] * C3B[23]};
+    get_f12_4(
+      r12[0], r12[1], r12[2], d12, d12inv, fn_low, fnp_low, Fp[3 * n_max_angular_plus_1 + n], s4,
+      f12);
   }
   if (L_max >= 5) {
     double s5[11];
@@ -1339,17 +1548,41 @@ void accumulate_s(
   x12 *= d12inv;
   y12 *= d12inv;
   z12 *= d12inv;
+  double x12sq = x12 * x12;
+  double y12sq = y12 * y12;
+  double z12sq = z12 * z12;
+  double x12sq_minus_y12sq = x12sq - y12sq;
   if (L_max >= 1) {
-    accumulate_s_one<1>(x12, y12, z12, fn, s);
+    s[0] += z12 * fn; // Y10
+    s[1] += x12 * fn; // Y11_real
+    s[2] += y12 * fn; // Y11_imag
   }
   if (L_max >= 2) {
-    accumulate_s_one<2>(x12, y12, z12, fn, s);
+    s[3] += (3.0 * z12sq - 1.0) * fn; // Y20
+    s[4] += x12 * z12 * fn;           // Y21_real
+    s[5] += y12 * z12 * fn;           // Y21_imag
+    s[6] += x12sq_minus_y12sq * fn;   // Y22_real
+    s[7] += 2.0 * x12 * y12 * fn;     // Y22_imag
   }
   if (L_max >= 3) {
-    accumulate_s_one<3>(x12, y12, z12, fn, s);
+    s[8] += (5.0 * z12sq - 3.0) * z12 * fn;            // Y30
+    s[9] += (5.0 * z12sq - 1.0) * x12 * fn;            // Y31_real
+    s[10] += (5.0 * z12sq - 1.0) * y12 * fn;           // Y31_imag
+    s[11] += x12sq_minus_y12sq * z12 * fn;             // Y32_real
+    s[12] += 2.0 * x12 * y12 * z12 * fn;               // Y32_imag
+    s[13] += (x12 * x12 - 3.0 * y12 * y12) * x12 * fn; // Y33_real
+    s[14] += (3.0 * x12 * x12 - y12 * y12) * y12 * fn; // Y33_imag
   }
   if (L_max >= 4) {
-    accumulate_s_one<4>(x12, y12, z12, fn, s);
+    s[15] += ((35.0 * z12sq - 30.0) * z12sq + 3.0) * fn;                         // Y40
+    s[16] += (7.0 * z12sq - 3.0) * x12 * z12 * fn;                               // Y41_real
+    s[17] += (7.0 * z12sq - 3.0) * y12 * z12 * fn;                               // Y41_imag
+    s[18] += (7.0 * z12sq - 1.0) * x12sq_minus_y12sq * fn;                       // Y42_real
+    s[19] += (7.0 * z12sq - 1.0) * x12 * y12 * 2.0 * fn;                         // Y42_imag
+    s[20] += (x12sq - 3.0 * y12sq) * x12 * z12 * fn;                             // Y43_real
+    s[21] += (3.0 * x12sq - y12sq) * y12 * z12 * fn;                             // Y43_imag
+    s[22] += (x12sq_minus_y12sq * x12sq_minus_y12sq - 4.0 * x12sq * y12sq) * fn; // Y44_real
+    s[23] += (4.0 * x12 * y12 * x12sq_minus_y12sq) * fn;                         // Y44_imag
   }
   if (L_max >= 5) {
     accumulate_s_one<5>(x12, y12, z12, fn, s);

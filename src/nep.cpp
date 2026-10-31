@@ -72,6 +72,7 @@ void find_descriptor_small_box(
   bool calculating_B_projection,
   double* g_B_projection)
 {
+  const int num_abc = (paramb.L_max + 1) * (paramb.L_max + 1) - 1;
 #if defined(_OPENMP)
 #pragma omp parallel for
 #endif
@@ -170,8 +171,8 @@ void find_descriptor_small_box(
       find_q(
         paramb.L_max, paramb.has_q_222, paramb.has_q_1111, paramb.has_q_112, paramb.has_q_123,
         paramb.has_q_233, paramb.has_q_134, paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
-      for (int abc = 0; abc < NUM_OF_ABC; ++abc) {
-        g_sum_fxyz[(n * NUM_OF_ABC + abc) * N + n1] = s[abc];
+      for (int abc = 0; abc < num_abc; ++abc) {
+        g_sum_fxyz[(n * num_abc + abc) * N + n1] = s[abc];
       }
     }
 
@@ -359,6 +360,7 @@ void find_force_angular_small_box(
   double* g_fz,
   double* g_virial)
 {
+  const int num_abc = (paramb.L_max + 1) * (paramb.L_max + 1) - 1;
   for (int n1 = 0; n1 < N; ++n1) {
 
     double Fp[MAX_DIM_ANGULAR] = {0.0};
@@ -366,8 +368,10 @@ void find_force_angular_small_box(
     for (int d = 0; d < paramb.dim_angular; ++d) {
       Fp[d] = g_Fp[(paramb.n_max_radial + 1 + d) * N + n1];
     }
-    for (int d = 0; d < (paramb.n_max_angular + 1) * NUM_OF_ABC; ++d) {
-      sum_fxyz[d] = g_sum_fxyz[d * N + n1];
+    for (int n = 0; n <= paramb.n_max_angular; ++n) {
+      for (int abc = 0; abc < num_abc; ++abc) {
+        sum_fxyz[n * NUM_OF_ABC + abc] = g_sum_fxyz[(n * num_abc + abc) * N + n1];
+      }
     }
 
     int t1 = g_type[n1];
@@ -570,6 +574,7 @@ void find_descriptor_small_box(
   double* g_potential,
   double* g_descriptor)
 {
+  const int num_abc = (paramb.L_max + 1) * (paramb.L_max + 1) - 1;
 #if defined(_OPENMP)
 #pragma omp parallel for
 #endif
@@ -627,8 +632,8 @@ void find_descriptor_small_box(
       find_q(
         paramb.L_max, paramb.has_q_222, paramb.has_q_1111, paramb.has_q_112, paramb.has_q_123,
         paramb.has_q_233, paramb.has_q_134, paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
-      for (int abc = 0; abc < NUM_OF_ABC; ++abc) {
-        g_sum_fxyz[(n * NUM_OF_ABC + abc) * N + n1] = s[abc];
+      for (int abc = 0; abc < num_abc; ++abc) {
+        g_sum_fxyz[(n * num_abc + abc) * N + n1] = s[abc];
       }
     }
 
@@ -795,6 +800,7 @@ void find_force_angular_small_box(
   double* g_fz,
   double* g_virial)
 {
+  const int num_abc = (paramb.L_max + 1) * (paramb.L_max + 1) - 1;
   for (int n1 = 0; n1 < N; ++n1) {
 
     double Fp[MAX_DIM_ANGULAR] = {0.0};
@@ -803,8 +809,10 @@ void find_force_angular_small_box(
       Fp[d] = g_Fp[(paramb.n_max_radial + 1 + d) * N + n1] 
         + g_charge_derivative[(paramb.n_max_radial + 1 + d) * N + n1] * g_D_real[n1];
     }
-    for (int d = 0; d < (paramb.n_max_angular + 1) * NUM_OF_ABC; ++d) {
-      sum_fxyz[d] = g_sum_fxyz[d * N + n1];
+    for (int n = 0; n <= paramb.n_max_angular; ++n) {
+      for (int abc = 0; abc < num_abc; ++abc) {
+        sum_fxyz[n * NUM_OF_ABC + abc] = g_sum_fxyz[(n * num_abc + abc) * N + n1];
+      }
     }
 
     int t1 = g_type[n1];
@@ -974,14 +982,17 @@ void find_bec_angular_small_box(
   const double* g_sum_fxyz,
   double* g_bec)
 {
+  const int num_abc = (paramb.L_max + 1) * (paramb.L_max + 1) - 1;
   for (int n1 = 0; n1 < N; ++n1) {
     double Fp[MAX_DIM_ANGULAR] = {0.0};
     double sum_fxyz[NUM_OF_ABC * MAX_NUM_N];
     for (int d = 0; d < paramb.dim_angular; ++d) {
       Fp[d] = g_charge_derivative[(paramb.n_max_radial + 1 + d) * N + n1];
     }
-    for (int d = 0; d < (paramb.n_max_angular + 1) * NUM_OF_ABC; ++d) {
-      sum_fxyz[d] = g_sum_fxyz[d * N + n1];
+    for (int n = 0; n <= paramb.n_max_angular; ++n) {
+      for (int abc = 0; abc < num_abc; ++abc) {
+        sum_fxyz[n * NUM_OF_ABC + abc] = g_sum_fxyz[(n * num_abc + abc) * N + n1];
+      }
     }
     int t1 = g_type[n1];
     for (int i1 = 0; i1 < g_NN_angular[n1]; ++i1) {
@@ -1370,6 +1381,7 @@ void find_descriptor_for_lammps(
   double& g_total_potential,
   double* g_potential)
 {
+  const int num_abc = (paramb.L_max + 1) * (paramb.L_max + 1) - 1;
   for (int ii = 0; ii < N; ++ii) {
     int n1 = g_ilist[ii];
     int t1 = type_map[g_type[n1]]; // from LAMMPS to NEP convention
@@ -1467,8 +1479,8 @@ void find_descriptor_for_lammps(
       find_q(
         paramb.L_max, paramb.has_q_222, paramb.has_q_1111, paramb.has_q_112, paramb.has_q_123,
         paramb.has_q_233, paramb.has_q_134, paramb.n_max_angular + 1, n, s, q + (paramb.n_max_radial + 1));
-      for (int abc = 0; abc < NUM_OF_ABC; ++abc) {
-        g_sum_fxyz[(n * NUM_OF_ABC + abc) * nlocal + n1] = s[abc];
+      for (int abc = 0; abc < num_abc; ++abc) {
+        g_sum_fxyz[(n * num_abc + abc) * nlocal + n1] = s[abc];
       }
     }
 
@@ -1618,6 +1630,7 @@ void find_force_angular_for_lammps(
   double g_total_virial[6],
   double** g_virial)
 {
+  const int num_abc = (paramb.L_max + 1) * (paramb.L_max + 1) - 1;
   for (int ii = 0; ii < N; ++ii) {
     int n1 = g_ilist[ii];
     double Fp[MAX_DIM_ANGULAR] = {0.0};
@@ -1625,8 +1638,10 @@ void find_force_angular_for_lammps(
     for (int d = 0; d < paramb.dim_angular; ++d) {
       Fp[d] = g_Fp[(paramb.n_max_radial + 1 + d) * nlocal + n1];
     }
-    for (int d = 0; d < (paramb.n_max_angular + 1) * NUM_OF_ABC; ++d) {
-      sum_fxyz[d] = g_sum_fxyz[d * nlocal + n1];
+    for (int n = 0; n <= paramb.n_max_angular; ++n) {
+      for (int abc = 0; abc < num_abc; ++abc) {
+        sum_fxyz[n * NUM_OF_ABC + abc] = g_sum_fxyz[(n * num_abc + abc) * nlocal + n1];
+      }
     }
 
     int t1 = type_map[g_type[n1]]; // from LAMMPS to NEP convention
@@ -2062,7 +2077,7 @@ void NEP::allocate_memory(const int N)
     NL_angular.resize(N * MN);
     r12.resize(N * MN * 6);
     Fp.resize(N * annmb.dim);
-    sum_fxyz.resize(N * (paramb.n_max_angular + 1) * NUM_OF_ABC);
+    sum_fxyz.resize(N * (paramb.n_max_angular + 1) * ((paramb.L_max + 1) * (paramb.L_max + 1) - 1));
     if (paramb.charge_mode > 0) {
       D_real.resize(N);
       charge_derivative.resize(N * annmb.dim);
@@ -2693,7 +2708,8 @@ void NEP::compute_for_lammps(
 
   if (num_atoms < nlocal) {
     Fp.resize(nlocal * annmb.dim);
-    sum_fxyz.resize(nlocal * (paramb.n_max_angular + 1) * NUM_OF_ABC);
+    sum_fxyz.resize(
+      nlocal * (paramb.n_max_angular + 1) * ((paramb.L_max + 1) * (paramb.L_max + 1) - 1));
     num_atoms = nlocal;
   }
   find_descriptor_for_lammps(
