@@ -66,3 +66,40 @@ charge/BEC RMS. Nonfinite outputs or changes after repeated calls fail the run.
 A baseline signature mismatch is shown as `DIFF` and returns a nonzero status.
 These signatures are sanity checks; use `python3 tests/api/run_tests.py` for
 correctness regression tests. Benchmarks are not part of that default test suite.
+
+## Stage profiling
+
+```sh
+python3 benchmarks/run_benchmarks.py --profile --output benchmarks/results/profile.json
+```
+
+`--profile` adds a separate instrumented run for each case and thread count.
+The usual throughput table and `--compare` use the original uninstrumented
+driver, so existing baseline files remain usable. Profiling builds temporary
+copies of the two `compute` overloads and the benchmark driver; production
+sources and the API are unchanged. Profiling checks the expected stage call
+sites and their order, and stops if these anchors are missing or ambiguous.
+
+Two extra tables report mean milliseconds per call and percentages:
+
+| Column | Work included |
+| --- | --- |
+| `Setup` | Input checks, buffer preparation, and output initialization |
+| `Neighbor` | Radial/angular neighbor construction and relative displacements |
+| `Desc/ANN` | Descriptors, neural networks, and descriptor derivatives |
+| `Radial`, `Angular` | Radial and angular forces and virials |
+| `BEC` | qNEP charge neutrality correction, BEC calculation, and BEC scaling |
+| `Coulomb` | qNEP Ewald calculation, real-space or self-energy correction, and mean-charge-derivative correction |
+| `ZBL` | Optional ZBL block |
+| `Other` | Remainder of the enclosing batch, including calls, timer bookkeeping, and the benchmark loop |
+
+Warmup and calibration are excluded from stage statistics. Times are wall times,
+including completion of OpenMP work, not sums of worker CPU times. Stage times
+and percentages use all calls in the profiled batches and add up to the profiled
+total. This total can differ from the normal table's median because profiling
+is a separate run and instrumentation can affect generated code and timing.
+Use the normal table to judge speedups; use stage shares to locate bottlenecks.
+
+Each profiled run must match the normal run's numerical signatures and account
+for every timed `compute` call. Raw batch times, stage times, call counts, and
+instrumentation hashes are saved in the JSON result.

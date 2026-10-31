@@ -165,6 +165,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, help='new JSON result file (default: benchmarks/results/)')
     parser.add_argument('--compare', type=Path, help='compare against an earlier JSON result')
+    parser.add_argument('--profile', action='store_true', help='also report API stage timings from a separate build')
     parser.add_argument('--threads', type=positive_int, nargs='+', default=[1], help='thread counts (default: 1)')
     parser.add_argument('--mode', choices=('analytic', 'table'), default='analytic')
     parser.add_argument('--only', default='', help='run case names containing this text')
@@ -234,6 +235,11 @@ def main():
             print('Compiling benchmark driver...', flush=True)
             command_output(compiler + flags + ['-I', str(ROOT / 'src')] + list(map(str, sources)) +
                            ['-o', str(executable)])
+            if args.profile:
+                import stage_profile
+                print('Compiling stage profiling driver...', flush=True)
+                profile_executable, report['profiling_build'] = stage_profile.build(
+                    directory, ROOT, compiler, flags, command_output)
             for case in cases:
                 for count in threads:
                     print('Running {}: {} atoms, {} thread(s)...'.format(case['case'], case['atoms'], count), flush=True)
@@ -261,6 +267,14 @@ def main():
                             row['speedup'] = old['median_ms'] / median
                         else:
                             problems.append('{} / {} threads: numerical signatures differ'.format(case['case'], count))
+                    if args.profile:
+                        print('Profiling {}: {} thread(s)...'.format(case['case'], count), flush=True)
+                        profile_target = directory / 'profile_timing.json'
+                        command_output([str(profile_executable), str(case['model']), str(case['source']),
+                                        str(profile_target), str(args.repeats), str(args.seconds)],
+                                       env=dict(env, OMP_NUM_THREADS=str(count)), timeout=3600)
+                        row['profile'] = stage_profile.summarize(
+                            json.loads(profile_target.read_text()), row, args.repeats, same_signatures)
                     report['results'].append(row)
         print('\n{:<20} {:>7} {:>7} {:>12} {:>12} {:>9}{}'.format(
             'Case', 'Atoms', 'Threads', 'ms/call', 'katom-step/s', 'Spread %',
@@ -272,6 +286,8 @@ def main():
                 comparison += '{:.3f}x'.format(row['speedup']) if row['signatures_match'] else 'DIFF'
             print('{case:<20} {atoms:>7} {threads:>7} {median_ms:>12.3f} '
                   '{katom_steps_per_second:>12.2f} {spread_percent:>9.1f}'.format(**row) + comparison)
+        if args.profile:
+            stage_profile.print_report(report['results'])
         output.parent.mkdir(parents=True, exist_ok=True)
         with output.open('x') as stream:
             json.dump(report, stream, indent=2, allow_nan=False)
