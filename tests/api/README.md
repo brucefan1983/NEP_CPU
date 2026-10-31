@@ -38,7 +38,7 @@ compiler and OpenMP options.
 | Check | Purpose |
 | --- | --- |
 | `data/nep`, `data/qnep` saved references | Every force component, all nine per-atom virial components, and every descriptor component |
-| Saved finite-difference and GPU forces | Reproduce the original examples and compare with their GPUMD float32 results |
+| Saved finite-difference and GPU forces | Selected finite-difference force components and every GPUMD float32 force component |
 | Additional frozen results | Atomic energies, charges, BEC, typewise cutoffs, response models, latent space, B projection, ZBL, DFTD3, and the table build |
 | Energy derivatives | Coordinate finite differences for forces and all nine homogeneous strains for total virial |
 | All 64 many-body flag layouts | Selected force components and all strain components for ordinary NEP, qNEP1, and qNEP2 |
@@ -86,6 +86,12 @@ and `1.2e-4 eV/Angstrom` for qNEP. These are fixture-specific, based on the
 preserved float32 results, not general CPU/GPU accuracy bounds. Table results
 are checked against their own frozen results with the tight CPU tolerance;
 the additional historical analytic comparison allows interpolation error.
+
+Finite differences on the two 250-atom PbTe structures check all three coordinates
+of six fixed atoms per structure (three per element), covering different
+coordination environments and pairs near the radial/angular cutoffs. Saved
+CPU/GPU comparisons still check every atom; small synthetic fixtures retain
+their existing derivative checks.
 
 The original qNEP finite-difference step, `2e-4 Angstrom`, crosses a cutoff for
 some pairs. The suite reproduces those saved values and separately uses
