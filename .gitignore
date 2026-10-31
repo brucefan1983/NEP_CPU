@@ -43,3 +43,5 @@ interface/lammps/USER-NEP/nep.*
 # Temporary files
 *.out
 .ipynb_checkpoints
+
+benchmarks/results/
