@@ -63,6 +63,7 @@ this suite's intended usage.
 
 The PbTe models, structures, historical `*_ref.out` files, and `force_gpu.out`
 files are stored in `data/nep/` and `data/qnep/` next to the test scripts.
+The carbon model used for D3 checks is in `data/dftd3/`.
 `references.json` supplements them with results from
 unmodified commit `9bc09df9fb96dc0bf3facad6b34ce02deeaf1ffa`. It records input
 SHA-256 hashes and separate analytic/table results. Synthetic C/Si and C/Si/O fixtures have

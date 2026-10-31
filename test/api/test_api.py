@@ -332,7 +332,7 @@ class APITests(unittest.TestCase):
                             self.close(result['virial'], virial, 'ZBL per-atom virial', 3e-10, 3e-11)
 
     def test_dftd3(self):
-        model = ROOT / 'test_dftd3/C_2022_NEP4.txt'
+        model = ROOT / 'test/api/data/dftd3/nep.txt'
         frame = cluster()
         frame['type'] = [0] * len(frame['type'])
         for mode, backend in BACKENDS.items():

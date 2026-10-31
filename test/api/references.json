@@ -16,7 +16,7 @@
     "test/api/data/qnep/virial_ref.out": "4992992c02788b5d05062f9c1ae7a28c48d3b51fdd2693fb905a23d707a22e63",
     "test/api/data/qnep/descriptor_ref.out": "6ebf9e99c789eee7df5ac8bce618e464a18cc4e1717b9d57955ef34b7157735f",
     "test/api/data/qnep/force_gpu.out": "765f57e40e2a63a807dba97b923be6d3ad85b8e0cd9dc793bb0f2e2ae06acbf0",
-    "test_dftd3/C_2022_NEP4.txt": "97ae2010f2130aa85efbbc3867df651838a5115d7f2909fe172a61c7a299183b"
+    "test/api/data/dftd3/nep.txt": "97ae2010f2130aa85efbbc3867df651838a5115d7f2909fe172a61c7a299183b"
   },
   "synthetic_sha256": {
     "ordinary": "799c88faed0f1e58e51b869f2180779fb66a3c78de343ebb900f57ae772d157e",
