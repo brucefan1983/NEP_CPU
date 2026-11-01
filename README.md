@@ -1,10 +1,6 @@
 # NEP_CPU
 
-NEP_CPU is part of the [GPUMD](https://github.com/brucefan1983/GPUMD) project. It provides a standalone CPU implementation of GPUMD's NEP model evaluation routines for use in Python packages and LAMMPS.
-
-* A **standalone** C++ class (`NEP`) with **no external dependencies**.
-
-* An interface of the `NEP` class to the CPU version of LAMMPS (https://github.com/lammps/lammps). **It can be run with MPI**.
+NEP_CPU is part of the [GPUMD](https://github.com/brucefan1983/GPUMD) project. It provides a standalone CPU port of GPUMD's NEP model evaluation routines for use in Python packages and LAMMPS.
 
 ## Model files
 
@@ -18,7 +14,7 @@ python3 /path/to/GPUMD/potentials/nep/nep_model_converter.py nep_old.txt nep.txt
 
 ## C++ library
 
-The `NEP` class and its interfaces are defined in [`src/nep.h`](src/nep.h).
+The `NEP` class and its interfaces are defined in [`src/nep.h`](src/nep.h). Serial builds require no third-party libraries.
 
 ### Build and install with CMake
 
@@ -54,12 +50,14 @@ Compile your program together with `src/nep.cpp`, `src/nep_model_file.cpp`, `src
 
 The `NEP` class powers the following Python packages:
 
-* `calorine`: https://gitlab.com/materials-modeling/calorine
-* `PyNEP`: https://github.com/bigd4/PyNEP
-* `somd`: https://github.com/initqp/somd
-* `NepTrainKit`: https://github.com/aboys-cb/NepTrainKit
+* [calorine](https://gitlab.com/materials-modeling/calorine)
+* [PyNEP](https://github.com/bigd4/PyNEP)
+* [somd](https://github.com/initqp/somd)
+* [NepTrainKit](https://github.com/aboys-cb/NepTrainKit)
 
 ## LAMMPS interface
+
+The [LAMMPS](https://github.com/lammps/lammps) interface supports MPI.
 
 The NEP-LAMMPS interface supports NEP potential models, including their ZBL variants, with one hidden layer. qNEP, dipole, and polarizability models are not supported.
 
@@ -67,14 +65,12 @@ The NEP-LAMMPS interface supports NEP potential models, including their ZBL vari
 
 * Step 1: Copy the files in `src/` into `interface/lammps/USER-NEP/`.
 
-Command:
-
 ```
 cd ${software}/NEP_CPU
 cp src/* interface/lammps/USER-NEP
 ```
 
-* Step 2: Now you can copy the `USER-NEP/` folder into `YOUR_LAMMPS_PATH/src/` and start to compile LAMMPS in your favorite way.
+* Step 2: Copy `USER-NEP/` into the LAMMPS source directory, then build with make or CMake.
 
   If you are compiling LAMMPS using `make`, run `make yes-USER-NEP` before the final compilation. Replace `machine` below with the desired LAMMPS build target.
   
@@ -106,7 +102,7 @@ make install
 
 ### Usage
 
-* `atom_style` can be `atomic` and `full`
+* `atom_style` can be `atomic` or `full`
 * `units` must be `metal`
 * Set `pair_style` to `nep`. The first two arguments of `pair_coeff` must be `* *`, followed by the model file and one element mapping for each LAMMPS atom type. For example, if you have a NEP model `NEP_HBCN.txt` and your data file contains only carbon, use:
   ```shell
@@ -140,11 +136,11 @@ energy, force, and virial corrections in extended XYZ datasets.
 
 ## Citation
 
-* As NEP_CPU is part of GPUMD, please cite the following GPUMD 4.0 paper when using NEP_CPU:
+As NEP_CPU is part of GPUMD, please cite the following GPUMD 4.0 paper when using NEP_CPU:
 
-  * Ke Xu, Hekai Bu, Shuning Pan, Eric Lindgren, Yongchao Wu, Yong Wang, Jiahui Liu, Keke Song, Bin Xu, Yifan Li, Tobias Hainer, Lucas Svensson, Julia Wiktor, Rui Zhao, Hongfu Huang, Cheng Qian, Shuo Zhang, Zezhu Zeng, Bohan Zhang, Benrui Tang, Yang Xiao, Zihan Yan, Jiuyang Shi, Zhixin Liang, Junjie Wang, Ting Liang, Shuo Cao, Yanzhou Wang, Penghua Ying, Nan Xu, Chengbing Chen, Yuwen Zhang, Zherui Chen, Xin Wu, Wenwu Jiang, Esme Berger, Yanlong Li, Shunda Chen, Alexander J. Gabourie, Haikuan Dong, Shiyun Xiong, Ning Wei, Yue Chen, Jianbin Xu, Feng Ding, Zhimei Sun, Tapio Ala-Nissila, Ari Harju, Jincheng Zheng, Pengfei Guan, Paul Erhart, Jian Sun, Wengen Ouyang, Yanjing Su, Zheyong Fan, [GPUMD 4.0: A high-performance molecular dynamics package for versatile materials simulations with machine-learned potentials]( https://doi.org/10.1002/mgea.70028), MGE Advances **3**, e70028 (2025).
+Ke Xu, Hekai Bu, Shuning Pan, Eric Lindgren, Yongchao Wu, Yong Wang, Jiahui Liu, Keke Song, Bin Xu, Yifan Li, Tobias Hainer, Lucas Svensson, Julia Wiktor, Rui Zhao, Hongfu Huang, Cheng Qian, Shuo Zhang, Zezhu Zeng, Bohan Zhang, Benrui Tang, Yang Xiao, Zihan Yan, Jiuyang Shi, Zhixin Liang, Junjie Wang, Ting Liang, Shuo Cao, Yanzhou Wang, Penghua Ying, Nan Xu, Chengbing Chen, Yuwen Zhang, Zherui Chen, Xin Wu, Wenwu Jiang, Esme Berger, Yanlong Li, Shunda Chen, Alexander J. Gabourie, Haikuan Dong, Shiyun Xiong, Ning Wei, Yue Chen, Jianbin Xu, Feng Ding, Zhimei Sun, Tapio Ala-Nissila, Ari Harju, Jincheng Zheng, Pengfei Guan, Paul Erhart, Jian Sun, Wengen Ouyang, Yanjing Su, Zheyong Fan, [GPUMD 4.0: A high-performance molecular dynamics package for versatile materials simulations with machine-learned potentials]( https://doi.org/10.1002/mgea.70028), MGE Advances **3**, e70028 (2025).
 
-* If you use the LAMMPS interface of the `NEP` class, a proper citation for LAMMPS is also suggested. 
+If you use the LAMMPS interface, please also cite LAMMPS.
 
 ## License
 
