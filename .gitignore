@@ -45,3 +45,4 @@ interface/lammps/USER-NEP/nep.*
 .ipynb_checkpoints
 
 benchmarks/results/
+build/

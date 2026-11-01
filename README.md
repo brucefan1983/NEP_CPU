@@ -34,6 +34,32 @@ python3 /path/to/GPUMD/potentials/nep/nep_model_converter.py nep_old.txt nep.txt
   * `somd`: https://github.com/initqp/somd
   * `NepTrainKit`: https://github.com/aboys-cb/NepTrainKit
   
+## Build and install a library
+
+With CMake 3.16 or later:
+
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/path/to/install
+cmake --build build --parallel
+cmake --install build
+```
+
+The default is a static library with analytic radial functions and no OpenMP.
+Add `-DBUILD_SHARED_LIBS=ON` for a shared library, `-DNEP_CPU_OPENMP=ON` for
+OpenMP, or `-DNEP_CPU_USE_TABLE=ON` for tabulated radial functions.
+
+Downstream CMake projects can use:
+
+```cmake
+find_package(NEP_CPU CONFIG REQUIRED)
+target_link_libraries(program PRIVATE nep::nep_cpu)
+```
+
+Configure the downstream project with `-DCMAKE_PREFIX_PATH=/path/to/install`
+and include `nep.h` in its C++ code. The target supplies the required include
+directories, compile definitions, and link dependencies. The same target is
+also available when adding NEP_CPU with `add_subdirectory`.
+
 # D3 dataset corrections
 
 Use the [Python D3 tool](tools/dftd3/README.md) to add or subtract D3(BJ)

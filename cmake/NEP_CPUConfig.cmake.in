@@ -1,0 +1,9 @@
+@PACKAGE_INIT@
+
+if(@NEP_CPU_OPENMP@)
+  include(CMakeFindDependencyMacro)
+  find_dependency(OpenMP COMPONENTS CXX)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/NEP_CPUTargets.cmake")
+check_required_components(NEP_CPU)
